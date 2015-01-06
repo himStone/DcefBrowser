@@ -8,7 +8,7 @@ unit dcefb_Browser;
 
 // 编程资质尚浅 若发现BUG或是设计缺陷 希望能联系我
 // QQ: 1262807955
-// Email: 1262807955@qq.com
+// Email: bccsafe5988@gmail.com
 
 interface
 
@@ -244,6 +244,8 @@ type
     function GetBrowser: ICefBrowser;
     function GetUrl: string;
     procedure DebugPanelResize(Sender: TObject);
+    procedure MoveBrowserWin(Method: Integer);
+    function GetZoomLevel: string;
   public
     constructor Create(PageControl: TBorderLessPageControl;
       ParentItems: Pointer; DcefBrowser: Pointer; DefaultEncoding: ustring;
@@ -267,6 +269,9 @@ type
     procedure SearchText;
     procedure ExecuteJavaScript(Const code: string);
     procedure GetSource;
+    procedure AddZoomLevel;
+    procedure ReduceZoomLevel;
+    procedure ResetZoomLevel;
 
     property PageIndex: Integer read GetPageIndex;
     property PageID: Integer read FPageID;
@@ -276,6 +281,7 @@ type
     property canGoBack: Boolean read GetCanGoBack;
     property canGoForward: Boolean read GetCanGoForward;
     property URL: string read GetUrl;
+    property ZoomLevel: string read GetZoomLevel;
   end;
 
   TCustomDcefBrowser = class(TWinControl)
@@ -341,6 +347,7 @@ type
     function GetActivePageCanGoForward: Boolean;
     function GetNewPageID: Integer;
     function GetClosePageCount: Integer;
+    function GetZoomLevel: string;
   protected
     procedure doOnPageLoadingStateChange(const PageID: Integer;
       const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
@@ -484,6 +491,9 @@ type
     procedure SearchText;
     procedure ExecuteJavaScript(Const code: string);
     procedure GetSource;
+    procedure AddZoomLevel;
+    procedure ReduceZoomLevel;
+    procedure ResetZoomLevel;
 
     function GetPageByID(ID: Integer): TBrowserPage;
     function PageIDToIndex(PageID: Integer): Integer;
@@ -507,6 +517,7 @@ type
     property isLoading: Boolean read GetActivePageIsLoading;
     property canGoBack: Boolean read GetActivePageCanGoBack;
     property canGoForward: Boolean read GetActivePageCanGoForward;
+    property ZoomLevel: string read GetZoomLevel;
 
     property OnPageLoadingStateChange: TOnPageLoadingStateChange
       read FOnPageLoadingStateChange write FOnPageLoadingStateChange;
@@ -845,11 +856,14 @@ begin
     FBrowser.StopLoad;
     FBrowser.host.CloseBrowser(False);
   end;
+
   if FClientHandler <> nil then
     (FClientHandler as ICefClientHandler).Disconnect;
-  FBasicDcefBrowserEvents.Free;
+
   FClientHandler := nil;
   FBrowser := nil;
+  FBasicDcefBrowserEvents := nil;
+  FBasicDcefBrowserEvents.Free;
   inherited;
 end;
 
@@ -986,6 +1000,12 @@ begin
     ActivePage.Print;
 end;
 
+procedure TCustomDcefBrowser.ReduceZoomLevel;
+begin
+  if ActivePage <> nil then
+    ActivePage.ReduceZoomLevel;
+end;
+
 procedure TCustomDcefBrowser.Reload;
 begin
   if ActivePage <> nil then
@@ -1005,6 +1025,12 @@ begin
     AddPage(FClosedPageURL[0]);
     FClosedPageURL.Delete(0);
   end;
+end;
+
+procedure TCustomDcefBrowser.ResetZoomLevel;
+begin
+  if ActivePage <> nil then
+    ActivePage.ResetZoomLevel;
 end;
 
 procedure TCustomDcefBrowser.SearchText;
@@ -1082,7 +1108,8 @@ begin
 
     if (PageCount > 0) then
     begin
-      if NeedShowPage then ShowPage(Result);
+      if NeedShowPage then
+        ShowPage(Result);
     end
     else if FOptions.TerminateAppWhenAllPageClosed then
     begin
@@ -1165,6 +1192,12 @@ procedure TCustomDcefBrowser.DownloadFile(FileURL: string);
 begin
   if ActivePage <> nil then
     ActivePage.FBasicBrowser.FBrowser.host.StartDownload(FileURL);
+end;
+
+procedure TCustomDcefBrowser.AddZoomLevel;
+begin
+  if ActivePage <> nil then
+    ActivePage.AddZoomLevel;
 end;
 
 procedure TCustomDcefBrowser.CheckDownProIsCreate;
@@ -1551,6 +1584,13 @@ procedure TCustomDcefBrowser.GetSource;
 begin
   if ActivePage <> nil then
     AddPage('view-source:' + ActivePage.URL);
+end;
+
+function TCustomDcefBrowser.GetZoomLevel: string;
+begin
+  Result := '';
+  if ActivePage <> nil then
+    Result := ActivePage.ZoomLevel;
 end;
 
 procedure TCustomDcefBrowser.GoBack;
@@ -2337,6 +2377,12 @@ end;
 
 { TBrowserPage }
 
+procedure TBrowserPage.AddZoomLevel;
+begin
+  if browser.host.ZoomLevel < 9 then
+  browser.host.ZoomLevel := browser.host.ZoomLevel + 1;
+end;
+
 procedure TBrowserPage.BringSearchBarToFront;
 begin
   if FCreateByPopup and Assigned(FSearchTextBar) then
@@ -2344,8 +2390,6 @@ begin
 end;
 
 procedure TBrowserPage.BrowserPanelResize(Sender: TObject);
-var
-  MyRect: TRect;
 begin
   if Assigned(FSearchTextBar) and (FSearchTextBar.Visible) then
     FSearchTextBar.left := FBrowserPanel.Width - FSearchTextBar.Width - 20;
@@ -2355,9 +2399,7 @@ begin
   if FCreateByPopup and Assigned(FBasicBrowser) and
     (FBasicBrowser.FBrowser <> nil) then
   begin
-    MyRect := FBrowserPanel.ClientRect;
-    MoveWindow(FBasicBrowser.FBrowser.host.WindowHandle, 0, 0, MyRect.Width,
-      MyRect.Height, True);
+    MoveBrowserWin(0);
 
     if FPageControl.ActivePageIndex = FTabsheet.TabIndex then
       SetFocus;
@@ -2432,14 +2474,9 @@ begin
 end;
 
 procedure TBrowserPage.DebugPanelResize(Sender: TObject);
-var
-  MyRect: TRect;
 begin
   if Assigned(FDebugBrowserPanel) and (FDebugWinHandle <> 0) then
-  begin
-    MyRect := FDebugBrowserPanel.ClientRect;
-    MoveWindow(FDebugWinHandle, 0, 0, MyRect.Width, MyRect.Height, True);
-  end;
+    MoveBrowserWin(0);
 end;
 
 procedure TBrowserPage.DebugTool;
@@ -2449,7 +2486,6 @@ var
   Point: TPoint;
   WinHandle: HWND;
   WindowStyle: Integer;
-  MyRect: TRect;
   FDebugClientHandler: ICefClient;
   FBasicDcefBrowserEvents: TBasicDcefBrowserEvents;
 begin
@@ -2512,9 +2548,7 @@ begin
           WindowStyle := WindowStyle and (not WS_CAPTION) and (not WS_BORDER)
             and (not WS_THICKFRAME);
           SetWindowLong(WinHandle, GWL_STYLE, WindowStyle);
-          MyRect := FDebugBrowserPanel.ClientRect;
-          MoveWindow(FDebugWinHandle, 0, 0, MyRect.Width,
-            MyRect.Height + 1, True);
+          MoveBrowserWin(1);
         end;
       end;
     end;
@@ -2574,6 +2608,36 @@ begin
   Result := browser.MainFrame.URL;
 end;
 
+function TBrowserPage.GetZoomLevel: string;
+const
+  DoubleCases : Array[0..15] of Double = (-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  ResultCases : Array[0..15] of string = ('25%', '33%', '50%', '67%', '75%', '90%', '100%', '110%', '125%', '150%', '175%', '200%', '250%', '300%', '400%', '500%');
+var
+  ZoomIndex: Integer;
+
+  function DoubleIndex(Const aDouble: Double;
+  Const aCases: Array of Double; Var Index: Integer): Boolean;
+  var
+    LoopIndex: Integer;
+  begin
+    Result := False;
+    for LoopIndex := 0 to Pred(Length(aCases)) do
+      if aDouble = aCases[LoopIndex] then
+      begin
+        Index := LoopIndex;
+        Result := True;
+        Exit;
+      end;
+    Index := 0;
+  end;
+
+begin
+  if DoubleIndex(browser.host.ZoomLevel, DoubleCases, ZoomIndex) then
+    Result := ResultCases[ZoomIndex]
+  else
+    Result := FloatToStr(browser.host.ZoomLevel);
+end;
+
 procedure TBrowserPage.GoBack;
 begin
   FBasicBrowser.FBrowser.GoBack;
@@ -2592,9 +2656,30 @@ begin
     FBasicBrowser.FBrowser.MainFrame.LoadUrl(URL);
 end;
 
+procedure TBrowserPage.MoveBrowserWin(Method: Integer);
+var
+  MyRect: TRect;
+begin
+  MyRect := FBrowserPanel.ClientRect;
+  case Method of
+    0:
+      MoveWindow(FBasicBrowser.FBrowser.host.WindowHandle, 0, 0, MyRect.Width,
+        MyRect.Height, True);
+    1:
+      MoveWindow(FBasicBrowser.FBrowser.host.WindowHandle, 0, 0, MyRect.Width,
+        MyRect.Height + 1, True);
+  end;
+end;
+
 procedure TBrowserPage.Print;
 begin
   FBasicBrowser.FBrowser.host.Print;
+end;
+
+procedure TBrowserPage.ReduceZoomLevel;
+begin
+  if browser.host.ZoomLevel > -6 then
+  browser.host.ZoomLevel := browser.host.ZoomLevel - 1;
 end;
 
 procedure TBrowserPage.Reload;
@@ -2609,6 +2694,11 @@ begin
   SetFocus;
 end;
 
+procedure TBrowserPage.ResetZoomLevel;
+begin
+  browser.host.ZoomLevel := 0;
+end;
+
 procedure TBrowserPage.SearchText;
 begin
   if Not Assigned(FSearchTextBar) then
@@ -2617,6 +2707,7 @@ begin
     FSearchTextBar.Parent := FBrowserPanel;
   end;
 
+  MoveBrowserWin(1); // 防止花屏的情况出现
   BrowserPanelResize(nil);
   FSearchTextBar.Clear;
   FSearchTextBar.Show;

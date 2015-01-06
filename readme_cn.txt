@@ -6,7 +6,7 @@
 
  编程资质尚浅 若发现BUG或是设计缺陷 希望能联系我
  QQ: 1262807955
- Email: 1262807955@qq.com
+ Email: bccsafe5988@gmail.com
 
 
 
