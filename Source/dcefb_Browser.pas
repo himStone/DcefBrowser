@@ -15,10 +15,9 @@ interface
 uses
   Winapi.Windows, System.Classes, Vcl.Controls, Vcl.ComCtrls,
   Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, Generics.Collections,
-  System.SysUtils, Winapi.Messages, System.Math,
-  dcef3_ceffilescheme, dcef3_cefgui, dcef3_ceflib,
-  dcefb_BasicEvents, dcefb_BorderLessPC, dcefb_Events,
-  dcefb_DlManager, dcefb_Options, dcefb_BasicDialog, dcefb_Panel;
+  System.SysUtils, Winapi.Messages, System.Math, dcef3_cefgui, dcef3_ceflib,
+  dcefb_BasicEvents, dcefb_BorderLessPC, dcefb_Events, dcefb_DlManager,
+  dcefb_Options, dcefb_BasicDialog, dcefb_Panel;
 
 {$I dcef3_cef.inc}
 
@@ -466,13 +465,13 @@ type
 
     function AddPage(Const URL: string = ''; FShow: Boolean = True;
       AddAtLast: Boolean = True): Integer;
-    function ClosePage(PageIndex: Integer; Const NeedShowPage: Boolean = True)
-      : Integer; overload;
-    function ClosePage(ArrayPageID: Array of Integer;
-      Const NeedShowPage: Boolean = True; Const ShowPageID: Integer = -1)
+    function ClosePage(PageIndex: Integer;
+      Const AutoChooseShowPageID: Boolean = True;
+      Const ShowPageID: Integer = -1): Integer; overload;
+    function ClosePage(ArrayPageID: Array of Integer; ShowPageID: Integer)
       : Integer; overload;
     procedure CloseAllOtherPage(PageID: Integer);
-    procedure ShowPage(PageID: Integer; Const Focus: Boolean = False);
+    procedure ShowPage(PageID: Integer);
     procedure Load(Const URL: string);
     procedure SetPageFocus;
     procedure CopyPage(PageID: Integer; Const FShow: Boolean = True);
@@ -634,9 +633,6 @@ type
     property OnStartDragging;
     property OnUpdateDragCursor;
   end;
-
-procedure DcefBrowserInitializeFirst;
-procedure DcefBrowserInitializeNext;
 
 implementation
 
@@ -1045,8 +1041,7 @@ begin
     ActivePage.SetFocus;
 end;
 
-procedure TCustomDcefBrowser.ShowPage(PageID: Integer;
-  Const Focus: Boolean = False);
+procedure TCustomDcefBrowser.ShowPage(PageID: Integer);
 var
   PageIndex: Integer;
 begin
@@ -1069,28 +1064,29 @@ begin
   begin
     ID := Pages[Index].PageID;
     if PageID <> ID then
-      ClosePage(Index, False);
+      ClosePage(Index, False, -1);
   end;
-  ShowPage(PageID, True);
+  ShowPage(PageID);
 end;
 
-function TCustomDcefBrowser.ClosePage(ArrayPageID: array of Integer;
-  const NeedShowPage: Boolean; const ShowPageID: Integer): Integer;
+function TCustomDcefBrowser.ClosePage(ArrayPageID: Array of Integer;
+  ShowPageID: Integer): Integer;
 var
   Index: Integer;
 begin
   Result := -1;
   for Index := Low(ArrayPageID) to High(ArrayPageID) do
-    ClosePage(PageIDToIndex(ArrayPageID[Index]), False);
-  if NeedShowPage and (ShowPageID > -1) then
+    ClosePage(PageIDToIndex(ArrayPageID[Index]), False, -1);
+  if (ShowPageID > -1) then
   begin
     Result := ShowPageID;
-    ShowPage(ShowPageID, True);
+    ShowPage(ShowPageID);
   end;
 end;
 
 function TCustomDcefBrowser.ClosePage(PageIndex: Integer;
-  Const NeedShowPage: Boolean = True): Integer;
+  Const AutoChooseShowPageID: Boolean = True;
+  Const ShowPageID: Integer = -1): Integer;
 var
   FLastIndex: Boolean;
 begin
@@ -1100,16 +1096,24 @@ begin
     FLastIndex := PageIndex = (PageCount - 1);
     FClosedPageURL.Add(FPageItems[PageIndex].FBasicBrowser.FBrowser.
       MainFrame.URL);
-
     Result := PageIndexToID(IfThen(FLastIndex, PageIndex - 1, PageIndex));
-    doOnPageClose(FPageItems[PageIndex].PageID, Result);
+
+    if AutoChooseShowPageID then
+      doOnPageClose(FPageItems[PageIndex].PageID, Result)
+    else if ShowPageID <> -1 then
+      doOnPageClose(FPageItems[PageIndex].PageID, ShowPageID)
+    else
+      doOnPageClose(FPageItems[PageIndex].PageID, -1);
+
     FPageItems[PageIndex].Free;
     FPageItems.Delete(PageIndex);
 
     if (PageCount > 0) then
     begin
-      if NeedShowPage then
-        ShowPage(Result);
+      if AutoChooseShowPageID then
+        ShowPage(Result)
+      else if ShowPageID <> -1 then
+        ShowPage(ShowPageID);
     end
     else if FOptions.TerminateAppWhenAllPageClosed then
     begin
@@ -2380,7 +2384,7 @@ end;
 procedure TBrowserPage.AddZoomLevel;
 begin
   if browser.host.ZoomLevel < 9 then
-  browser.host.ZoomLevel := browser.host.ZoomLevel + 1;
+    browser.host.ZoomLevel := browser.host.ZoomLevel + 1;
 end;
 
 procedure TBrowserPage.BringSearchBarToFront;
@@ -2610,13 +2614,16 @@ end;
 
 function TBrowserPage.GetZoomLevel: string;
 const
-  DoubleCases : Array[0..15] of Double = (-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-  ResultCases : Array[0..15] of string = ('25%', '33%', '50%', '67%', '75%', '90%', '100%', '110%', '125%', '150%', '175%', '200%', '250%', '300%', '400%', '500%');
+  DoubleCases: Array [0 .. 15] of Double = (-6, -5, -4, -3, -2, -1, 0, 1, 2, 3,
+    4, 5, 6, 7, 8, 9);
+  ResultCases: Array [0 .. 15] of string = ('25%', '33%', '50%', '67%', '75%',
+    '90%', '100%', '110%', '125%', '150%', '175%', '200%', '250%', '300%',
+    '400%', '500%');
 var
   ZoomIndex: Integer;
 
-  function DoubleIndex(Const aDouble: Double;
-  Const aCases: Array of Double; Var Index: Integer): Boolean;
+  function DoubleIndex(Const aDouble: Double; Const aCases: Array of Double;
+  Var Index: Integer): Boolean;
   var
     LoopIndex: Integer;
   begin
@@ -2679,7 +2686,7 @@ end;
 procedure TBrowserPage.ReduceZoomLevel;
 begin
   if browser.host.ZoomLevel > -6 then
-  browser.host.ZoomLevel := browser.host.ZoomLevel - 1;
+    browser.host.ZoomLevel := browser.host.ZoomLevel - 1;
 end;
 
 procedure TBrowserPage.Reload;
@@ -2739,36 +2746,6 @@ procedure TBrowserPage.StopLoad;
 begin
   FBasicBrowser.FBrowser.StopLoad;
   SetFocus;
-end;
-
-procedure RegisterSchemes(const registrar: ICefSchemeRegistrar);
-begin
-  registrar.AddCustomScheme('local', True, True, False);
-end;
-
-procedure OnbeforeCmdLine(const processType: ustring;
-const commandLine: ICefCommandLine);
-begin
-  // commandLine.AppendSwitch('disable-gpu');
-  // 禁用GPU渲染 WIN8下部分显卡有黑屏问题
-end;
-
-procedure DcefBrowserInitializeFirst;
-begin
-  CefRemoteDebuggingPort := 9000;
-  CefPersistSessionCookies := True;
-
-  CefBrowserProcessHandler := TCefBrowserProcessHandlerOwn.Create;
-  CefOnBeforeCommandLineProcessing := OnbeforeCmdLine;
-  CefOnRegisterCustomSchemes := RegisterSchemes;
-end;
-
-procedure DcefBrowserInitializeNext;
-begin
-  CefAddWebPluginPath(ExtractFilePath(Paramstr(0)) +
-    'PepperFlash\pepflashplayer.dll');
-  CefRefreshWebPlugins();
-  CefRegisterSchemeHandlerFactory('local', '', False, TFileScheme);
 end;
 
 end.

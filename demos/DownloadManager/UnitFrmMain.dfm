@@ -38,6 +38,7 @@ object MainForm: TMainForm
     Options.TerminateAppWhenAllPageClosed = True
     Options.TerminateAppWhenDownloading = False
     Options.PopupNewWindow = False
+    Options.DebugToolAvailable = True
     Options.MainFormWinHandle = 0
     Options.AutoDown = True
     Options.DownLoadPath = 'H:\program files (x86)\Embarcadero\Studio\14.0\Bin\Download\'
