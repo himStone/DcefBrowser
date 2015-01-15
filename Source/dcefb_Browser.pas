@@ -1095,6 +1095,7 @@ function TCustomDcefBrowser.ClosePage(PageIndex: Integer;
   Const ShowPageID: Integer = -1): Integer;
 var
   FLastIndex: Boolean;
+  MyClosePageID, MyShowPageID: Integer;
 begin
   Result := -1;
   if (PageIndex > -1) and (PageIndex < PageCount) then
@@ -1102,14 +1103,16 @@ begin
     FLastIndex := PageIndex = (PageCount - 1);
     FClosedPageURL.Add(FPageItems[PageIndex].FBasicBrowser.FBrowser.
       MainFrame.URL);
-    Result := PageIndexToID(IfThen(FLastIndex, PageIndex - 1, PageIndex));
+    Result := PageIndexToID(IfThen(FLastIndex, PageIndex - 1, PageIndex + 1));
 
+    MyClosePageID := FPageItems[PageIndex].PageID;
     if AutoChooseShowPageID then
-      doOnPageClose(FPageItems[PageIndex].PageID, Result)
+      MyShowPageID := Result
     else if ShowPageID <> -1 then
-      doOnPageClose(FPageItems[PageIndex].PageID, ShowPageID)
+      MyShowPageID := ShowPageID
     else
-      doOnPageClose(FPageItems[PageIndex].PageID, -1);
+      MyShowPageID := -1;
+    doOnPageClose(MyClosePageID, MyShowPageID);
 
     FPageItems[PageIndex].Free;
     FPageItems.Delete(PageIndex);
@@ -2402,7 +2405,7 @@ end;
 procedure TBrowserPage.BrowserPanelResize(Sender: TObject);
 begin
   if Assigned(FSearchTextBar) and (FSearchTextBar.Visible) then
-    FSearchTextBar.left := FBrowserPanel.Width - FSearchTextBar.Width - 20;
+    FSearchTextBar.left := FPageControl.Width - FSearchTextBar.Width - 20;
 
   BringSearchBarToFront;
 
@@ -2484,9 +2487,15 @@ begin
 end;
 
 procedure TBrowserPage.DebugPanelResize(Sender: TObject);
+var
+  MyRect: TRect;
 begin
   if Assigned(FDebugBrowserPanel) and (FDebugWinHandle <> 0) then
-    MoveBrowserWin(0);
+  begin
+    MyRect := FDebugBrowserPanel.ClientRect;
+    MoveWindow(FDebugWinHandle, 0, 0, MyRect.Width,
+        MyRect.Height + 1, True);
+  end;
 end;
 
 procedure TBrowserPage.DebugTool;
@@ -2559,6 +2568,7 @@ begin
             and (not WS_THICKFRAME);
           SetWindowLong(WinHandle, GWL_STYLE, WindowStyle);
           MoveBrowserWin(1);
+          DebugPanelResize(nil);
         end;
       end;
     end;

@@ -132,15 +132,15 @@ end;
 procedure TMainForm.DcefBrowser1PageClose(const ClosePageID,
   ShowPageID: Integer);
 var
-  MyTabsheet: TTabsheet;
+  MyShowTabsheet, MyCloseTabsheet: TTabsheet;
 begin
-  MyTabsheet := GetTabsheetByPageID(ClosePageID);
-  if MyTabsheet <> nil then
-    MyTabsheet.Free;
+  MyShowTabsheet := GetTabsheetByPageID(ShowPageID);
+  MyCloseTabsheet := GetTabsheetByPageID(ClosePageID);
 
-  MyTabsheet := GetTabsheetByPageID(ShowPageID);
-  if (MyTabsheet <> nil) and (MyTabsheet <> PageControl.ActivePage) then
-    PageControl.ActivePage := MyTabsheet;
+  if MyCloseTabsheet <> nil then
+    MyCloseTabsheet.Free;
+  if (MyShowTabsheet <> nil) and (MyShowTabsheet <> PageControl.ActivePage) then
+    PageControl.ActivePage := MyShowTabsheet;
 end;
 
 procedure TMainForm.DcefBrowser1PageStateChange(const PageID: Integer;

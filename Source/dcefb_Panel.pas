@@ -19,7 +19,7 @@ implementation
 procedure TDcefB_Panel.WMGetDlgCode(var Message: TWMGetDlgCode);
 begin
   inherited;
-  Message.Result :=   Message.Result or DLGC_WANTARROWS or DLGC_WANTTAB;
+  Message.Result := Message.Result or DLGC_WANTARROWS or DLGC_WANTTAB;
 end;
 
 end.
