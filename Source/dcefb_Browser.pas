@@ -267,10 +267,13 @@ type
     procedure Print;
     procedure SearchText;
     procedure ExecuteJavaScript(Const code: string);
-    procedure GetSource;
     procedure AddZoomLevel;
     procedure ReduceZoomLevel;
     procedure ResetZoomLevel;
+    procedure GetSourceInNewPage;
+    function GetSource(var SourceText: string;
+      Const TimeOut: Integer = 1000): Boolean;
+    function GetText(var aText: string; Const TimeOut: Integer = 1000): Boolean;
 
     property PageIndex: Integer read GetPageIndex;
     property PageID: Integer read FPageID;
@@ -489,10 +492,13 @@ type
     procedure Print;
     procedure SearchText;
     procedure ExecuteJavaScript(Const code: string);
-    procedure GetSource;
     procedure AddZoomLevel;
     procedure ReduceZoomLevel;
     procedure ResetZoomLevel;
+    procedure GetSourceInNewPage;
+    function GetSource(var SourceText: string;
+      Const TimeOut: Integer = 1000): Boolean;
+    function GetText(var aText: string; Const TimeOut: Integer = 1000): Boolean;
 
     function GetPageByID(ID: Integer): TBrowserPage;
     function PageIDToIndex(PageID: Integer): Integer;
@@ -1593,10 +1599,26 @@ begin
     Result := FPageItems.Count;
 end;
 
-procedure TCustomDcefBrowser.GetSource;
+function TCustomDcefBrowser.GetSource(var SourceText: string;
+  Const TimeOut: Integer = 1000): Boolean;
+begin
+  Result := False;
+  if ActivePage <> nil then
+    Result := ActivePage.GetSource(SourceText, TimeOut);
+end;
+
+procedure TCustomDcefBrowser.GetSourceInNewPage;
 begin
   if ActivePage <> nil then
     AddPage('view-source:' + ActivePage.URL);
+end;
+
+function TCustomDcefBrowser.GetText(var aText: string;
+  const TimeOut: Integer): Boolean;
+begin
+  Result := False;
+  if ActivePage <> nil then
+    Result := ActivePage.GetText(aText, TimeOut);
 end;
 
 function TCustomDcefBrowser.GetZoomLevel: string;
@@ -2015,14 +2037,9 @@ end;
 
 procedure TBasicBrowser.BrowserBeforeResourceLoad(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest; out Result: Boolean);
-{ //uses typinfo
-  function EnumToStr(IEnum: TCefResourceType): string;
-  begin
-  Result := GetEnumName(Typeinfo(TCefResourceType), Ord(IEnum));
-  end; }
-
 begin
-  // senddebuginfo(EnumToStr(request.ResourceType));
+  TCustomDcefBrowser(FDcefBrowser).doOnBeforeResourceLoad(PageIndex, browser,
+    frame, request, Result);
 end;
 
 procedure TBasicBrowser.BrowserBeforeUnloadDialog(const browser: ICefBrowser;
@@ -2166,7 +2183,8 @@ procedure TBasicBrowser.BrowserGetResourceHandler(const browser: ICefBrowser;
 const frame: ICefFrame; const request: ICefRequest;
 out Result: ICefResourceHandler);
 begin
-  //
+  TCustomDcefBrowser(FDcefBrowser).doOnGetResourceHandler(PageIndex, browser,
+    frame, request, Result);
 end;
 
 procedure TBasicBrowser.BrowserGotFocus(const browser: ICefBrowser);
@@ -2493,8 +2511,7 @@ begin
   if Assigned(FDebugBrowserPanel) and (FDebugWinHandle <> 0) then
   begin
     MyRect := FDebugBrowserPanel.ClientRect;
-    MoveWindow(FDebugWinHandle, 0, 0, MyRect.Width,
-        MyRect.Height + 1, True);
+    MoveWindow(FDebugWinHandle, 0, 0, MyRect.Width, MyRect.Height + 1, True);
   end;
 end;
 
@@ -2618,9 +2635,100 @@ begin
   Result := TList<TBrowserPage>(FParentItems).IndexOf(Self);
 end;
 
-procedure TBrowserPage.GetSource;
+function TBrowserPage.GetSource(var SourceText: string;
+Const TimeOut: Integer = 1000): Boolean;
+var
+  WaitThread: TThread;
+  Msg: TMsg;
+  TempSource: string;
 begin
-  TCustomDcefBrowser(FDcefBrowser).GetSource;
+  SourceText := '';
+  TempSource := '';
+  Result := False;
+  { if browser.isLoading then
+    Exit; }
+
+  browser.MainFrame.GetSourceProc(
+    procedure(const Str: ustring)
+    begin
+      TempSource := Str;
+    end);
+
+  WaitThread := TThread.CreateAnonymousThread(
+    procedure
+    var
+      MyTime: Integer;
+    begin
+      while MyTime < TimeOut do
+      begin
+        Inc(MyTime, 5);
+        Sleep(5);
+      end;
+    end);
+  WaitThread.FreeOnTerminate := True;
+  WaitThread.Start;
+
+  while (TempSource = '') and Assigned(WaitThread) and
+    (Not WaitThread.Finished) do
+    while PeekMessage(Msg, 0, 0, 0, PM_REMOVE) do
+    begin
+      TranslateMessage(Msg);
+      DispatchMessage(Msg);
+    end;
+
+  SourceText := TempSource;
+  Result := Not SameText(SourceText, '');
+end;
+
+procedure TBrowserPage.GetSourceInNewPage;
+begin
+  TCustomDcefBrowser(FDcefBrowser).GetSourceInNewPage;
+end;
+
+function TBrowserPage.GetText(var aText: string;
+const TimeOut: Integer): Boolean;
+var
+  WaitThread: TThread;
+  Msg: TMsg;
+  TempText: string;
+begin
+  aText := '';
+  TempText := '';
+  Result := False;
+
+  { if browser.isLoading then
+    Exit; }
+
+  browser.MainFrame.GetTextProc(
+    procedure(const Str: ustring)
+    begin
+      TempText := Str;
+    end);
+
+  WaitThread := TThread.CreateAnonymousThread(
+    procedure
+    var
+      MyTime: Integer;
+    begin
+      while MyTime < TimeOut do
+      begin
+        Inc(MyTime, 5);
+        Sleep(5);
+      end;
+    end);
+  WaitThread.FreeOnTerminate := True;
+  WaitThread.Start;
+
+  while (TempText = '') and Assigned(WaitThread) and
+    (Not WaitThread.Finished) do
+    while PeekMessage(Msg, 0, 0, 0, PM_REMOVE) do
+    begin
+      TranslateMessage(Msg);
+      DispatchMessage(Msg);
+    end;
+
+  aText := TempText;
+  Result := Not SameText(aText, '');
 end;
 
 function TBrowserPage.GetUrl: string;
