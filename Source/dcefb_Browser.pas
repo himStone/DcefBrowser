@@ -1,8 +1,6 @@
 unit dcefb_Browser;
 
 // 基于Dcef3编写的 多标签多进程浏览器 框架
-// 由于TChromium的OnBeforePopup事件不能方便地处理新的弹出窗口
-// 开发较为麻烦,因此编写了TDcefBrowser
 // By BccSafe
 // Blog: http://www.bccsafe.com/
 
@@ -16,8 +14,8 @@ uses
   Winapi.Windows, System.Classes, Vcl.Controls, Vcl.ComCtrls,
   Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, Generics.Collections,
   System.SysUtils, Winapi.Messages, System.Math, dcef3_cefgui, dcef3_ceflib,
-  dcefb_BasicEvents, dcefb_BorderLessPC, dcefb_Events, dcefb_DlManager,
-  dcefb_Options, dcefb_BasicDialog, dcefb_Panel;
+  dcefb_BasicEvents, dcefb_BorderLessPC, dcefb_Events, dcefb_Options,
+  dcefb_BasicDialog, dcefb_Panel;
 
 {$I dcef3_cef.inc}
 
@@ -30,27 +28,17 @@ Const
   SUnloadDialogText = '确定要离开此页吗？';
 
 type
-  TBasicDownloadOSR = class(TWinControl)
-  private
-    FDcefBrowser: Pointer;
-    FBasicDcefBrowserEvents: TBasicDcefBrowserEvents;
-    FBrowser: ICefBrowser;
-    FClientHandler: ICefClient;
-    FBrowserId: Integer;
-
-    procedure BrowserBeforeDownload(const browser: ICefBrowser;
-      const downloadItem: ICefDownloadItem; const suggestedName: ustring;
-      const callback: ICefBeforeDownloadCallback);
-    procedure BrowserDownloadUpdated(const browser: ICefBrowser;
-      const downloadItem: ICefDownloadItem;
-      const callback: ICefDownloadItemCallback);
-
-    procedure CreateBrowser;
-    procedure GetSettings(var settings: TCefBrowserSettings);
+  TChromiumDevTools = class(TWinControl)
+  protected
+    procedure WndProc(var Message: TMessage); override;
+    procedure Resize; override;
   public
-    constructor Create(AOwner: TComponent; DcefBrowser: Pointer); reintroduce;
-    destructor Destroy; override;
-    procedure Download(URL: string);
+    procedure ShowDevTools(const browser: ICefBrowser;
+      inspectElementAt: PCefPoint = nil);
+    procedure CloseDevTools(const browser: ICefBrowser);
+  published
+    property Align;
+    property Visible;
   end;
 
   TBasicBrowser = class(TWinControl)
@@ -159,7 +147,7 @@ type
       port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback; out Result: Boolean);
     procedure BrowserConsoleMessage(const browser: ICefBrowser;
-      const message, source: ustring; line: Integer; out Result: Boolean);
+      const Message, source: ustring; line: Integer; out Result: Boolean);
     procedure BrowserProtocolExecution(const browser: ICefBrowser;
       const URL: ustring; out allowOsExecution: Boolean);
 
@@ -170,14 +158,16 @@ type
 
     procedure BrowserRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer;
-      const callback: ICefGeolocationCallback);
+      const callback: ICefGeolocationCallback; out Result: Boolean);
     procedure BrowserCancelGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer);
 
     procedure BrowserQuotaRequest(const browser: ICefBrowser;
       const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback; out Result: Boolean);
-    procedure BrowserGetCookieManager(out Result: ICefCookieManager);
+    procedure BrowserCertificateError(certError: TCefErrorCode;
+      const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
 
     procedure BrowserDragEnter(const browser: ICefBrowser;
       const dragData: ICefDragData; mask: TCefDragOperations;
@@ -187,6 +177,9 @@ type
       x, y: Integer; out Result: Boolean);
     procedure BrowserUpdateDragCursor(const browser: ICefBrowser;
       operation: TCefDragOperation);
+    procedure BrowserCursorChange(const browser: ICefBrowser;
+      cursor: TCefCursorHandle; cursorType: TCefCursorType;
+      const customCursorInfo: PCefCursorInfo);
 
     procedure LoadBrowserEvents;
 
@@ -196,7 +189,7 @@ type
     function GetPageIndex: Integer;
     function GetActived: Boolean;
   protected
-    procedure WndProc(var message: TMessage); override;
+    procedure WndProc(var Message: TMessage); override;
     procedure Resize; override;
   public
     constructor Create(AOwner: TComponent; ParentBrowserPage: Pointer;
@@ -219,7 +212,8 @@ type
   private
     FBasicBrowser: TBasicBrowser;
     FBrowserPanel: TDcefB_Panel;
-    FDebugBrowserPanel: TDcefB_Panel;
+    FDevToolsPanel: TDcefB_Panel;
+    FDevTools: TChromiumDevTools;
     FSplitter: TSplitter;
     FTabsheet: TTabSheet;
     FSearchTextBar: TSearchTextBar;
@@ -257,7 +251,7 @@ type
     procedure Close;
     procedure Load(Const URL: string);
     procedure SetFocus;
-    procedure DebugTool;
+    procedure DevTools;
 
     procedure GoBack;
     procedure GoForward;
@@ -289,9 +283,7 @@ type
   TCustomDcefBrowser = class(TWinControl)
   private
     FPageControl: TBorderLessPageControl;
-    FDownloadManager: TDcefBrowserDownloadManager;
     FPageItems: TList<TBrowserPage>;
-    FDownloadOSR: TBasicDownloadOSR;
     FClosedPageURL: TStringList;
 
     FOptions: TDcefBrowserOptions;
@@ -335,10 +327,11 @@ type
     FOnRequestGeolocationPermission: TOnRequestGeolocationPermission;
     FOnCancelGeolocationPermission: TOnCancelGeolocationPermission;
     FOnQuotaRequest: TOnQuotaRequest;
-    FOnGetCookieManager: TOnGetCookieManager;
+    FOnCertificateError: TOnCertificateError;
     FOnDragEnter: TOnDragEnter;
     FOnStartDragging: TOnStartDragging;
     FOnUpdateDragCursor: TOnUpdateDragCursor;
+    FOnCursorChange: TOnCursorChange;
 
     function GetPageByIndex(Index: Integer): TBrowserPage;
     function GetActivePageItem: TBrowserPage;
@@ -420,14 +413,17 @@ type
       const browser: ICefBrowser; const URL, policyUrl: ustring;
       const info: ICefWebPluginInfo; var CancelLoad: Boolean);
 
-    procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
-      Const Kind: TBrowserDownloadUpdatedKind);
+    { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
+      Const Kind: TBrowserDownloadUpdatedKind); }
+    procedure doOnDownloadUpdated(const PageIndex: Integer;
+      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const callback: ICefDownloadItemCallback);
     procedure doOnGetAuthCredentials(const PageIndex: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
       const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean);
     procedure doOnConsoleMessage(const PageIndex: Integer;
-      const browser: ICefBrowser; const message, source: ustring;
+      const browser: ICefBrowser; const Message, source: ustring;
       line: Integer);
     procedure doOnProtocolExecution(const PageIndex: Integer;
       const browser: ICefBrowser; const URL: ustring;
@@ -439,7 +435,8 @@ type
 
     procedure doOnRequestGeolocationPermission(const PageIndex: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
-      requestId: Integer; const callback: ICefGeolocationCallback);
+      requestId: Integer; const callback: ICefGeolocationCallback;
+      out Result: Boolean);
     procedure doOnCancelGeolocationPermission(const PageIndex: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer);
@@ -447,8 +444,9 @@ type
     procedure doOnQuotaRequest(const PageIndex: Integer;
       const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback; out Result: Boolean);
-    procedure doOnGetCookieManager(const PageIndex: Integer;
-      out Result: ICefCookieManager);
+    procedure doOnCertificateError(const PageIndex: Integer;
+      certError: TCefErrorCode; const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
 
     procedure doOnDragEnter(const PageIndex: Integer;
       const browser: ICefBrowser; const dragData: ICefDragData;
@@ -458,12 +456,14 @@ type
       allowedOps: TCefDragOperations; x, y: Integer; out Result: Boolean);
     procedure doOnUpdateDragCursor(const PageIndex: Integer;
       const browser: ICefBrowser; operation: TCefDragOperation);
-
+    procedure doOnCursorChange(const PageIndex: Integer;
+      const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure MainFormWndProc(var message: TMessage; const FormHandle: HWND);
+    procedure MainFormWndProc(var Message: TMessage; const FormHandle: HWND);
     // 处理窗口MainForm(不是游览器窗口)焦点问题
 
     function AddPage(Const URL: string = ''; FShow: Boolean = True;
@@ -479,9 +479,8 @@ type
     procedure SetPageFocus;
     procedure CopyPage(PageID: Integer; Const FShow: Boolean = True);
     procedure DownloadFile(FileURL: string);
-    procedure CheckDownProIsCreate;
 
-    procedure DebugTool;
+    procedure DevTools;
     procedure GoHome;
     procedure GoBack;
     procedure GoForward;
@@ -510,7 +509,6 @@ type
     property ActivePageID: Integer read FActivePageID write FActivePageID;
     property PageCount: Integer read GetPageCount;
     property ClosedPageCount: Integer read GetClosePageCount;
-    property DownloadManager: TDcefBrowserDownloadManager read FDownloadManager;
     property DefaultURL: ustring read FDefaultUrl write FDefaultUrl;
     property DefaultEncoding: ustring read FDefaultEncoding
       write FDefaultEncoding;
@@ -578,13 +576,15 @@ type
       read FOnCancelGeolocationPermission write FOnCancelGeolocationPermission;
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest
       write FOnQuotaRequest;
-    property OnGetCookieManager: TOnGetCookieManager read FOnGetCookieManager
-      write FOnGetCookieManager;
+    property OnCertificateError: TOnCertificateError read FOnCertificateError
+      write FOnCertificateError;
     property OnDragEnter: TOnDragEnter read FOnDragEnter write FOnDragEnter;
     property OnStartDragging: TOnStartDragging read FOnStartDragging
       write FOnStartDragging;
     property OnUpdateDragCursor: TOnUpdateDragCursor read FOnUpdateDragCursor
       write FOnUpdateDragCursor;
+    property OnCursorChange: TOnCursorChange read FOnCursorChange
+      write FOnCursorChange;
   end;
 
   TDcefBrowser = class(TCustomDcefBrowser)
@@ -634,10 +634,11 @@ type
     property OnRequestGeolocationPermission;
     property OnCancelGeolocationPermission;
     property OnQuotaRequest;
-    property OnGetCookieManager;
+    property OnCertificateError;
     property OnDragEnter;
     property OnStartDragging;
     property OnUpdateDragCursor;
+    property OnCursorChange;
   end;
 
 implementation
@@ -698,233 +699,6 @@ begin
   inherited;
 end;
 
-{ TBasicDownloadBrowser }
-
-procedure TBasicDownloadOSR.BrowserBeforeDownload(const browser: ICefBrowser;
-  const downloadItem: ICefDownloadItem; const suggestedName: ustring;
-  const callback: ICefBeforeDownloadCallback);
-var
-  MyOptions: TDcefBrowserOptions;
-  DownloadManager: TDcefBrowserDownloadManager;
-  DownLoadItemIndex: Integer;
-  SaveFullPath: string;
-
-  function RightPos(const SubStr, Str: string): Integer;
-  var
-    i, j, k, LenSub, LenS: Integer;
-  begin
-    Result := 0;
-    LenSub := Length(SubStr);
-    LenS := Length(Str);
-    k := 0;
-    if (LenSub = 0) or (LenS = 0) or (LenSub > LenS) then
-      Exit;
-    for i := LenS downto 1 do
-    begin
-      if Str[i] = SubStr[LenSub] then
-      begin
-        k := i - 1;
-        for j := LenSub - 1 downto 1 do
-        begin
-          if Str[k] = SubStr[j] then
-            Dec(k)
-          else
-            Break;
-        end;
-      end;
-      if i - k = LenSub then
-      begin
-        Result := k + 1;
-        Exit;
-      end;
-    end;
-  end;
-
-  function DealExistsFile(FilePath: string): string;
-  var
-    i: Integer;
-    Temps, Path, FileExt: string;
-  begin
-    if FileExists(FilePath) then
-    begin
-      Path := ExtractFilePath(FilePath);
-      Temps := ExtractFileName(FilePath);
-      FileExt := Temps;
-      Delete(FileExt, 1, RightPos('.', FileExt));
-      for i := 1 to 99 do
-      begin
-        Result := Path + copy(Temps, 0, RightPos('.', Temps) - 1) + '(' +
-          inttostr(i) + ').' + FileExt;
-        if Not FileExists(Result) then
-          Break;
-      end;
-    end
-    else
-      Result := FilePath;
-  end;
-
-begin
-
-  { if Not browser.HasDocument then
-    TBrowserPage(FParentBrowserPage).Close; }
-
-  DownloadManager := TCustomDcefBrowser(FDcefBrowser).DownloadManager;
-  DownLoadItemIndex := DownloadManager.ItemsIDToIndex(downloadItem.ID);
-  if DownLoadItemIndex <> -1 then
-  begin
-    MyOptions := TCustomDcefBrowser(FDcefBrowser).Options;
-    if Not DirectoryExists(MyOptions.DownLoadPath) then
-      CreateDir(MyOptions.DownLoadPath);
-    SaveFullPath := DealExistsFile(MyOptions.DownLoadPath + suggestedName);
-    DownloadManager.Items[DownLoadItemIndex].UpdataFileName(SaveFullPath);
-    callback.Cont(SaveFullPath, Not MyOptions.AutoDown);
-  end; // else
-end;
-
-procedure TBasicDownloadOSR.BrowserDownloadUpdated(const browser: ICefBrowser;
-  const downloadItem: ICefDownloadItem;
-  const callback: ICefDownloadItemCallback);
-var
-  MyDcefBrowser: TCustomDcefBrowser;
-  DownloadManager: TDcefBrowserDownloadManager;
-  DcefDownloadItem: TDcefDownloadItem;
-  DownLoadItemIndex: Integer;
-  DownloadComplete: Boolean;
-begin
-  if downloadItem.IsValid then
-  begin
-    MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
-    DownloadManager := MyDcefBrowser.DownloadManager;
-
-    DownLoadItemIndex := DownloadManager.ItemsIDToIndex(downloadItem.ID);
-    if DownLoadItemIndex = -1 then
-      DownloadManager.AddItem(downloadItem, MyDcefBrowser.OnDownloadUpdated)
-    else
-    begin
-      DcefDownloadItem := DownloadManager.Items[DownLoadItemIndex];
-      DcefDownloadItem.UpdateInfo(downloadItem, callback, DownloadComplete);
-
-      { if TBrowserPage(FParentBrowserPage).Hided and DownloadComplete then
-        begin
-        FBrowser.host.ParentWindowWillClose;
-        FBrowser.host.CloseBrowser(True);
-        end; }
-    end;
-
-  end;
-end;
-
-constructor TBasicDownloadOSR.Create(AOwner: TComponent; DcefBrowser: Pointer);
-begin
-  FDcefBrowser := DcefBrowser;
-  FBasicDcefBrowserEvents := TBasicDcefBrowserEvents.Create;
-  FBasicDcefBrowserEvents.OnBeforeDownload := BrowserBeforeDownload;
-  FBasicDcefBrowserEvents.OnDownloadUpdated := BrowserDownloadUpdated;
-
-  if not(csDesigning in ComponentState) then
-    FClientHandler := TVCLDcefClientHandler.Create
-      (FBasicDcefBrowserEvents, True);
-
-  FBrowserId := 0;
-  FBrowser := nil;
-end;
-
-procedure TBasicDownloadOSR.CreateBrowser;
-var
-  info: TCefWindowInfo;
-  settings: TCefBrowserSettings;
-begin
-  if not(csDesigning in ComponentState) then
-  begin
-    FillChar(info, SizeOf(info), 0);
-    info.windowless_rendering_enabled := Ord(True);
-    FillChar(settings, SizeOf(TCefBrowserSettings), 0);
-    settings.size := SizeOf(TCefBrowserSettings);
-    GetSettings(settings);
-{$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
-    CefBrowserHostCreate(@info, FHandler, FDefaultUrl, @settings);
-{$ELSE}
-    FBrowser := CefBrowserHostCreateSync(@info, FClientHandler, '',
-      @settings, nil);
-    FBrowserId := FBrowser.Identifier;
-{$ENDIF}
-  end;
-end;
-
-destructor TBasicDownloadOSR.Destroy;
-begin
-  if FBrowser <> nil then
-  begin
-    FBrowser.StopLoad;
-    FBrowser.host.CloseBrowser(False);
-  end;
-
-  if FClientHandler <> nil then
-    (FClientHandler as ICefClientHandler).Disconnect;
-
-  FClientHandler := nil;
-  FBrowser := nil;
-  FBasicDcefBrowserEvents := nil;
-  FBasicDcefBrowserEvents.Free;
-  inherited;
-end;
-
-procedure TBasicDownloadOSR.Download(URL: string);
-begin
-  FBrowser.host.StartDownload(URL);
-end;
-
-procedure TBasicDownloadOSR.GetSettings(var settings: TCefBrowserSettings);
-begin
-  Assert(settings.size >= SizeOf(settings));
-  with TCustomDcefBrowser(FDcefBrowser) do
-  begin
-    settings.windowless_frame_rate := FBasicOptions.WindowlessFrameRate;
-
-    settings.standard_font_family :=
-      CefString(FBasicFontOptions.StandardFontFamily);
-    settings.fixed_font_family := CefString(FBasicFontOptions.FixedFontFamily);
-    settings.serif_font_family := CefString(FBasicFontOptions.SerifFontFamily);
-    settings.sans_serif_font_family :=
-      CefString(FBasicFontOptions.SansSerifFontFamily);
-    settings.cursive_font_family :=
-      CefString(FBasicFontOptions.CursiveFontFamily);
-    settings.fantasy_font_family :=
-      CefString(FBasicFontOptions.FantasyFontFamily);
-    settings.default_font_size := FBasicFontOptions.DefaultFontSize;
-    settings.default_fixed_font_size := FBasicFontOptions.DefaultFixedFontSize;
-    settings.minimum_font_size := FBasicFontOptions.MinimumFontSize;
-    settings.minimum_logical_font_size :=
-      FBasicFontOptions.MinimumLogicalFontSize;
-    settings.remote_fonts := FBasicFontOptions.RemoteFonts;
-    settings.default_encoding := CefString(DefaultEncoding);
-
-    settings.javascript := FBasicOptions.javascript;
-    settings.javascript_open_windows := FBasicOptions.JavascriptOpenWindows;
-    settings.javascript_close_windows := FBasicOptions.JavascriptCloseWindows;
-    settings.javascript_access_clipboard :=
-      FBasicOptions.JavascriptAccessClipboard;
-    settings.javascript_dom_paste := FBasicOptions.JavascriptDomPaste;
-    settings.caret_browsing := FBasicOptions.CaretBrowsing;
-    settings.java := FBasicOptions.java;
-    settings.plugins := FBasicOptions.plugins;
-    settings.universal_access_from_file_urls :=
-      FBasicOptions.UniversalAccessFromFileUrls;
-    settings.file_access_from_file_urls := FBasicOptions.FileAccessFromFileUrls;
-    settings.web_security := FBasicOptions.WebSecurity;
-    settings.image_loading := FBasicOptions.ImageLoading;
-    settings.image_shrink_standalone_to_fit :=
-      FBasicOptions.ImageShrinkStandaloneToFit;
-    settings.text_area_resize := FBasicOptions.TextAreaResize;
-    settings.tab_to_links := FBasicOptions.TabToLinks;
-    settings.local_storage := FBasicOptions.LocalStorage;
-    settings.databases := FBasicOptions.databases;
-    settings.application_cache := FBasicOptions.ApplicationCache;
-    settings.webgl := FBasicOptions.webgl;
-    settings.background_color := FBasicOptions.BackgroundColor;
-  end;
-end;
-
 { TDcefBrowser }
 
 function TCustomDcefBrowser.AddPage(Const URL: string = '';
@@ -943,7 +717,7 @@ begin
   doOnPageAdd(PageID, AddAtLast);
 end;
 
-procedure TCustomDcefBrowser.MainFormWndProc(var message: TMessage;
+procedure TCustomDcefBrowser.MainFormWndProc(var Message: TMessage;
   const FormHandle: HWND);
 var
   ActivateMsg: TWMActivateApp;
@@ -966,12 +740,12 @@ begin
         end
         else if (FPageItems.Count > 0) and (ActivePage <> nil) then
         begin
-          if ActivePage.FCreateByPopup and (Options.MainFormWinHandle <> 0) then
+          if ActivePage.FCreateByPopup and (Options.FrmWinHandle <> 0) then
           begin
             if GetForegroundWindow = ActivePage.browser.host.WindowHandle then
             begin
               SetForegroundWindow(ActivePage.browser.host.WindowHandle);
-              SetWindowPos(Options.MainFormWinHandle, HWND_TOP, 0, 0, 0, 0,
+              SetWindowPos(Options.FrmWinHandle, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOSIZE or SWP_NOMOVE or SWP_NOACTIVATE);
             end;
           end
@@ -1130,7 +904,7 @@ begin
       else if ShowPageID <> -1 then
         ShowPage(ShowPageID);
     end
-    else if FOptions.TerminateAppWhenAllPageClosed then
+    else if FOptions.ExitPagesClosed then
     begin
       CefShutdown;
       ExitProcess(0);
@@ -1164,14 +938,13 @@ begin
   FBasicOptions := TChromiumOptions.Create;
 
   FPageItems := TList<TBrowserPage>.Create;
-  FDownloadManager := TDcefBrowserDownloadManager.Create();
   FClosedPageURL := TStringList.Create;
 end;
 
-procedure TCustomDcefBrowser.DebugTool;
+procedure TCustomDcefBrowser.DevTools;
 begin
   if ActivePage <> nil then
-    ActivePage.DebugTool;
+    ActivePage.DevTools;
 end;
 
 destructor TCustomDcefBrowser.Destroy;
@@ -1182,13 +955,11 @@ begin
     for i := 0 to FPageItems.Count - 1 do
       FPageItems[i].Free;
   FPageItems.Free;
-  FDownloadManager.Free;
   FClosedPageURL.Free;
   FPageControl.Free;
   FOptions.Free;
   FBasicFontOptions.Free;
   FBasicOptions.Free;
-  FDownloadOSR.Free;
   inherited;
 end;
 
@@ -1219,15 +990,6 @@ begin
     ActivePage.AddZoomLevel;
 end;
 
-procedure TCustomDcefBrowser.CheckDownProIsCreate;
-begin
-  if Not Assigned(FDownloadOSR) then
-  begin
-    FDownloadOSR := TBasicDownloadOSR.Create(nil, Pointer(Self));
-    FDownloadOSR.CreateBrowser;
-  end;
-end;
-
 procedure TCustomDcefBrowser.ExecuteJavaScript(const code: string);
 begin
   if ActivePage <> nil then
@@ -1241,12 +1003,22 @@ begin
     FOnDialogClosed(PageIndex, browser);
 end;
 
-procedure TCustomDcefBrowser.doOnDownloadUpdated(const DcefItemIndex: Integer;
-  const Kind: TBrowserDownloadUpdatedKind);
+procedure TCustomDcefBrowser.doOnDownloadUpdated(const PageIndex: Integer;
+  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const callback: ICefDownloadItemCallback);
 begin
-  if Assigned(FOnDownloadUpdated) and (DcefItemIndex > -1) then
-    FOnDownloadUpdated(DcefItemIndex, Kind);
+  if Assigned(FOnDownloadUpdated) and (PageIndex > -1) then
+    FOnDownloadUpdated(PageIndex, browser, downloadItem, callback);
 end;
+
+{
+  procedure TCustomDcefBrowser.doOnDownloadUpdated(const DcefItemIndex: Integer;
+  const Kind: TBrowserDownloadUpdatedKind);
+  begin
+  if Assigned(FOnDownloadUpdated) and (DcefItemIndex > -1) then
+  FOnDownloadUpdated(DcefItemIndex, Kind);
+  end;
+}
 
 procedure TCustomDcefBrowser.doOnDragEnter(const PageIndex: Integer;
   const browser: ICefBrowser; const dragData: ICefDragData;
@@ -1323,8 +1095,16 @@ begin
       requestId);
 end;
 
+procedure TCustomDcefBrowser.doOnCertificateError(const PageIndex: Integer;
+  certError: TCefErrorCode; const requestUrl: ustring;
+  const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
+begin
+  if Assigned(FOnCertificateError) then
+    FOnCertificateError(PageIndex, certError, requestUrl, callback, Result);
+end;
+
 procedure TCustomDcefBrowser.doOnConsoleMessage(const PageIndex: Integer;
-  const browser: ICefBrowser; const message, source: ustring; line: Integer);
+  const browser: ICefBrowser; const Message, source: ustring; line: Integer);
 begin
   if Assigned(FOnConsoleMessage) and (PageIndex > -1) then
     FOnConsoleMessage(PageIndex, browser, message, source, line);
@@ -1345,6 +1125,14 @@ procedure TCustomDcefBrowser.doOnContextMenuDismissed(const PageIndex: Integer;
 begin
   if Assigned(FOnContextMenuDismissed) and (PageIndex > -1) then
     FOnContextMenuDismissed(PageIndex, browser, frame);
+end;
+
+procedure TCustomDcefBrowser.doOnCursorChange(const PageIndex: Integer;
+  const browser: ICefBrowser; cursor: TCefCursorHandle;
+  cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
+begin
+  if Assigned(FOnCursorChange) then
+    FOnCursorChange(PageIndex, browser, cursor, cursorType, customCursorInfo);
 end;
 
 procedure TCustomDcefBrowser.doOnPageClose(const ClosePageID,
@@ -1370,13 +1158,6 @@ begin
   if Assigned(FOnGetAuthCredentials) and (PageIndex > -1) then
     FOnGetAuthCredentials(PageIndex, browser, frame, isProxy, host, port, realm,
       scheme, callback, CancelEventBuiltIn);
-end;
-
-procedure TCustomDcefBrowser.doOnGetCookieManager(const PageIndex: Integer;
-  out Result: ICefCookieManager);
-begin
-  if Assigned(FOnGetCookieManager) and (PageIndex > -1) then
-    FOnGetCookieManager(PageIndex, Result);
 end;
 
 procedure TCustomDcefBrowser.doOnGetResourceHandler(const PageIndex: Integer;
@@ -1461,11 +1242,12 @@ end;
 
 procedure TCustomDcefBrowser.doOnRequestGeolocationPermission(const PageIndex
   : Integer; const browser: ICefBrowser; const requestingUrl: ustring;
-  requestId: Integer; const callback: ICefGeolocationCallback);
+  requestId: Integer; const callback: ICefGeolocationCallback;
+  out Result: Boolean);
 begin
   if Assigned(FOnRequestGeolocationPermission) and (PageIndex > -1) then
     FOnRequestGeolocationPermission(PageIndex, browser, requestingUrl,
-      requestId, callback);
+      requestId, callback, Result);
 end;
 
 procedure TCustomDcefBrowser.doOnResourceRedirect(const PageIndex: Integer;
@@ -1834,7 +1616,7 @@ begin
   end;
 end;
 
-procedure TBasicBrowser.WndProc(var message: TMessage);
+procedure TBasicBrowser.WndProc(var Message: TMessage);
 begin
   case Message.Msg of
     WM_SETFOCUS:
@@ -1899,10 +1681,11 @@ begin
   FBasicDcefBrowserEvents.OnCancelGeolocationPermission :=
     BrowserCancelGeolocationPermission;
   FBasicDcefBrowserEvents.OnQuotaRequest := BrowserQuotaRequest;
-  FBasicDcefBrowserEvents.OnGetCookieManager := BrowserGetCookieManager;
   FBasicDcefBrowserEvents.OnDragEnter := BrowserDragEnter;
+  FBasicDcefBrowserEvents.OnCertificateError := BrowserCertificateError;
   FBasicDcefBrowserEvents.OnStartDragging := BrowserStartDragging;
   FBasicDcefBrowserEvents.OnUpdateDragCursor := BrowserUpdateDragCursor;
+  FBasicDcefBrowserEvents.OnCursorChange := BrowserCursorChange;
 end;
 
 procedure TBasicBrowser.BrowserAddressChange(const browser: ICefBrowser;
@@ -1922,7 +1705,7 @@ var
   // MyRect: TRect;
 begin
   MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
-  if browser.IsPopup and (Not MyDcefBrowser.Options.PopupNewWindow) then
+  if browser.IsPopup and (Not MyDcefBrowser.Options.PopupNewWin) then
   begin
     BrowserPage := TBrowserPage(FParentBrowserPage);
     if (BrowserPage.FBasicBrowser.FBrowserId = -1) and BrowserPage.FCreateByPopup
@@ -1968,14 +1751,84 @@ end;
 procedure TBasicBrowser.BrowserBeforeDownload(const browser: ICefBrowser;
   const downloadItem: ICefDownloadItem; const suggestedName: ustring;
   const callback: ICefBeforeDownloadCallback);
+
+// callback.cont(suggestedName, True);
+
 var
-  MyDcefBrowser: TCustomDcefBrowser;
+  MyOptions: TDcefBrowserOptions;
+  // DownLoadItemIndex: Integer;
+  SaveFullPath: string;
+
+  function RightPos(const SubStr, Str: string): Integer;
+  var
+    i, j, k, LenSub, LenS: Integer;
+  begin
+    Result := 0;
+    LenSub := Length(SubStr);
+    LenS := Length(Str);
+    k := 0;
+    if (LenSub = 0) or (LenS = 0) or (LenSub > LenS) then
+      Exit;
+    for i := LenS downto 1 do
+    begin
+      if Str[i] = SubStr[LenSub] then
+      begin
+        k := i - 1;
+        for j := LenSub - 1 downto 1 do
+        begin
+          if Str[k] = SubStr[j] then
+            Dec(k)
+          else
+            Break;
+        end;
+      end;
+      if i - k = LenSub then
+      begin
+        Result := k + 1;
+        Exit;
+      end;
+    end;
+  end;
+
+  function DealExistsFile(FilePath: string): string;
+  var
+    i: Integer;
+    Temps, Path, FileExt: string;
+  begin
+    if FileExists(FilePath) then
+    begin
+      Path := ExtractFilePath(FilePath);
+      Temps := ExtractFileName(FilePath);
+      FileExt := Temps;
+      Delete(FileExt, 1, RightPos('.', FileExt));
+      for i := 1 to 99 do
+      begin
+        Result := Path + copy(Temps, 0, RightPos('.', Temps) - 1) + '(' +
+          inttostr(i) + ').' + FileExt;
+        if Not FileExists(Result) then
+          Break;
+      end;
+    end
+    else
+      Result := FilePath;
+  end;
+
 begin
-  MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
-  MyDcefBrowser.CheckDownProIsCreate;
-  MyDcefBrowser.FDownloadOSR.Download(downloadItem.URL);
-  if Not browser.HasDocument then
-    TBrowserPage(FParentBrowserPage).Close;
+
+  { if Not browser.HasDocument then
+    TBrowserPage(FParentBrowserPage).Close; }
+
+  // DownloadManager := TCustomDcefBrowser(FDcefBrowser).DownloadManager;
+  // DownLoadItemIndex := DownloadManager.ItemsIDToIndex(downloadItem.ID);
+  // if DownLoadItemIndex <> -1 then
+  // begin
+  MyOptions := TCustomDcefBrowser(FDcefBrowser).Options;
+  if Not DirectoryExists(MyOptions.DownLoadPath) then
+    CreateDir(MyOptions.DownLoadPath);
+  SaveFullPath := DealExistsFile(MyOptions.DownLoadPath + suggestedName);
+  // DownloadManager.Items[DownLoadItemIndex].UpdataFileName(SaveFullPath);
+  callback.Cont(SaveFullPath, Not MyOptions.AutoDown);
+  // end; // else
 end;
 
 procedure TBasicBrowser.BrowserBeforePluginLoad(const browser: ICefBrowser;
@@ -2002,7 +1855,7 @@ begin
 
   if (browser.Identifier = FBrowserId) and
     (Not SameText(targetUrl, SBlankPageUrl)) and
-    (Not MyDcefBrowser.Options.PopupNewWindow) then
+    (Not MyDcefBrowser.Options.PopupNewWin) then
   begin
     NewBrowserPage := TBrowserPage.Create(MyBrowserPage.FPageControl,
       MyBrowserPage.FParentItems, FDcefBrowser, FDefaultEncoding,
@@ -2074,6 +1927,14 @@ begin
     browser, requestingUrl, requestId);
 end;
 
+procedure TBasicBrowser.BrowserCertificateError(certError: TCefErrorCode;
+const requestUrl: ustring; const callback: ICefAllowCertificateErrorCallback;
+out Result: Boolean);
+begin
+  TCustomDcefBrowser(FDcefBrowser).doOnCertificateError(PageIndex, certError,
+    requestUrl, callback, Result);
+end;
+
 procedure TBasicBrowser.BrowserClose(const browser: ICefBrowser;
 out Result: Boolean);
 begin
@@ -2082,7 +1943,7 @@ begin
 end;
 
 procedure TBasicBrowser.BrowserConsoleMessage(const browser: ICefBrowser;
-const message, source: ustring; line: Integer; out Result: Boolean);
+const Message, source: ustring; line: Integer; out Result: Boolean);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnConsoleMessage(PageIndex, browser,
     message, source, line);
@@ -2107,6 +1968,14 @@ begin
     browser, frame);
 end;
 
+procedure TBasicBrowser.BrowserCursorChange(const browser: ICefBrowser;
+cursor: TCefCursorHandle; cursorType: TCefCursorType;
+const customCursorInfo: PCefCursorInfo);
+begin
+  TCustomDcefBrowser(FDcefBrowser).doOnCursorChange(PageIndex, browser, cursor,
+    cursorType, customCursorInfo);
+end;
+
 procedure TBasicBrowser.BrowserDialogClosed(const browser: ICefBrowser);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnDialogClosed(PageIndex, browser);
@@ -2114,9 +1983,33 @@ end;
 
 procedure TBasicBrowser.BrowserDownloadUpdated(const browser: ICefBrowser;
 const downloadItem: ICefDownloadItem; const callback: ICefDownloadItemCallback);
+{ var
+  MyDcefBrowser: TCustomDcefBrowser;
+  DownloadManager: TDcefBrowserDownloadManager;
+  DcefDownloadItem: TDcefDownloadItem;
+  DownLoadItemIndex: Integer;
+  DownloadComplete: Boolean; }
 begin
-  callback.Cancel;
+  { if downloadItem.IsValid then
+    begin
+    MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
+    DownloadManager := MyDcefBrowser.DownloadManager;
 
+    DownLoadItemIndex := DownloadManager.ItemsIDToIndex(downloadItem.ID);
+    if DownLoadItemIndex = -1 then
+    DownloadManager.AddItem(downloadItem, MyDcefBrowser.OnDownloadUpdated)
+    else
+    begin
+    DcefDownloadItem := DownloadManager.Items[DownLoadItemIndex];
+    DcefDownloadItem.UpdateInfo(downloadItem, callback, DownloadComplete);
+
+    // if TBrowserPage(FParentBrowserPage).Hided and DownloadComplete then
+    //  begin
+    //  FBrowser.host.ParentWindowWillClose;
+    //  FBrowser.host.CloseBrowser(True);
+    //  end;
+    end;
+    end; }
 end;
 
 procedure TBasicBrowser.BrowserDragEnter(const browser: ICefBrowser;
@@ -2172,11 +2065,6 @@ begin
     if TempBool = True then
       callback.Cont(UserName, Password);
   end;
-end;
-
-procedure TBasicBrowser.BrowserGetCookieManager(out Result: ICefCookieManager);
-begin
-  TCustomDcefBrowser(FDcefBrowser).doOnGetCookieManager(PageIndex, Result);
 end;
 
 procedure TBasicBrowser.BrowserGetResourceHandler(const browser: ICefBrowser;
@@ -2338,8 +2226,8 @@ begin
     osEvent, isKeyboardShortcut, Result);
 
   if (event.windows_key_code = 123) and (event.Kind = KEYEVENT_KEYUP) and
-    TCustomDcefBrowser(FDcefBrowser).Options.DebugToolAvailable then
-    TBrowserPage(FParentBrowserPage).DebugTool; // F12
+    TCustomDcefBrowser(FDcefBrowser).Options.DevToolsEnable then
+    TBrowserPage(FParentBrowserPage).DevTools; // F12
 
   if (event.windows_key_code = 116) and (event.Kind = KEYEVENT_KEYUP) then
     TBrowserPage(FParentBrowserPage).ReloadIgnoreCache; // F5
@@ -2371,10 +2259,10 @@ end;
 
 procedure TBasicBrowser.BrowserRequestGeolocationPermission
   (const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer;
-const callback: ICefGeolocationCallback);
+const callback: ICefGeolocationCallback; out Result: Boolean);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnRequestGeolocationPermission(PageIndex,
-    browser, requestingUrl, requestId, callback);
+    browser, requestingUrl, requestId, callback, Result);
 end;
 
 procedure TBasicBrowser.BrowserResourceRedirect(const browser: ICefBrowser;
@@ -2508,14 +2396,14 @@ procedure TBrowserPage.DebugPanelResize(Sender: TObject);
 var
   MyRect: TRect;
 begin
-  if Assigned(FDebugBrowserPanel) and (FDebugWinHandle <> 0) then
+  if Assigned(FDevToolsPanel) and (FDebugWinHandle <> 0) then
   begin
-    MyRect := FDebugBrowserPanel.ClientRect;
+    MyRect := FDevToolsPanel.ClientRect;
     MoveWindow(FDebugWinHandle, 0, 0, MyRect.Width, MyRect.Height + 1, True);
   end;
 end;
 
-procedure TBrowserPage.DebugTool;
+procedure TBrowserPage.DevTools;
 var
   info: TCefWindowInfo;
   setting: TCefBrowserSettings;
@@ -2525,13 +2413,16 @@ var
   FDebugClientHandler: ICefClient;
   FBasicDcefBrowserEvents: TBasicDcefBrowserEvents;
 begin
-  if Assigned(FDebugBrowserPanel) then
+  if Assigned(FDevToolsPanel) then
   begin
-    FDebugBrowserPanel.Free;
-    FDebugBrowserPanel := nil;
+    if Assigned(browser) then
+      FDevTools.CloseDevTools(browser);
     FSplitter.Free;
     FSplitter := nil;
-    browser.host.CloseDevTools;
+    FDevTools.Free;
+    FDevTools := nil;
+    FDevToolsPanel.Free;
+    FDevToolsPanel := nil;
   end
   else
   begin
@@ -2541,53 +2432,26 @@ begin
       Parent := FTabsheet;
       Align := alBottom;
       Height := 3;
-      Cursor := crVSplit;
+      cursor := crVSplit;
     end;
 
-    FDebugBrowserPanel := TDcefB_Panel.Create(FTabsheet);
-    with FDebugBrowserPanel do
+    FDevToolsPanel := TDcefB_Panel.Create(FTabsheet);
+    with FDevToolsPanel do
     begin
       Parent := FTabsheet;
       Align := alBottom;
+      BevelOuter := bvNone;
       Height := Trunc(FPageControl.Height * 0.4);
       OnResize := DebugPanelResize;
+    end;
 
+    FDevTools := TChromiumDevTools.Create(FDevToolsPanel);
+    with FDevTools do
+    begin
+      Parent := FDevToolsPanel;
+      Align := alClient;
       if Assigned(FBasicBrowser.FBrowser) then
-      begin
-        FBasicDcefBrowserEvents := TBasicDcefBrowserEvents.Create;
-        FDebugClientHandler := TVCLDcefClientHandler.Create
-          (FBasicDcefBrowserEvents, True);
-
-        Point.x := FDebugBrowserPanel.left;
-        Point.y := FDebugBrowserPanel.top;
-        Point := FPageControl.ClientToScreen(Point);
-
-        FillChar(info, SizeOf(info), 0);
-        info.Style := WS_OVERLAPPEDWINDOW or WS_CLIPCHILDREN or
-          WS_CLIPSIBLINGS or WS_VISIBLE;
-        info.x := Point.x;
-        info.y := Point.y;
-        info.Width := FDebugBrowserPanel.Width;
-        info.Height := FDebugBrowserPanel.Height;
-        info.window_name := CefString('DevTools' + inttostr(PageIndex));
-        FillChar(setting, SizeOf(setting), 0);
-        setting.size := SizeOf(setting);
-        browser.host.ShowDevTools(@info, FDebugClientHandler, @setting);
-
-        WinHandle := FindWindow(nil, PChar('DevTools' + inttostr(PageIndex)));
-        if WinHandle > 0 then
-        begin
-          FDebugWinHandle := WinHandle;
-          Winapi.Windows.SetParent(WinHandle, FDebugBrowserPanel.Handle);
-          SetWindowPos(WinHandle, 0, 0, 0, 0, 0, SWP_NOSIZE or SWP_NOZORDER);
-          WindowStyle := GetWindowLong(WinHandle, GWL_STYLE);
-          WindowStyle := WindowStyle and (not WS_CAPTION) and (not WS_BORDER)
-            and (not WS_THICKFRAME);
-          SetWindowLong(WinHandle, GWL_STYLE, WindowStyle);
-          MoveBrowserWin(1);
-          DebugPanelResize(nil);
-        end;
-      end;
+        ShowDevTools(browser);
     end;
   end;
 end;
@@ -2596,7 +2460,7 @@ destructor TBrowserPage.Destroy;
 begin
   FBasicBrowser.Free;
   FSearchTextBar.Free;
-  FDebugBrowserPanel.Free;
+  FDevToolsPanel.Free;
   FBrowserPanel.Free;
   FSplitter.Free;
   FTabsheet.Free;
@@ -2644,7 +2508,6 @@ var
 begin
   SourceText := '';
   TempSource := '';
-  Result := False;
   { if browser.isLoading then
     Exit; }
 
@@ -2659,6 +2522,7 @@ begin
     var
       MyTime: Integer;
     begin
+      MyTime := 0;
       while MyTime < TimeOut do
       begin
         Inc(MyTime, 5);
@@ -2694,7 +2558,6 @@ var
 begin
   aText := '';
   TempText := '';
-  Result := False;
 
   { if browser.isLoading then
     Exit; }
@@ -2710,6 +2573,7 @@ begin
     var
       MyTime: Integer;
     begin
+      MyTime := 0;
       while MyTime < TimeOut do
       begin
         Inc(MyTime, 5);
@@ -2870,6 +2734,97 @@ procedure TBrowserPage.StopLoad;
 begin
   FBasicBrowser.FBrowser.StopLoad;
   SetFocus;
+end;
+
+{ TChromiumDevTools }
+
+procedure TChromiumDevTools.CloseDevTools(const browser: ICefBrowser);
+begin
+  if browser <> nil then
+  begin
+    Winapi.Windows.SetParent(GetWindow(Handle, GW_CHILD), 0);
+    browser.host.CloseDevTools;
+  end;
+end;
+
+procedure TChromiumDevTools.Resize;
+var
+  rect: TRect;
+  hdwp: THandle;
+  hndl: THandle;
+begin
+  inherited;
+  hndl := GetWindow(Handle, GW_CHILD);
+  if hndl = 0 then
+    Exit;
+
+  rect := GetClientRect;
+  hdwp := BeginDeferWindowPos(1);
+  try
+    hdwp := DeferWindowPos(hdwp, hndl, 0, rect.left, rect.top,
+      rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
+  finally
+    EndDeferWindowPos(hdwp);
+  end;
+end;
+
+procedure TChromiumDevTools.ShowDevTools(const browser: ICefBrowser;
+inspectElementAt: PCefPoint);
+var
+  info: TCefWindowInfo;
+  setting: TCefBrowserSettings;
+  rect: TRect;
+begin
+  if browser = nil then
+    Exit;
+
+  FillChar(info, SizeOf(info), 0);
+
+  info.parent_window := Handle;
+  info.Style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or
+    WS_TABSTOP;
+  rect := GetClientRect;
+  info.x := rect.left;
+  info.y := rect.top;
+  info.Width := rect.right - rect.left;
+  info.Height := rect.bottom - rect.top;
+  info.window_name := CefString('DevTools');
+
+  FillChar(setting, SizeOf(setting), 0);
+  setting.size := SizeOf(setting);
+
+  browser.host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @setting,
+    inspectElementAt);
+end;
+
+procedure TChromiumDevTools.WndProc(var Message: TMessage);
+var
+  hndl: THandle;
+begin
+  case Message.Msg of
+    WM_SETFOCUS:
+      begin
+        hndl := GetWindow(Handle, GW_CHILD);
+        if hndl <> 0 then
+          PostMessage(hndl, WM_SETFOCUS, Message.wParam, 0);
+        inherited WndProc(Message);
+      end;
+    WM_ERASEBKGND:
+      begin
+        hndl := GetWindow(Handle, GW_CHILD);
+        if (csDesigning in ComponentState) or (hndl = 0) then
+          inherited WndProc(Message);
+      end;
+    CM_WANTSPECIALKEY:
+      if not(TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN]) then
+        Message.Result := 1
+      else
+        inherited WndProc(Message);
+    WM_GETDLGCODE:
+      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS;
+  else
+    inherited WndProc(Message);
+  end;
 end;
 
 end.

@@ -121,7 +121,6 @@ var
 begin
   NewTab := TTabsheet.Create(PageControl);
   NewTab.Caption := '';
-  NewTab.Width := 100;
   NewTab.Tag := PageID;
   // NewTab.Parent := PageControl;
   NewTab.PageControl := PageControl;
@@ -169,7 +168,7 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   DcefBrowser1.BasicOptions.JavascriptOpenWindows := STATE_DISABLED;
-  DcefBrowser1.Options.MainFormWinHandle := Handle;
+  DcefBrowser1.Options.FrmWinHandle := Handle;
   AddButton.Click;
 end;
 

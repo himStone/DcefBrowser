@@ -40,7 +40,6 @@ contains
   dcefb_BasicEvents in '..\Source\dcefb_BasicEvents.pas',
   dcefb_BorderLessPC in '..\Source\dcefb_BorderLessPC.pas',
   dcefb_Browser in '..\Source\dcefb_Browser.pas',
-  dcefb_DlManager in '..\Source\dcefb_DlManager.pas',
   dcefb_Events in '..\Source\dcefb_Events.pas',
   dcefb_Options in '..\Source\dcefb_Options.pas',
   dcefb_Panel in '..\Source\dcefb_Panel.pas';

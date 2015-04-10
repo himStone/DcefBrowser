@@ -8,33 +8,35 @@ uses
 type
   TDcefBrowserOptions = class(TPersistent)
   private
-    FDefaultDownLoadPath: string; // 值为 APP路径\Download\
-    FTerminateAppWhenAllPageClosed: Boolean; // 所有标签关闭后是否终止APP 默认True
-    FTerminateAppWhenDownloading: Boolean;
+    FDftDownPath: string; // 值为 APP路径\Download\
+    FExitPagesClosed: Boolean; // 所有标签关闭后是否终止APP 默认True
+    {
+    FExitDownloading: Boolean;
     // 正在执行下载时是否终止APP并退出下载 只有FTerminateAppWhenAllPageClosed为True时这个设置才有效 默认为False
-    FPopupNewWindow: Boolean;
+    }
+    FPopupNewWin: Boolean;
     // 是否弹出新窗口 这样就和TChromium没区别了 这个新窗口将不受TDcefBrowser控制 默认为False
-    FDebugToolAvailable: Boolean;
+    FDevToolsEnable: Boolean;
     //是否允许使用F12 DebugTool 默认为True
-    FMainFormWinHandle: HWND;
+    FFrmWinHandle: HWND;
     // APP主窗体的Handle 这个设置是必要的！ 否则在某些情况下焦点会有问题 默认为0
 
     // ---------------------------------------------------------------------------
-    FAutoDown: Boolean; // 是否自动完成下载 默认True
+    FAutoDown: Boolean; // 是否自动下载至默认文件夹 默认False
     FDownLoadPath: string; // 下载路径 默认为FDefaultDownLoadPath
     procedure SetDownLoadPath(const value: string);
-    procedure SetDebugToolAvailable(const Value: Boolean);
+    procedure SetDevToolsEnable(const Value: Boolean);
   public
     constructor Create;
   published
-    property TerminateAppWhenAllPageClosed: Boolean
-      read FTerminateAppWhenAllPageClosed write FTerminateAppWhenAllPageClosed;
-    property TerminateAppWhenDownloading: Boolean
-      read FTerminateAppWhenDownloading write FTerminateAppWhenDownloading;
-    property PopupNewWindow: Boolean read FPopupNewWindow write FPopupNewWindow;
-    property DebugToolAvailable: Boolean read FDebugToolAvailable write SetDebugToolAvailable;
-    property MainFormWinHandle: HWND read FMainFormWinHandle
-      write FMainFormWinHandle;
+    property ExitPagesClosed: Boolean
+      read FExitPagesClosed write FExitPagesClosed;
+    {property ExitDownloading: Boolean
+      read FExitDownloading write FExitDownloading; }
+    property PopupNewWin: Boolean read FPopupNewWin write FPopupNewWin;
+    property DevToolsEnable: Boolean read FDevToolsEnable write SetDevToolsEnable;
+    property FrmWinHandle: HWND read FFrmWinHandle
+      write FFrmWinHandle;
     property AutoDown: Boolean read FAutoDown write FAutoDown;
     property DownLoadPath: string read FDownLoadPath write SetDownLoadPath;
   end;
@@ -45,19 +47,19 @@ implementation
 
 constructor TDcefBrowserOptions.Create;
 begin
-  FTerminateAppWhenAllPageClosed := True;
-  FTerminateAppWhenDownloading := False;
-  FDebugToolAvailable := True;
-  FPopupNewWindow := False;
-  FMainFormWinHandle := 0;
-  FAutoDown := True;
-  FDefaultDownLoadPath := ExtractFilePath(Paramstr(0)) + 'Download\';
-  FDownLoadPath := FDefaultDownLoadPath;
+  FExitPagesClosed := True;
+  //FExitDownloading := False;
+  FDevToolsEnable := True;
+  FPopupNewWin := False;
+  FFrmWinHandle := 0;
+  FAutoDown := False;
+  FDftDownPath := ExtractFilePath(Paramstr(0)) + 'Download\';
+  FDownLoadPath := FDftDownPath;
 end;
 
-procedure TDcefBrowserOptions.SetDebugToolAvailable(const Value: Boolean);
+procedure TDcefBrowserOptions.SetDevToolsEnable(const Value: Boolean);
 begin
-  FDebugToolAvailable := Value;
+  FDevToolsEnable := Value;
 end;
 
 procedure TDcefBrowserOptions.SetDownLoadPath(const value: string);
@@ -66,7 +68,7 @@ begin
     FDownLoadPath := IfThen(SameText(Copy(value, Length(value), 1), '\'), value,
       value + '\')
   else
-    FDownLoadPath := FDefaultDownLoadPath;
+    FDownLoadPath := FDftDownPath;
 end;
 
 end.

@@ -8,9 +8,9 @@ uses
 type
   TBrowserDataChangeKind = (BrowserDataChange_StatusMessage,
     BrowserDataChange_Address, BrowserDataChange_Title);
-  TBrowserDownloadUpdatedKind = (BrowserDownloadUpdated_Start,
+  { TBrowserDownloadUpdatedKind = (BrowserDownloadUpdated_Start,
     BrowserDownloadUpdated_Progress, BrowserDownloadUpdated_End,
-    BrowserDownloadUpdated_Canceled);
+    BrowserDownloadUpdated_Canceled); }
 
   TOnPageLoadingStateChange = procedure(const PageID: Integer;
     const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean)
@@ -80,8 +80,11 @@ type
   TOnDialogClosed = procedure(const PageIndex: Integer;
     const browser: ICefBrowser) of object;
 
-  TOnDownloadUpdated = procedure(Const DcefItemIndex: Integer;
-    Const Kind: TBrowserDownloadUpdatedKind) of object;
+  { TOnDownloadUpdated = procedure(Const DcefItemIndex: Integer;
+    Const Kind: TBrowserDownloadUpdatedKind) of object; }
+  TOnDownloadUpdated = procedure(const PageIndex: Integer;
+    const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+    const callback: ICefDownloadItemCallback) of object;
   TOnGetAuthCredentials = procedure(const PageIndex: Integer;
     const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
     const host: ustring; port: Integer; const realm, scheme: ustring;
@@ -106,7 +109,8 @@ type
 
   TOnRequestGeolocationPermission = procedure(const PageIndex: Integer;
     const browser: ICefBrowser; const requestingUrl: ustring;
-    requestId: Integer; const callback: ICefGeolocationCallback) of object;
+    requestId: Integer; const callback: ICefGeolocationCallback;
+    out Result: Boolean) of object;
   TOnCancelGeolocationPermission = procedure(const PageIndex: Integer;
     const browser: ICefBrowser; const requestingUrl: ustring;
     requestId: Integer) of object;
@@ -114,8 +118,6 @@ type
   TOnQuotaRequest = procedure(const PageIndex: Integer;
     const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
     const callback: ICefQuotaCallback; out Result: Boolean) of object;
-  TOnGetCookieManager = procedure(const PageIndex: Integer;
-    out Result: ICefCookieManager) of object;
 
   TOnDragEnter = procedure(const PageIndex: Integer; const browser: ICefBrowser;
     const dragData: ICefDragData; mask: TCefDragOperations; out Result: Boolean)
@@ -126,6 +128,16 @@ type
     of object;
   TOnUpdateDragCursor = procedure(const PageIndex: Integer;
     const browser: ICefBrowser; operation: TCefDragOperation) of object;
+
+  TOnCertificateError = procedure(const PageIndex: Integer;
+    certError: TCefErrorCode; const requestUrl: ustring;
+    const callback: ICefAllowCertificateErrorCallback; out Result: Boolean)
+    of object;
+
+  TOnCursorChange = procedure(const PageIndex: Integer;
+    const browser: ICefBrowser; cursor: TCefCursorHandle;
+    cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo)
+    of object;
 
   IDcefBrowserEvents = interface
     procedure doOnPageLoadingStateChange(const PageID: Integer;
@@ -197,8 +209,8 @@ type
       const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo; var CancelLoad: Boolean);
 
-    procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
-      Const Kind: TBrowserDownloadUpdatedKind);
+    { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
+      Const Kind: TBrowserDownloadUpdatedKind); }
     procedure doOnGetAuthCredentials(const PageIndex: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
       const host: ustring; port: Integer; const realm, scheme: ustring;
@@ -215,7 +227,8 @@ type
 
     procedure doOnRequestGeolocationPermission(const PageIndex: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
-      requestId: Integer; const callback: ICefGeolocationCallback);
+      requestId: Integer; const callback: ICefGeolocationCallback;
+      out Result: Boolean);
     procedure doOnCancelGeolocationPermission(const PageIndex: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer);
@@ -223,8 +236,6 @@ type
     procedure doOnQuotaRequest(const PageIndex: Integer;
       const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback; out Result: Boolean);
-    procedure doOnGetCookieManager(const PageIndex: Integer;
-      out Result: ICefCookieManager);
 
     procedure doOnDragEnter(const PageIndex: Integer;
       const browser: ICefBrowser; const dragData: ICefDragData;
@@ -234,6 +245,13 @@ type
       allowedOps: TCefDragOperations; x, y: Integer; out Result: Boolean);
     procedure doOnUpdateDragCursor(const PageIndex: Integer;
       const browser: ICefBrowser; operation: TCefDragOperation);
+    procedure doOnCertificateError(const PageIndex: Integer;
+      certError: TCefErrorCode; const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
+
+    procedure doOnCursorChange(const PageIndex: Integer;
+      const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
   end;
 
   TDcefBrowserEvents = class(TInterfacedObject, IDcefBrowserEvents)
@@ -280,11 +298,12 @@ type
     FOnCancelGeolocationPermission: TOnCancelGeolocationPermission;
 
     FOnQuotaRequest: TOnQuotaRequest;
-    FOnGetCookieManager: TOnGetCookieManager;
+    FOnCertificateError: TOnCertificateError;
 
     FOnDragEnter: TOnDragEnter;
     FOnStartDragging: TOnStartDragging;
     FOnUpdateDragCursor: TOnUpdateDragCursor;
+    FOnCursorChange: TOnCursorChange;
   protected
     procedure doOnPageLoadingStateChange(const PageID: Integer;
       const browser: ICefBrowser; isLoading, canGoBack,
@@ -362,8 +381,11 @@ type
       const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo; var CancelLoad: Boolean); virtual;
 
-    procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
-      Const Kind: TBrowserDownloadUpdatedKind); virtual;
+    { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
+      Const Kind: TBrowserDownloadUpdatedKind); virtual; }
+    procedure doOnDownloadUpdated(const PageIndex: Integer;
+      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const callback: ICefDownloadItemCallback); virtual;
     procedure doOnGetAuthCredentials(const PageIndex: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
       const host: ustring; port: Integer; const realm, scheme: ustring;
@@ -382,7 +404,8 @@ type
 
     procedure doOnRequestGeolocationPermission(const PageIndex: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
-      requestId: Integer; const callback: ICefGeolocationCallback); virtual;
+      requestId: Integer; const callback: ICefGeolocationCallback;
+      out Result: Boolean); virtual;
     procedure doOnCancelGeolocationPermission(const PageIndex: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer); virtual;
@@ -390,8 +413,10 @@ type
     procedure doOnQuotaRequest(const PageIndex: Integer;
       const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback; out Result: Boolean); virtual;
-    procedure doOnGetCookieManager(const PageIndex: Integer;
-      out Result: ICefCookieManager); virtual;
+    procedure doOnCertificateError(const PageIndex: Integer;
+      certError: TCefErrorCode; const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback;
+      out Result: Boolean); virtual;
 
     procedure doOnDragEnter(const PageIndex: Integer;
       const browser: ICefBrowser; const dragData: ICefDragData;
@@ -402,6 +427,10 @@ type
       out Result: Boolean); virtual;
     procedure doOnUpdateDragCursor(const PageIndex: Integer;
       const browser: ICefBrowser; operation: TCefDragOperation); virtual;
+    procedure doOnCursorChange(const PageIndex: Integer;
+      const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType;
+      const customCursorInfo: PCefCursorInfo); virtual;
   public
     destructor Destroy; override;
     property OnPageLoadingStateChange: TOnPageLoadingStateChange
@@ -458,13 +487,15 @@ type
       read FOnCancelGeolocationPermission write FOnCancelGeolocationPermission;
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest
       write FOnQuotaRequest;
-    property OnGetCookieManager: TOnGetCookieManager read FOnGetCookieManager
-      write FOnGetCookieManager;
+    property OnCertificateError: TOnCertificateError read FOnCertificateError
+      write FOnCertificateError;
     property OnDragEnter: TOnDragEnter read FOnDragEnter write FOnDragEnter;
     property OnStartDragging: TOnStartDragging read FOnStartDragging
       write FOnStartDragging;
     property OnUpdateDragCursor: TOnUpdateDragCursor read FOnUpdateDragCursor
       write FOnUpdateDragCursor;
+    property OnCursorChange: TOnCursorChange read FOnCursorChange
+      write FOnCursorChange;
   end;
 
 implementation
@@ -499,12 +530,22 @@ begin
     FOnDialogClosed(PageIndex, browser);
 end;
 
-procedure TDcefBrowserEvents.doOnDownloadUpdated(const DcefItemIndex: Integer;
-  const Kind: TBrowserDownloadUpdatedKind);
+procedure TDcefBrowserEvents.doOnDownloadUpdated(const PageIndex: Integer;
+  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const callback: ICefDownloadItemCallback);
 begin
   if Assigned(FOnDownloadUpdated) then
-    FOnDownloadUpdated(DcefItemIndex, Kind);
+    FOnDownloadUpdated(PageIndex, browser, downloadItem, callback);
 end;
+
+{
+  procedure TDcefBrowserEvents.doOnDownloadUpdated(const DcefItemIndex: Integer;
+  const Kind: TBrowserDownloadUpdatedKind);
+  begin
+  if Assigned(FOnDownloadUpdated) then
+  FOnDownloadUpdated(DcefItemIndex, Kind);
+  end;
+}
 
 procedure TDcefBrowserEvents.doOnDragEnter(const PageIndex: Integer;
   const browser: ICefBrowser; const dragData: ICefDragData;
@@ -581,6 +622,14 @@ begin
       requestId);
 end;
 
+procedure TDcefBrowserEvents.doOnCertificateError(const PageIndex: Integer;
+  certError: TCefErrorCode; const requestUrl: ustring;
+  const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
+begin
+  if Assigned(FOnCertificateError) then
+    FOnCertificateError(PageIndex, certError, requestUrl, callback, Result);
+end;
+
 procedure TDcefBrowserEvents.doOnConsoleMessage(const PageIndex: Integer;
   const browser: ICefBrowser; const message, source: ustring; line: Integer);
 begin
@@ -603,6 +652,14 @@ procedure TDcefBrowserEvents.doOnContextMenuDismissed(const PageIndex: Integer;
 begin
   if Assigned(FOnContextMenuDismissed) then
     FOnContextMenuDismissed(PageIndex, browser, frame);
+end;
+
+procedure TDcefBrowserEvents.doOnCursorChange(const PageIndex: Integer;
+  const browser: ICefBrowser; cursor: TCefCursorHandle;
+  cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
+begin
+  if Assigned(FOnCursorChange) then
+    FOnCursorChange(PageIndex, browser, cursor, cursorType, customCursorInfo);
 end;
 
 procedure TDcefBrowserEvents.doOnPageClose(const ClosePageID,
@@ -628,13 +685,6 @@ begin
   if Assigned(FOnGetAuthCredentials) then
     FOnGetAuthCredentials(PageIndex, browser, frame, isProxy, host, port, realm,
       scheme, callback, CancelEventBuiltIn);
-end;
-
-procedure TDcefBrowserEvents.doOnGetCookieManager(const PageIndex: Integer;
-  out Result: ICefCookieManager);
-begin
-  if Assigned(FOnGetCookieManager) then
-    FOnGetCookieManager(PageIndex, Result);
 end;
 
 procedure TDcefBrowserEvents.doOnGetResourceHandler(const PageIndex: Integer;
@@ -719,11 +769,12 @@ end;
 
 procedure TDcefBrowserEvents.doOnRequestGeolocationPermission(const PageIndex
   : Integer; const browser: ICefBrowser; const requestingUrl: ustring;
-  requestId: Integer; const callback: ICefGeolocationCallback);
+  requestId: Integer; const callback: ICefGeolocationCallback;
+  out Result: Boolean);
 begin
   if Assigned(FOnRequestGeolocationPermission) then
     FOnRequestGeolocationPermission(PageIndex, browser, requestingUrl,
-      requestId, callback);
+      requestId, callback, Result);
 end;
 
 procedure TDcefBrowserEvents.doOnResourceRedirect(const PageIndex: Integer;

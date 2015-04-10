@@ -14,10 +14,8 @@ begin
   CefRemoteDebuggingPort := 9000;
   if not CefLoadLibDefault then
     Exit;
-  CefRegisterSchemeHandlerFactory('local', '', False, TFileScheme);
-
+  CefRegisterSchemeHandlerFactory('local', '', TFileScheme);
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
-
 end.

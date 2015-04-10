@@ -129,7 +129,6 @@
         <DCCReference Include="..\Source\dcefb_BasicEvents.pas"/>
         <DCCReference Include="..\Source\dcefb_BorderLessPC.pas"/>
         <DCCReference Include="..\Source\dcefb_Browser.pas"/>
-        <DCCReference Include="..\Source\dcefb_DlManager.pas"/>
         <DCCReference Include="..\Source\dcefb_Events.pas"/>
         <DCCReference Include="..\Source\dcefb_Options.pas"/>
         <DCCReference Include="..\Source\dcefb_Panel.pas"/>

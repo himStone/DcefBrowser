@@ -36,8 +36,6 @@ type
   TOnLoadEnd = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer) of object;
   TOnLoadError = procedure(Sender: TObject; const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
     const errorText, failedUrl: ustring) of object;
-  TOnRenderProcessTerminated = procedure(Sender: TObject; const browser: ICefBrowser; status: TCefTerminationStatus) of object;
-  TOnPluginCrashed = procedure(Sender: TObject; const browser: ICefBrowser; const pluginPath: ustring) of object;
 
   TOnTakeFocus = procedure(Sender: TObject; const browser: ICefBrowser; next: Boolean) of object;
   TOnSetFocus = procedure(Sender: TObject; const browser: ICefBrowser; source: TCefFocusSource; out Result: Boolean) of object;
@@ -104,12 +102,15 @@ type
   TOnQuotaRequest = procedure(Sender: TObject; const browser: ICefBrowser;
     const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
     out Result: Boolean) of object;
-  TOnGetCookieManager = procedure(Sender: TObject; const browser: ICefBrowser;
-    const mainUrl: ustring; out Result: ICefCookieManager) of object;
   TOnProtocolExecution = procedure(Sender: TObject; const browser: ICefBrowser;
-    const url: ustring; out allowOsExecution: Boolean) of object;
+    const url: ustring; out allowOsExecution: Boolean) of object;
   TOnBeforePluginLoad = procedure(Sender: TObject; const browser: ICefBrowser;
     const url, policyUrl: ustring; const info: ICefWebPluginInfo; out Result: Boolean) of Object;
+  TOnCertificateError = procedure(Sender: TObject; certError: TCefErrorCode; const requestUrl: ustring;
+    const callback: ICefAllowCertificateErrorCallback; out Result: Boolean) of Object;
+  TOnPluginCrashed = procedure(Sender: TObject; const browser: ICefBrowser; const pluginPath: ustring) of object;
+  TOnRenderProcessTerminated = procedure(Sender: TObject; const browser: ICefBrowser; status: TCefTerminationStatus) of object;
+
 
   TOnFileDialog = procedure(Sender: TObject; const browser: ICefBrowser;
     mode: TCefFileDialogMode; const title, defaultFileName: ustring;
@@ -132,7 +133,8 @@ type
     kind: TCefPaintElementType; dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
     const buffer: Pointer; width, height: Integer) of Object;
   TOnCursorChange = procedure(Sender: TObject; const browser: ICefBrowser;
-    cursor: TCefCursorHandle) of Object;
+    cursor: TCefCursorHandle; cursorType: TCefCursorType;
+    const customCursorInfo: PCefCursorInfo) of Object;
   TOnStartDragging = procedure(Sender: TObject; const browser: ICefBrowser;
     const dragData: ICefDragData; allowedOps: TCefDragOperations; x,
    y: Integer; out Result: Boolean) of Object;
@@ -297,14 +299,15 @@ type
       const callback: ICefAuthCallback): Boolean;
     function doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean;
-    function doOnGetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager;
     procedure doOnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean);
     function doOnBeforePluginLoad(const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo): Boolean;
-    procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus);
+    function doOnCertificateError(certError: TCefErrorCode; const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback): Boolean;
     procedure doOnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring);
+    procedure doOnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus);
 
-    function doOnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
+    function doOnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
       const title, defaultFileName: ustring; acceptTypes: TStrings;
       const callback: ICefFileDialogCallback): Boolean;
 
@@ -318,7 +321,8 @@ type
     procedure doOnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
-    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle);
+    procedure doOnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
     function doOnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
       allowedOps: TCefDragOperations; x, y: Integer): Boolean;
     procedure doOnUpdateDragCursor(const browser: ICefBrowser; operation: TCefDragOperation);
@@ -519,10 +523,11 @@ type
       const callback: ICefAuthCallback): Boolean; override;
     function OnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
       newSize: Int64; const callback: ICefQuotaCallback): Boolean; override;
-    function GetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager; override;
     procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); override;
     function OnBeforePluginLoad(const browser: ICefBrowser; const url: ustring;
       const policyUrl: ustring; const info: ICefWebPluginInfo): Boolean; override;
+    function OnCertificateError(certError: TCefErrorCode; const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback): Boolean; override;
     procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); override;
     procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); override;
   public
@@ -542,7 +547,8 @@ type
     procedure OnPaint(const browser: ICefBrowser; kind: TCefPaintElementType;
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer); override;
-    procedure OnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle); override;
+    procedure OnCursorChange(const browser: ICefBrowser; cursor: TCefCursorHandle;
+      cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo); override;
     function GetScreenInfo(const browser: ICefBrowser;
       screenInfo: PCefScreenInfo): Boolean; override;
     function OnStartDragging(const browser: ICefBrowser; const dragData: ICefDragData;
@@ -972,12 +978,6 @@ begin
     realm, scheme, callback);
 end;
 
-function TCustomRequestHandler.GetCookieManager(const browser: ICefBrowser;
-  const mainUrl: ustring): ICefCookieManager;
-begin
-  Result := FEvent.doOnGetCookieManager(browser, mainUrl);
-end;
-
 function TCustomRequestHandler.GetResourceHandler(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest): ICefResourceHandler;
 begin
@@ -1001,6 +1001,13 @@ function TCustomRequestHandler.OnBeforeResourceLoad(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest): Boolean;
 begin
   Result := FEvent.doOnBeforeResourceLoad(browser, frame, request);
+end;
+
+function TCustomRequestHandler.OnCertificateError(certError: TCefErrorCode;
+  const requestUrl: ustring;
+  const callback: ICefAllowCertificateErrorCallback): Boolean;
+begin
+  Result := FEvent.doOnCertificateError(certError, requestUrl, callback);
 end;
 
 procedure TCustomRequestHandler.OnPluginCrashed(const browser: ICefBrowser;
@@ -1083,9 +1090,10 @@ begin
 end;
 
 procedure TCustomRenderHandler.OnCursorChange(const browser: ICefBrowser;
-  cursor: TCefCursorHandle);
+  cursor: TCefCursorHandle; cursorType: TCefCursorType;
+  const customCursorInfo: PCefCursorInfo);
 begin
-  FEvent.doOnCursorChange(browser, cursor);
+  FEvent.doOnCursorChange(browser, cursor, cursorType, customCursorInfo);
 end;
 
 procedure TCustomRenderHandler.OnPaint(const browser: ICefBrowser;

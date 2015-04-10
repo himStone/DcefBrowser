@@ -65,7 +65,7 @@ type
 
   TOnRequestGeolocationPermission = procedure(const browser: ICefBrowser;
     const requestingUrl: ustring; requestId: Integer;
-    const callback: ICefGeolocationCallback) of object;
+    const callback: ICefGeolocationCallback; out Result: Boolean) of object;
   TOnCancelGeolocationPermission = procedure(const browser: ICefBrowser;
     const requestingUrl: ustring; requestId: Integer) of object;
 
@@ -112,7 +112,6 @@ type
   TOnQuotaRequest = procedure(const browser: ICefBrowser;
     const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
     out Result: Boolean) of object;
-  TOnGetCookieManager = procedure(out Result: ICefCookieManager) of object;
   TOnProtocolExecution = procedure(const browser: ICefBrowser;
     const url: ustring; out allowOsExecution: Boolean) of object;
 
@@ -135,6 +134,15 @@ type
   TOnUpdateDragCursor = procedure(const browser: ICefBrowser;
     operation: TCefDragOperation) of object;
 
+  TOnCertificateError = procedure(certError: TCefErrorCode;
+    const requestUrl: ustring;
+    const callback: ICefAllowCertificateErrorCallback; out Result: Boolean)
+    of object;
+
+  TOnCursorChange = procedure(const browser: ICefBrowser;
+    cursor: TCefCursorHandle; cursorType: TCefCursorType;
+    const customCursorInfo: PCefCursorInfo) of object;
+
   { TOnGetRootScreenRect = procedure(const browser: ICefBrowser;
     rect: PCefRect; out Result: Boolean);
     TOnGetViewRect = procedure(const browser: ICefBrowser;
@@ -150,8 +158,6 @@ type
     TOnPaint = procedure(const browser: ICefBrowser;
     kind: TCefPaintElementType; dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
     const buffer: Pointer; width, height: Integer);
-    TOnCursorChange = procedure(const browser: ICefBrowser;
-    cursor: TCefCursorHandle);
     TOnScrollOffsetChanged = procedure(const browser: ICefBrowser); }
 
   TBasicDcefBrowserEvents = class(TInterfacedObject, IChromiumEvents)
@@ -197,7 +203,6 @@ type
     FOnResourceRedirect: TOnResourceRedirect;
     FOnGetAuthCredentials: TOnGetAuthCredentials;
     FOnQuotaRequest: TOnQuotaRequest;
-    FOnGetCookieManager: TOnGetCookieManager;
     FOnProtocolExecution: TOnProtocolExecution;
 
     FOnBeforePluginLoad: TOnBeforePluginLoad;
@@ -208,6 +213,9 @@ type
 
     FOnStartDragging: TOnStartDragging;
     FOnUpdateDragCursor: TOnUpdateDragCursor;
+
+    FOnCertificateError: TOnCertificateError;
+    FOnCursorChange: TOnCursorChange;
   protected
     procedure GetSettings(var settings: TCefBrowserSettings);
     function doOnProcessMessageReceived(const browser: ICefBrowser;
@@ -311,8 +319,6 @@ type
     function doOnQuotaRequest(const browser: ICefBrowser;
       const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback): Boolean; virtual;
-    function doOnGetCookieManager(const browser: ICefBrowser;
-      const mainUrl: ustring): ICefCookieManager; virtual;
     procedure doOnProtocolExecution(const browser: ICefBrowser;
       const url: ustring; out allowOsExecution: Boolean); virtual;
 
@@ -338,7 +344,8 @@ type
       dirtyRectsCount: NativeUInt; const dirtyRects: PCefRectArray;
       const buffer: Pointer; width, height: Integer);
     procedure doOnCursorChange(const browser: ICefBrowser;
-      cursor: TCefCursorHandle);
+      cursor: TCefCursorHandle; cursorType: TCefCursorType;
+      const customCursorInfo: PCefCursorInfo);
     procedure doOnScrollOffsetChanged(const browser: ICefBrowser);
 
     function doOnDragEnter(const browser: ICefBrowser;
@@ -349,6 +356,10 @@ type
       x, y: Integer): Boolean;
     procedure doOnUpdateDragCursor(const browser: ICefBrowser;
       operation: TCefDragOperation);
+
+    function doOnCertificateError(certError: TCefErrorCode;
+      const requestUrl: ustring;
+      const callback: ICefAllowCertificateErrorCallback): Boolean;
   public
     destructor Destroy; override;
 
@@ -422,8 +433,6 @@ type
       read FOnGetAuthCredentials write FOnGetAuthCredentials;
     property OnQuotaRequest: TOnQuotaRequest read FOnQuotaRequest
       write FOnQuotaRequest;
-    property OnGetCookieManager: TOnGetCookieManager read FOnGetCookieManager
-      write FOnGetCookieManager;
     property OnProtocolExecution: TOnProtocolExecution read FOnProtocolExecution
       write FOnProtocolExecution;
 
@@ -436,6 +445,11 @@ type
       write FOnStartDragging;
     property OnUpdateDragCursor: TOnUpdateDragCursor read FOnUpdateDragCursor
       write FOnUpdateDragCursor;
+
+    property OnCertificateError: TOnCertificateError read FOnCertificateError
+      write FOnCertificateError;
+    property OnCursorChange: TOnCursorChange read FOnCursorChange
+      write FOnCursorChange;
   end;
 
 implementation
@@ -543,6 +557,15 @@ begin
     FOnCancelGeolocationPermission(browser, requestingUrl, requestId);
 end;
 
+function TBasicDcefBrowserEvents.doOnCertificateError(certError: TCefErrorCode;
+  const requestUrl: ustring;
+  const callback: ICefAllowCertificateErrorCallback): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnCertificateError) then
+    FOnCertificateError(certError, requestUrl, callback, Result);
+end;
+
 function TBasicDcefBrowserEvents.doOnClose(const browser: ICefBrowser): Boolean;
 begin
   Result := False;
@@ -576,10 +599,11 @@ begin
 end;
 
 procedure TBasicDcefBrowserEvents.doOnCursorChange(const browser: ICefBrowser;
-  cursor: TCefCursorHandle);
+  cursor: TCefCursorHandle; cursorType: TCefCursorType;
+  const customCursorInfo: PCefCursorInfo);
 begin
-  { if Assigned(FOnCursorChange) then
-    FOnCursorChange(Self, browser, cursor); }
+  if Assigned(FOnCursorChange) then
+    FOnCursorChange(browser, cursor, cursorType, customCursorInfo);
 end;
 
 procedure TBasicDcefBrowserEvents.doOnDialogClosed(const browser: ICefBrowser);
@@ -623,15 +647,6 @@ begin
   if Assigned(FOnGetAuthCredentials) then
     FOnGetAuthCredentials(browser, frame, isProxy, host, port, realm, scheme,
       callback, Result);
-end;
-
-function TBasicDcefBrowserEvents.doOnGetCookieManager(const browser
-  : ICefBrowser; const mainUrl: ustring): ICefCookieManager;
-begin
-  if Assigned(FOnGetCookieManager) then
-    FOnGetCookieManager(Result)
-  else
-    Result := nil;
 end;
 
 function TBasicDcefBrowserEvents.doOnGetResourceHandler(const browser
@@ -805,9 +820,10 @@ function TBasicDcefBrowserEvents.doOnRequestGeolocationPermission
   (const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer;
   const callback: ICefGeolocationCallback): Boolean;
 begin
+  Result := False;
   if Assigned(FOnRequestGeolocationPermission) then
     FOnRequestGeolocationPermission(browser, requestingUrl, requestId,
-      callback);
+      callback, Result);
 end;
 
 procedure TBasicDcefBrowserEvents.doOnResetDialogState(const browser
