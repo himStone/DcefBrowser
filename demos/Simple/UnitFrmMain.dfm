@@ -39,8 +39,8 @@ object MainForm: TMainForm
     Options.PopupNewWin = False
     Options.DevToolsEnable = True
     Options.FrmWinHandle = 0
-    Options.AutoDown = True
-    Options.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\Bin\Download\'
+    Options.AutoDown = False
+    Options.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\bin\Download\'
     OnPageStateChange = DcefBrowser1PageStateChange
     OnPageAdd = DcefBrowser1PageAdd
     OnPageClose = DcefBrowser1PageClose

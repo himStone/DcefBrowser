@@ -169,6 +169,7 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   DcefBrowser1.BasicOptions.JavascriptOpenWindows := STATE_DISABLED;
   DcefBrowser1.Options.FrmWinHandle := Handle;
+  DcefBrowser1.Options.AutoDown := False;
   AddButton.Click;
 end;
 

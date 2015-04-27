@@ -319,6 +319,7 @@ type
     FOnDialogClosed: TOnDialogClosed;
     FOnPluginCrashed: TOnPluginCrashed;
     FOnBeforePluginLoad: TOnBeforePluginLoad;
+    FOnBeforeDownload: TOnBeforeDownload;
     FOnDownloadUpdated: TOnDownloadUpdated;
     FOnGetAuthCredentials: TOnGetAuthCredentials;
     FOnConsoleMessage: TOnConsoleMessage;
@@ -415,6 +416,10 @@ type
 
     { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
       Const Kind: TBrowserDownloadUpdatedKind); }
+    procedure doOnBeforeDownload(const PageIndex: Integer;
+      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
+      var CancelBuiltinPro: Boolean);
     procedure doOnDownloadUpdated(const PageIndex: Integer;
       const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const callback: ICefDownloadItemCallback);
@@ -560,6 +565,8 @@ type
       write FOnPluginCrashed;
     property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad
       write FOnBeforePluginLoad;
+    property OnBeforeDownload: TOnBeforeDownload read FOnBeforeDownload
+      write FOnBeforeDownload;
     property OnDownloadUpdated: TOnDownloadUpdated read FOnDownloadUpdated
       write FOnDownloadUpdated;
     property OnGetAuthCredentials: TOnGetAuthCredentials
@@ -626,6 +633,7 @@ type
     property OnDialogClosed;
     property OnPluginCrashed;
     property OnBeforePluginLoad;
+    property OnBeforeDownload;
     property OnDownloadUpdated;
     property OnGetAuthCredentials;
     property OnConsoleMessage;
@@ -1059,6 +1067,16 @@ procedure TCustomDcefBrowser.doOnBeforeContextMenu(const PageIndex: Integer;
 begin
   if Assigned(FOnBeforeContextMenu) and (PageIndex > -1) then
     FOnBeforeContextMenu(PageIndex, browser, frame, params, model);
+end;
+
+procedure TCustomDcefBrowser.doOnBeforeDownload(const PageIndex: Integer;
+  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
+  var CancelBuiltinPro: Boolean);
+begin
+  if Assigned(FOnBeforeDownload) then
+    FOnBeforeDownload(PageIndex, browser, downloadItem, suggestedName, callback,
+      CancelBuiltinPro);
 end;
 
 procedure TCustomDcefBrowser.doOnBeforePluginLoad(const PageIndex: Integer;
@@ -1751,13 +1769,11 @@ end;
 procedure TBasicBrowser.BrowserBeforeDownload(const browser: ICefBrowser;
   const downloadItem: ICefDownloadItem; const suggestedName: ustring;
   const callback: ICefBeforeDownloadCallback);
-
-// callback.cont(suggestedName, True);
-
 var
   MyOptions: TDcefBrowserOptions;
   // DownLoadItemIndex: Integer;
   SaveFullPath: string;
+  FCancelBuiltInPro: Boolean;
 
   function RightPos(const SubStr, Str: string): Integer;
   var
@@ -1814,21 +1830,28 @@ var
   end;
 
 begin
-
   { if Not browser.HasDocument then
     TBrowserPage(FParentBrowserPage).Close; }
-
   // DownloadManager := TCustomDcefBrowser(FDcefBrowser).DownloadManager;
   // DownLoadItemIndex := DownloadManager.ItemsIDToIndex(downloadItem.ID);
   // if DownLoadItemIndex <> -1 then
   // begin
-  MyOptions := TCustomDcefBrowser(FDcefBrowser).Options;
-  if Not DirectoryExists(MyOptions.DownLoadPath) then
-    CreateDir(MyOptions.DownLoadPath);
-  SaveFullPath := DealExistsFile(MyOptions.DownLoadPath + suggestedName);
   // DownloadManager.Items[DownLoadItemIndex].UpdataFileName(SaveFullPath);
-  callback.Cont(SaveFullPath, Not MyOptions.AutoDown);
+  //
   // end; // else
+
+  FCancelBuiltInPro := False;
+  TCustomDcefBrowser(FDcefBrowser).doOnBeforeDownload(PageIndex, browser,
+    downloadItem, suggestedName, callback, FCancelBuiltInPro);
+  if FCancelBuiltInPro then
+  begin
+    MyOptions := TCustomDcefBrowser(FDcefBrowser).Options;
+    if Not DirectoryExists(MyOptions.DownLoadPath) then
+      CreateDir(MyOptions.DownLoadPath);
+    SaveFullPath := DealExistsFile(MyOptions.DownLoadPath + suggestedName);
+
+    callback.Cont(SaveFullPath, Not MyOptions.AutoDown);
+  end;
 end;
 
 procedure TBasicBrowser.BrowserBeforePluginLoad(const browser: ICefBrowser;
@@ -1990,6 +2013,8 @@ const downloadItem: ICefDownloadItem; const callback: ICefDownloadItemCallback);
   DownLoadItemIndex: Integer;
   DownloadComplete: Boolean; }
 begin
+  TCustomDcefBrowser(FDcefBrowser).doOnDownloadUpdated(PageIndex, browser,
+    downloadItem, callback);
   { if downloadItem.IsValid then
     begin
     MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
@@ -2404,14 +2429,6 @@ begin
 end;
 
 procedure TBrowserPage.DevTools;
-var
-  info: TCefWindowInfo;
-  setting: TCefBrowserSettings;
-  Point: TPoint;
-  WinHandle: HWND;
-  WindowStyle: Integer;
-  FDebugClientHandler: ICefClient;
-  FBasicDcefBrowserEvents: TBasicDcefBrowserEvents;
 begin
   if Assigned(FDevToolsPanel) then
   begin

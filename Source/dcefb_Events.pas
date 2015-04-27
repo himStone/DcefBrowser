@@ -82,6 +82,10 @@ type
 
   { TOnDownloadUpdated = procedure(Const DcefItemIndex: Integer;
     Const Kind: TBrowserDownloadUpdatedKind) of object; }
+  TOnBeforeDownload = procedure(const PageIndex: Integer;
+    const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+    const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
+    var CancelBuiltinPro: Boolean) of object;
   TOnDownloadUpdated = procedure(const PageIndex: Integer;
     const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
     const callback: ICefDownloadItemCallback) of object;
@@ -211,6 +215,13 @@ type
 
     { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
       Const Kind: TBrowserDownloadUpdatedKind); }
+    procedure doOnBeforeDownload(const PageIndex: Integer;
+      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
+      var CancelBuiltinPro: Boolean);
+    procedure doOnDownloadUpdated(const PageIndex: Integer;
+      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const callback: ICefDownloadItemCallback);
     procedure doOnGetAuthCredentials(const PageIndex: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
       const host: ustring; port: Integer; const realm, scheme: ustring;
@@ -288,6 +299,7 @@ type
     FOnPluginCrashed: TOnPluginCrashed;
     FOnBeforePluginLoad: TOnBeforePluginLoad;
 
+    FOnBeforeDownload: TOnBeforeDownload;
     FOnDownloadUpdated: TOnDownloadUpdated;
     FOnGetAuthCredentials: TOnGetAuthCredentials;
     FOnConsoleMessage: TOnConsoleMessage;
@@ -383,6 +395,10 @@ type
 
     { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
       Const Kind: TBrowserDownloadUpdatedKind); virtual; }
+    procedure doOnBeforeDownload(const PageIndex: Integer;
+      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
+      var CancelBuiltinPro: Boolean); virtual;
     procedure doOnDownloadUpdated(const PageIndex: Integer;
       const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const callback: ICefDownloadItemCallback); virtual;
@@ -471,6 +487,8 @@ type
       write FOnPluginCrashed;
     property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad
       write FOnBeforePluginLoad;
+    property OnBeforeDownload: TOnBeforeDownload read FOnBeforeDownload
+      write FOnBeforeDownload;
     property OnDownloadUpdated: TOnDownloadUpdated read FOnDownloadUpdated
       write FOnDownloadUpdated;
     property OnGetAuthCredentials: TOnGetAuthCredentials
@@ -586,6 +604,16 @@ procedure TDcefBrowserEvents.doOnBeforeContextMenu(const PageIndex: Integer;
 begin
   if Assigned(FOnBeforeContextMenu) then
     FOnBeforeContextMenu(PageIndex, browser, frame, params, model);
+end;
+
+procedure TDcefBrowserEvents.doOnBeforeDownload(const PageIndex: Integer;
+  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
+  var CancelBuiltinPro: Boolean);
+begin
+  if Assigned(FOnBeforeDownload) then
+    FOnBeforeDownload(PageIndex, browser, downloadItem, suggestedName, callback,
+      CancelBuiltinPro);
 end;
 
 procedure TDcefBrowserEvents.doOnBeforePluginLoad(const PageIndex: Integer;
