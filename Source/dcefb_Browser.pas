@@ -285,6 +285,7 @@ type
     FPageControl: TBorderLessPageControl;
     FPageItems: TList<TBrowserPage>;
     FClosedPageURL: TStringList;
+    FHMutex: THandle;
 
     FOptions: TDcefBrowserOptions;
     FBasicOptions: TChromiumOptions;
@@ -351,7 +352,8 @@ type
       const Kind: TBrowserDataChangeKind; const value: string;
       const PageActived: Boolean);
     procedure doOnPageAdd(const PageID: Integer; Const AddAtLast: Boolean);
-    procedure doOnPageClose(const ClosePageID, ShowPageID: Integer);
+    procedure doOnPageClose(const ClosePageIDArr: TArray<Integer>;
+      Const ShowPageID: Integer);
 
     procedure doOnLoadStart(const PageIndex: Integer;
       const browser: ICefBrowser; const frame: ICefFrame);
@@ -476,7 +478,7 @@ type
     function ClosePage(PageIndex: Integer;
       Const AutoChooseShowPageID: Boolean = True;
       Const ShowPageID: Integer = -1): Integer; overload;
-    function ClosePage(ArrayPageID: Array of Integer; ShowPageID: Integer)
+    function ClosePage(ArrayPageIndex: TArray<Integer>; ShowPageID: Integer)
       : Integer; overload;
     procedure CloseAllOtherPage(PageID: Integer);
     procedure ShowPage(PageID: Integer);
@@ -769,19 +771,27 @@ var
   Index: Integer;
 begin
   Result := -1;
-  for Index := 0 to FPageItems.Count - 1 do
-    if FPageItems[Index].PageID = PageID then
-    begin
-      Result := Index;
-      Break;
-    end;
+  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
+  begin
+    for Index := 0 to FPageItems.Count - 1 do
+      if FPageItems[Index].PageID = PageID then
+      begin
+        Result := Index;
+        Break;
+      end;
+    ReleaseMutex(FHMutex);
+  end;
 end;
 
 function TCustomDcefBrowser.PageIndexToID(PageIndex: Integer): Integer;
 begin
   Result := -1;
-  if (PageIndex < FPageItems.Count) and (PageIndex > -1) then
-    Result := FPageItems[PageIndex].PageID;
+  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
+  begin
+    if (PageIndex < FPageItems.Count) and (PageIndex > -1) then
+      Result := FPageItems[PageIndex].PageID;
+    ReleaseMutex(FHMutex);
+  end;
 end;
 
 procedure TCustomDcefBrowser.Print;
@@ -837,11 +847,11 @@ end;
 
 procedure TCustomDcefBrowser.ShowPage(PageID: Integer);
 var
-  PageIndex: Integer;
+  Page: TBrowserPage;
 begin
-  PageIndex := PageIDToIndex(PageID);
-  if (PageIndex < PageCount) and (PageIndex > -1) then
-    FPageItems[PageIndex].Show;
+  Page := Pages[PageIDToIndex(PageID)];
+  if Page <> nil then
+    Page.Show;
 end;
 
 procedure TCustomDcefBrowser.StopLoad;
@@ -853,29 +863,56 @@ end;
 procedure TCustomDcefBrowser.CloseAllOtherPage(PageID: Integer);
 var
   Index, ID: Integer;
+  ClosePageIDArr: TArray<Integer>;
 begin
-  for Index := FPageItems.Count - 1 Downto 0 do
+  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
   begin
-    ID := Pages[Index].PageID;
-    if PageID <> ID then
-      ClosePage(Index, False, -1);
+    for Index := FPageItems.Count - 1 Downto 0 do
+    begin
+      ID := Pages[Index].PageID;
+      if PageID <> ID then
+      begin
+        SetLength(ClosePageIDArr, Length(ClosePageIDArr) + 1);
+        ClosePageIDArr[High(ClosePageIDArr)] := ID;
+        FPageItems[Index].Free;
+        FPageItems.Delete(Index);
+      end;
+    end;
+    ReleaseMutex(FHMutex);
   end;
-  ShowPage(PageID);
+  doOnPageClose(ClosePageIDArr, PageID);
 end;
 
-function TCustomDcefBrowser.ClosePage(ArrayPageID: Array of Integer;
+function TCustomDcefBrowser.ClosePage(ArrayPageIndex: TArray<Integer>;
   ShowPageID: Integer): Integer;
 var
-  Index: Integer;
+  Index, ID, ii, TempInt: Integer;
+  ClosePageIDArr: TArray<Integer>;
 begin
-  Result := -1;
-  for Index := Low(ArrayPageID) to High(ArrayPageID) do
-    ClosePage(PageIDToIndex(ArrayPageID[Index]), False, -1);
-  if (ShowPageID > -1) then
+  Result := PageIDToIndex(ShowPageID);
+
+  for Index := Low(ArrayPageIndex) to High(ArrayPageIndex) do
+    for ii := Index + 1 to High(ArrayPageIndex) do
+      if ArrayPageIndex[Index] > ArrayPageIndex[ii] then
+      begin
+        TempInt := ArrayPageIndex[Index];
+        ArrayPageIndex[Index] := ArrayPageIndex[ii];
+        ArrayPageIndex[ii] := TempInt;
+      end;
+
+  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
   begin
-    Result := ShowPageID;
-    ShowPage(ShowPageID);
+    for Index := High(ArrayPageIndex) downto Low(ArrayPageIndex) do
+    begin
+      ID := Pages[Index].PageID;
+      SetLength(ClosePageIDArr, Length(ClosePageIDArr) + 1);
+      ClosePageIDArr[High(ClosePageIDArr)] := ID;
+      FPageItems[Index].Free;
+      FPageItems.Delete(Index);
+    end;
+    ReleaseMutex(FHMutex);
   end;
+  doOnPageClose(ClosePageIDArr, ShowPageID);
 end;
 
 function TCustomDcefBrowser.ClosePage(PageIndex: Integer;
@@ -883,39 +920,35 @@ function TCustomDcefBrowser.ClosePage(PageIndex: Integer;
   Const ShowPageID: Integer = -1): Integer;
 var
   FLastIndex: Boolean;
-  MyClosePageID, MyShowPageID: Integer;
+  Page: TBrowserPage;
+  ClosePageArr: TArray<Integer>;
 begin
   Result := -1;
   if (PageIndex > -1) and (PageIndex < PageCount) then
   begin
     FLastIndex := PageIndex = (PageCount - 1);
-    FClosedPageURL.Add(FPageItems[PageIndex].FBasicBrowser.FBrowser.
-      MainFrame.URL);
-    Result := PageIndexToID(IfThen(FLastIndex, PageIndex - 1, PageIndex + 1));
-
-    MyClosePageID := FPageItems[PageIndex].PageID;
-    if AutoChooseShowPageID then
-      MyShowPageID := Result
-    else if ShowPageID <> -1 then
-      MyShowPageID := ShowPageID
-    else
-      MyShowPageID := -1;
-    doOnPageClose(MyClosePageID, MyShowPageID);
-
-    FPageItems[PageIndex].Free;
-    FPageItems.Delete(PageIndex);
-
-    if (PageCount > 0) then
+    Page := Pages[PageIndex];
+    if Page <> nil then
     begin
-      if AutoChooseShowPageID then
-        ShowPage(Result)
-      else if ShowPageID <> -1 then
-        ShowPage(ShowPageID);
-    end
-    else if FOptions.ExitPagesClosed then
-    begin
-      CefShutdown;
-      ExitProcess(0);
+      FClosedPageURL.Add(Page.URL);
+      Result := PageIndexToID(IfThen(FLastIndex, PageIndex - 1, PageIndex));
+      SetLength(ClosePageArr, Length(ClosePageArr) + 1);
+      ClosePageArr[High(ClosePageArr)] := Page.PageID;
+      doOnPageClose(ClosePageArr, IfThen(AutoChooseShowPageID, Result,
+        ShowPageID));
+      if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
+      begin
+        FPageItems[PageIndex].Free;
+        FPageItems.Delete(PageIndex);
+        ReleaseMutex(FHMutex);
+      end;
+      if (PageCount > 0) then
+        ShowPage(IfThen(AutoChooseShowPageID, Result, ShowPageID))
+      else if FOptions.ExitPagesClosed then
+      begin
+        CefShutdown;
+        ExitProcess(0);
+      end;
     end;
   end;
 end;
@@ -937,6 +970,7 @@ begin
   FActivePageID := -1;
   FAddUpPageID := -1;
 
+  FHMutex := CreateMutex(nil, False, 'DB_Pages_Mutex');
   FPageControl := TBorderLessPageControl.Create(Self);
   FPageControl.Parent := TWinControl(Self);
   FPageControl.Align := alClient;
@@ -968,6 +1002,7 @@ begin
   FOptions.Free;
   FBasicFontOptions.Free;
   FBasicOptions.Free;
+  CloseHandle(FHMutex);
   inherited;
 end;
 
@@ -1153,11 +1188,11 @@ begin
     FOnCursorChange(PageIndex, browser, cursor, cursorType, customCursorInfo);
 end;
 
-procedure TCustomDcefBrowser.doOnPageClose(const ClosePageID,
-  ShowPageID: Integer);
+procedure TCustomDcefBrowser.doOnPageClose(const ClosePageIDArr
+  : TArray<Integer>; Const ShowPageID: Integer);
 begin
   if Assigned(FOnPageClose) then
-    FOnPageClose(ClosePageID, ShowPageID);
+    FOnPageClose(ClosePageIDArr, ShowPageID);
 end;
 
 procedure TCustomDcefBrowser.doOnPageLoadingStateChange(const PageID: Integer;
@@ -1336,16 +1371,8 @@ begin
 end;
 
 function TCustomDcefBrowser.GetActivePageItem: TBrowserPage;
-var
-  Index: Integer;
 begin
-  Result := nil;
-  if Assigned(FPageItems) then
-  begin
-    Index := ActivePageIndex;
-    if Index > -1 then
-      Result := FPageItems[Index];
-  end;
+  Result := Pages[ActivePageIndex];
 end;
 
 function TCustomDcefBrowser.GetClosePageCount: Integer;
@@ -1377,26 +1404,38 @@ var
   Index: Integer;
 begin
   Result := nil;
-  for Index := 0 to FPageItems.Count - 1 do
-    if FPageItems[Index].PageID = ID then
-    begin
-      Result := FPageItems[Index];
-      Break;
-    end;
+  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
+  begin
+    for Index := 0 to FPageItems.Count - 1 do
+      if FPageItems[Index].PageID = ID then
+      begin
+        Result := FPageItems[Index];
+        Break;
+      end;
+    ReleaseMutex(FHMutex);
+  end;
 end;
 
 function TCustomDcefBrowser.GetPageByIndex(Index: Integer): TBrowserPage;
 begin
   Result := nil;
-  if Assigned(FPageItems) and (FPageItems.Count > 0) then
-    Result := FPageItems[Index];
+  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
+  begin
+    if Assigned(FPageItems) and (Index > -1) and (Index < FPageItems.Count) then
+      Result := FPageItems[Index];
+    ReleaseMutex(FHMutex);
+  end;
 end;
 
 function TCustomDcefBrowser.GetPageCount: Integer;
 begin
   Result := 0;
   if Assigned(FPageItems) then
-    Result := FPageItems.Count;
+    if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
+    begin
+      Result := FPageItems.Count;
+      ReleaseMutex(FHMutex);
+    end;
 end;
 
 function TCustomDcefBrowser.GetSource(var SourceText: string;

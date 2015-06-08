@@ -20,7 +20,8 @@ type
     const PageActived: Boolean) of object;
   TOnPageAdd = procedure(const PageID: Integer; Const AddAtLast: Boolean)
     of object;
-  TOnPageClose = procedure(const ClosePageID, ShowPageID: Integer) of object;
+  TOnPageClose = procedure(const ClosePageIDArr: TArray<Integer>;
+    Const ShowPageID: Integer) of object;
 
   TOnLoadStart = procedure(const PageIndex: Integer; const browser: ICefBrowser;
     const frame: ICefFrame) of object;
@@ -150,7 +151,8 @@ type
       const Kind: TBrowserDataChangeKind; const Value: string;
       const PageActived: Boolean);
     procedure doOnPageAdd(const PageID: Integer; Const AddAtLast: Boolean);
-    procedure doOnPageClose(const ClosePageID, ShowPageID: Integer);
+    procedure doOnPageClose(const ClosePageIDArr: TArray<Integer>;
+      Const ShowPageID: Integer);
 
     procedure doOnLoadStart(const PageIndex: Integer;
       const browser: ICefBrowser; const frame: ICefFrame);
@@ -325,7 +327,8 @@ type
       const PageActived: Boolean); virtual;
     procedure doOnPageAdd(const PageID: Integer;
       Const AddAtLast: Boolean); virtual;
-    procedure doOnPageClose(const ClosePageID, ShowPageID: Integer); virtual;
+    procedure doOnPageClose(const ClosePageIDArr: TArray<Integer>;
+      Const ShowPageID: Integer); virtual;
 
     procedure doOnLoadStart(const PageIndex: Integer;
       const browser: ICefBrowser; const frame: ICefFrame); virtual;
@@ -690,11 +693,11 @@ begin
     FOnCursorChange(PageIndex, browser, cursor, cursorType, customCursorInfo);
 end;
 
-procedure TDcefBrowserEvents.doOnPageClose(const ClosePageID,
-  ShowPageID: Integer);
+procedure TDcefBrowserEvents.doOnPageClose(const ClosePageIDArr
+  : TArray<Integer>; Const ShowPageID: Integer);
 begin
   if Assigned(FOnPageClose) then
-    FOnPageClose(ClosePageID, ShowPageID);
+    FOnPageClose(ClosePageIDArr, ShowPageID);
 end;
 
 procedure TDcefBrowserEvents.doOnPageLoadingStateChange(const PageID: Integer;

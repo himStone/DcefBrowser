@@ -35,11 +35,12 @@ type
     procedure ActCanGoForwardUpdate(Sender: TObject);
     procedure ActCanGoBackExecute(Sender: TObject);
     procedure ActCanGoForwardExecute(Sender: TObject);
-    procedure DcefBrowser1PageAdd(const PageID: Integer; Const AddAtLast: Boolean);
+    procedure DcefBrowser1PageAdd(const PageID: Integer;
+      Const AddAtLast: Boolean);
     procedure PageControlChange(Sender: TObject);
     procedure N1Click(Sender: TObject);
-    procedure DcefBrowser1PageClose(const ClosePageID,
-      ShowPageID: Integer);
+    procedure DcefBrowser1PageClose(const ClosePageIDArr: TArray<Integer>;
+      Const ShowPageID: Integer);
     function GetTabsheetByPageID(Const PageID: Integer): TTabsheet;
     procedure DcefBrowser1PageStateChange(const PageID: Integer;
       const Kind: TBrowserDataChangeKind; const Value: string;
@@ -115,7 +116,8 @@ begin
     end;
 end;
 
-procedure TMainForm.DcefBrowser1PageAdd(const PageID: Integer; Const AddAtLast: Boolean);
+procedure TMainForm.DcefBrowser1PageAdd(const PageID: Integer;
+  Const AddAtLast: Boolean);
 var
   NewTab: TTabsheet;
 begin
@@ -128,16 +130,20 @@ begin
   PageControl.ActivePageIndex := NewTab.PageIndex;
 end;
 
-procedure TMainForm.DcefBrowser1PageClose(const ClosePageID,
-  ShowPageID: Integer);
+procedure TMainForm.DcefBrowser1PageClose(const ClosePageIDArr: TArray<Integer>;
+  Const ShowPageID: Integer);
 var
+  Index: Integer;
   MyShowTabsheet, MyCloseTabsheet: TTabsheet;
 begin
   MyShowTabsheet := GetTabsheetByPageID(ShowPageID);
-  MyCloseTabsheet := GetTabsheetByPageID(ClosePageID);
+  for Index := Low(ClosePageIDArr) to High(ClosePageIDArr) do
+  begin
+    MyCloseTabsheet := GetTabsheetByPageID(Index);
+    if MyCloseTabsheet <> nil then
+      MyCloseTabsheet.Free;
+  end;
 
-  if MyCloseTabsheet <> nil then
-    MyCloseTabsheet.Free;
   if (MyShowTabsheet <> nil) and (MyShowTabsheet <> PageControl.ActivePage) then
     PageControl.ActivePage := MyShowTabsheet;
 end;
