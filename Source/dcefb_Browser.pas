@@ -1879,7 +1879,7 @@ begin
   //
   // end; // else
 
-  FCancelBuiltInPro := False;
+  FCancelBuiltInPro := True;
   TCustomDcefBrowser(FDcefBrowser).doOnBeforeDownload(PageIndex, browser,
     downloadItem, suggestedName, callback, FCancelBuiltInPro);
   if FCancelBuiltInPro then
