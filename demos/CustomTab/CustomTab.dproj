@@ -3,7 +3,7 @@
         <ProjectGuid>{97581ED0-1080-486B-94BD-9F4791E81B5B}</ProjectGuid>
         <ProjectVersion>15.4</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
-        <MainSource>SimpleDcefB.dpr</MainSource>
+        <MainSource>CustomTab.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
@@ -41,7 +41,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
-        <SanitizedProjectName>SimpleDcefB</SanitizedProjectName>
+        <SanitizedProjectName>CustomTab</SanitizedProjectName>
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
@@ -108,7 +108,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">SimpleDcefB.dpr</Source>
+                    <Source Name="MainSource">CustomTab.dpr</Source>
                 </Source>
                 <Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\DataExplorerDBXPlugin200.bpl">DBExpress Data Explorer Integration</Excluded_Packages>

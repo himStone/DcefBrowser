@@ -10,7 +10,7 @@ uses
 
 type
   TMainForm = class(TForm)
-    PageControl: TPageControl;
+    MyCustomTabs: TPageControl;
     DcefBrowser1: TDcefBrowser;
     Panel1: TPanel;
     Button4: TButton;
@@ -27,7 +27,6 @@ type
     PopupMenuPageControl: TPopupMenu;
     N1: TMenuItem;
     procedure AddButtonClick(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure LoadButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure ActIsLoadingUpdate(Sender: TObject);
@@ -37,16 +36,14 @@ type
     procedure ActCanGoForwardExecute(Sender: TObject);
     procedure DcefBrowser1PageAdd(const PageID: Integer;
       Const AddAtLast: Boolean);
-    procedure PageControlChange(Sender: TObject);
+    procedure MyCustomTabsChange(Sender: TObject);
     procedure N1Click(Sender: TObject);
-    procedure DcefBrowser1PageClose(const ClosePageIDArr: TArray<Integer>;
-      Const ShowPageID: Integer);
     function GetTabsheetByPageID(Const PageID: Integer): TTabsheet;
     procedure DcefBrowser1PageStateChange(const PageID: Integer;
       const Kind: TBrowserDataChangeKind; const Value: string;
       const PageActived: Boolean);
-  protected
-    procedure WndProc(var Message: TMessage); override;
+    procedure DcefBrowser1PageClose(
+      const ClosePageIDArr: TArray<System.Integer>; const ShowPageID: Integer);
   private
     { Private declarations }
   public
@@ -108,10 +105,10 @@ var
   i: Integer;
 begin
   Result := nil;
-  for i := 0 to PageControl.PageCount - 1 do
-    if PageControl.Pages[i].Tag = PageID then
+  for i := 0 to MyCustomTabs.PageCount - 1 do
+    if MyCustomTabs.Pages[i].Tag = PageID then
     begin
-      Result := PageControl.Pages[i];
+      Result := MyCustomTabs.Pages[i];
       Break;
     end;
 end;
@@ -121,17 +118,17 @@ procedure TMainForm.DcefBrowser1PageAdd(const PageID: Integer;
 var
   NewTab: TTabsheet;
 begin
-  NewTab := TTabsheet.Create(PageControl);
+  NewTab := TTabsheet.Create(MyCustomTabs);
   NewTab.Caption := '';
   NewTab.Tag := PageID;
-  // NewTab.Parent := PageControl;
-  NewTab.PageControl := PageControl;
+  // NewTab.Parent := MyCustomTabs;
+  NewTab.PageControl := MyCustomTabs;
 
-  PageControl.ActivePageIndex := NewTab.PageIndex;
+  MyCustomTabs.ActivePageIndex := NewTab.PageIndex;
 end;
 
-procedure TMainForm.DcefBrowser1PageClose(const ClosePageIDArr: TArray<Integer>;
-  Const ShowPageID: Integer);
+procedure TMainForm.DcefBrowser1PageClose(
+  const ClosePageIDArr: TArray<System.Integer>; const ShowPageID: Integer);
 var
   Index: Integer;
   MyShowTabsheet, MyCloseTabsheet: TTabsheet;
@@ -144,8 +141,8 @@ begin
       MyCloseTabsheet.Free;
   end;
 
-  if (MyShowTabsheet <> nil) and (MyShowTabsheet <> PageControl.ActivePage) then
-    PageControl.ActivePage := MyShowTabsheet;
+  if (MyShowTabsheet <> nil) and (MyShowTabsheet <> MyCustomTabs.ActivePage) then
+    MyCustomTabs.ActivePage := MyShowTabsheet;
 end;
 
 procedure TMainForm.DcefBrowser1PageStateChange(const PageID: Integer;
@@ -173,30 +170,15 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  DcefBrowser1.TabVisible := False;
   DcefBrowser1.BasicOptions.JavascriptOpenWindows := STATE_DISABLED;
-  DcefBrowser1.Options.FrmWinHandle := Handle;
   DcefBrowser1.Options.AutoDown := False;
   AddButton.Click;
 end;
 
-procedure TMainForm.FormDestroy(Sender: TObject);
+procedure TMainForm.MyCustomTabsChange(Sender: TObject);
 begin
-  DcefBrowser1.Free;
-  // 不管是拖控件上去的还是动态创建的TDcefBrowser
-  // 都要手动释放TDcefBrowser
-end;
-
-procedure TMainForm.PageControlChange(Sender: TObject);
-begin
-  DcefBrowser1.ShowPage(PageControl.ActivePage.Tag);
-end;
-
-procedure TMainForm.WndProc(var Message: TMessage);
-begin
-  if Assigned(DcefBrowser1) then
-    DcefBrowser1.MainFormWndProc(Message, Handle);
-
-  inherited WndProc(Message);
+  DcefBrowser1.ShowPage(MyCustomTabs.ActivePage.Tag);
 end;
 
 end.

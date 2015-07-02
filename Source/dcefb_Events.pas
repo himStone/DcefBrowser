@@ -12,6 +12,9 @@ type
     BrowserDownloadUpdated_Progress, BrowserDownloadUpdated_End,
     BrowserDownloadUpdated_Canceled); }
 
+  TOnPageChanging = procedure(Sender: TObject; var Allow: Boolean) of object;
+  TOnPageChanged = TNotifyEvent;
+
   TOnPageLoadingStateChange = procedure(const PageID: Integer;
     const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean)
     of object;
@@ -20,7 +23,7 @@ type
     const PageActived: Boolean) of object;
   TOnPageAdd = procedure(const PageID: Integer; Const AddAtLast: Boolean)
     of object;
-  TOnPageClose = procedure(const ClosePageIDArr: TArray<Integer>;
+  TOnPageClose = procedure(const ClosePageIDArr: TArray<System.Integer>;
     Const ShowPageID: Integer) of object;
 
   TOnLoadStart = procedure(const PageIndex: Integer; const browser: ICefBrowser;
@@ -145,13 +148,16 @@ type
     of object;
 
   IDcefBrowserEvents = interface
+    procedure doOnPageChanging(Sender: TObject; var Allow: Boolean);
+    procedure doOnPageChanged(Sender: TObject);
+
     procedure doOnPageLoadingStateChange(const PageID: Integer;
       const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
     procedure doOnPageStateChange(const PageID: Integer;
       const Kind: TBrowserDataChangeKind; const Value: string;
       const PageActived: Boolean);
     procedure doOnPageAdd(const PageID: Integer; Const AddAtLast: Boolean);
-    procedure doOnPageClose(const ClosePageIDArr: TArray<Integer>;
+    procedure doOnPageClose(const ClosePageIDArr: TArray<System.Integer>;
       Const ShowPageID: Integer);
 
     procedure doOnLoadStart(const PageIndex: Integer;
@@ -269,6 +275,9 @@ type
 
   TDcefBrowserEvents = class(TInterfacedObject, IDcefBrowserEvents)
   private
+    FOnPageChanging: TOnPageChanging;
+    FOnPageChanged: TOnPageChanged;
+
     FOnPageLoadingStateChange: TOnPageLoadingStateChange;
     FOnPageStateChange: TOnPageStateChange;
     FOnPageAdd: TOnPageAdd;
@@ -319,6 +328,9 @@ type
     FOnUpdateDragCursor: TOnUpdateDragCursor;
     FOnCursorChange: TOnCursorChange;
   protected
+    procedure doOnPageChanging(Sender: TObject; var Allow: Boolean);
+    procedure doOnPageChanged(Sender: TObject);
+
     procedure doOnPageLoadingStateChange(const PageID: Integer;
       const browser: ICefBrowser; isLoading, canGoBack,
       canGoForward: Boolean); virtual;
@@ -327,7 +339,7 @@ type
       const PageActived: Boolean); virtual;
     procedure doOnPageAdd(const PageID: Integer;
       Const AddAtLast: Boolean); virtual;
-    procedure doOnPageClose(const ClosePageIDArr: TArray<Integer>;
+    procedure doOnPageClose(const ClosePageIDArr: TArray<System.Integer>;
       Const ShowPageID: Integer); virtual;
 
     procedure doOnLoadStart(const PageIndex: Integer;
@@ -452,6 +464,10 @@ type
       const customCursorInfo: PCefCursorInfo); virtual;
   public
     destructor Destroy; override;
+    property OnPageChanging: TOnPageChanging read FOnPageChanging
+      write FOnPageChanging;
+    property OnPageChanged: TOnPageChanged read FOnPageChanged
+      write FOnPageChanged;
     property OnPageLoadingStateChange: TOnPageLoadingStateChange
       read FOnPageLoadingStateChange write FOnPageLoadingStateChange;
     property OnPageStateChange: TOnPageStateChange read FOnPageStateChange
@@ -693,8 +709,21 @@ begin
     FOnCursorChange(PageIndex, browser, cursor, cursorType, customCursorInfo);
 end;
 
+procedure TDcefBrowserEvents.doOnPageChanged(Sender: TObject);
+begin
+  if Assigned(FOnPageChanged) then
+    FOnPageChanged(Sender);
+end;
+
+procedure TDcefBrowserEvents.doOnPageChanging(Sender: TObject;
+  var Allow: Boolean);
+begin
+  if Assigned(FOnPageChanging) then
+    FOnPageChanging(Sender, Allow);
+end;
+
 procedure TDcefBrowserEvents.doOnPageClose(const ClosePageIDArr
-  : TArray<Integer>; Const ShowPageID: Integer);
+  : TArray<System.Integer>; Const ShowPageID: Integer);
 begin
   if Assigned(FOnPageClose) then
     FOnPageClose(ClosePageIDArr, ShowPageID);

@@ -11882,7 +11882,7 @@ end;
 
 function TCefCustomStreamReader.Seek(offset: Int64; whence: Integer): Integer;
 begin
-  Result := FStream.Seek(offset, whence);
+  Result := FStream.Seek(offset, TSeekOrigin(whence));
 end;
 
 function TCefCustomStreamReader.Tell: Int64;

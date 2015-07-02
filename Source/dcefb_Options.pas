@@ -18,8 +18,6 @@ type
     // 是否弹出新窗口 这样就和TChromium没区别了 这个新窗口将不受TDcefBrowser控制 默认为False
     FDevToolsEnable: Boolean;
     //是否允许使用F12 DebugTool 默认为True
-    FFrmWinHandle: HWND;
-    // APP主窗体的Handle 这个设置是必要的！ 否则在某些情况下焦点会有问题 默认为0
 
     // ---------------------------------------------------------------------------
     FAutoDown: Boolean; // 是否自动下载至默认文件夹 默认False
@@ -35,8 +33,6 @@ type
       read FExitDownloading write FExitDownloading; }
     property PopupNewWin: Boolean read FPopupNewWin write FPopupNewWin;
     property DevToolsEnable: Boolean read FDevToolsEnable write SetDevToolsEnable;
-    property FrmWinHandle: HWND read FFrmWinHandle
-      write FFrmWinHandle;
     property AutoDown: Boolean read FAutoDown write FAutoDown;
     property DownLoadPath: string read FDownLoadPath write SetDownLoadPath;
   end;
@@ -51,7 +47,6 @@ begin
   //FExitDownloading := False;
   FDevToolsEnable := True;
   FPopupNewWin := False;
-  FFrmWinHandle := 0;
   FAutoDown := False;
   FDftDownPath := ExtractFilePath(Paramstr(0)) + 'Download\';
   FDownLoadPath := FDftDownPath;

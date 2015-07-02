@@ -11,7 +11,7 @@ unit dcefb_Browser;
 interface
 
 uses
-  Winapi.Windows, System.Classes, Vcl.Controls, Vcl.ComCtrls,
+  Winapi.Windows, System.Classes, Vcl.Controls, Vcl.ComCtrls, Vcl.Forms,
   Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, Generics.Collections,
   System.SysUtils, Winapi.Messages, System.Math, dcef3_cefgui, dcef3_ceflib,
   dcefb_BasicEvents, dcefb_BorderLessPC, dcefb_Events, dcefb_Options,
@@ -28,6 +28,9 @@ Const
   SUnloadDialogText = '确定要离开此页吗？';
 
 type
+  TCustomDcefBrowser = class;
+  TBrowserPage = class;
+
   TChromiumDevTools = class(TWinControl)
   protected
     procedure WndProc(var Message: TMessage); override;
@@ -43,8 +46,8 @@ type
 
   TBasicBrowser = class(TWinControl)
   private
-    FDcefBrowser: Pointer;
-    FParentBrowserPage: Pointer;
+    FDcefBrowser: TCustomDcefBrowser;
+    FParentBrowserPage: TBrowserPage;
     FBasicDcefBrowserEvents: TBasicDcefBrowserEvents;
 
     FBrowser: ICefBrowser;
@@ -192,8 +195,8 @@ type
     procedure WndProc(var Message: TMessage); override;
     procedure Resize; override;
   public
-    constructor Create(AOwner: TComponent; ParentBrowserPage: Pointer;
-      DcefBrowser: Pointer; DefaultEncoding: ustring; PID: Integer;
+    constructor Create(AOwner: TComponent; ParentBrowserPage: TBrowserPage;
+      DcefBrowser: TCustomDcefBrowser; DefaultEncoding: ustring; PID: Integer;
       CreateByPopup: Boolean; Const DefaultURL: ustring = SBlankPageUrl;
       FShow: Boolean = True); reintroduce;
     destructor Destroy; override;
@@ -239,6 +242,10 @@ type
     procedure DebugPanelResize(Sender: TObject);
     procedure MoveBrowserWin(Method: Integer);
     function GetZoomLevel: string;
+    function GetTitle: String;
+    procedure SetTitle(const value: String);
+    function GetTabVisible: Boolean;
+    procedure SetTabVisible(const value: Boolean);
   public
     constructor Create(PageControl: TBorderLessPageControl;
       ParentItems: Pointer; DcefBrowser: Pointer; DefaultEncoding: ustring;
@@ -278,6 +285,8 @@ type
     property canGoForward: Boolean read GetCanGoForward;
     property URL: string read GetUrl;
     property ZoomLevel: string read GetZoomLevel;
+    property title: String read GetTitle write SetTitle;
+    property TabVisible: Boolean read GetTabVisible write SetTabVisible;
   end;
 
   TCustomDcefBrowser = class(TWinControl)
@@ -296,6 +305,8 @@ type
     FActivePageID: Integer;
     FAddUpPageID: Integer;
 
+    FOnPageChanged: TOnPageChanged;
+    FOnPageChanging: TOnPageChanging;
     FOnPageLoadingStateChange: TOnPageLoadingStateChange;
     FOnPageStateChange: TOnPageStateChange;
     FOnPageAdd: TOnPageAdd;
@@ -345,14 +356,28 @@ type
     function GetNewPageID: Integer;
     function GetClosePageCount: Integer;
     function GetZoomLevel: string;
+    procedure SetTabVisible(const value: Boolean);
   protected
+    // swish changed:
+    FTabVisible: Boolean;
+    FLastWndProc: TWndMethod;
+    FParentForm: TCustomForm;
+    procedure HookWndProc;
+    procedure UnhookWndProc;
+    procedure WndProc(var AMsg: TMessage); override;
+    procedure FormWndProc(var AMsg: TMessage);
+    // changed end
+
+    procedure doOnPageChanging(Sender: TObject; var Allow: Boolean);
+    // swish add
+    procedure doOnPageChanged(Sender: TObject); // swish add
     procedure doOnPageLoadingStateChange(const PageID: Integer;
       const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
     procedure doOnPageStateChange(const PageID: Integer;
       const Kind: TBrowserDataChangeKind; const value: string;
       const PageActived: Boolean);
     procedure doOnPageAdd(const PageID: Integer; Const AddAtLast: Boolean);
-    procedure doOnPageClose(const ClosePageIDArr: TArray<Integer>;
+    procedure doOnPageClose(const ClosePageIDArr: TArray<System.Integer>;
       Const ShowPageID: Integer);
 
     procedure doOnLoadStart(const PageIndex: Integer;
@@ -470,9 +495,6 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure MainFormWndProc(var Message: TMessage; const FormHandle: HWND);
-    // 处理窗口MainForm(不是游览器窗口)焦点问题
-
     function AddPage(Const URL: string = ''; FShow: Boolean = True;
       AddAtLast: Boolean = True): Integer;
     function ClosePage(PageIndex: Integer;
@@ -510,6 +532,8 @@ type
     function PageIDToIndex(PageID: Integer): Integer;
     function PageIndexToID(PageIndex: Integer): Integer;
 
+    class procedure RegisterObject(const aObjList: array of TClass);
+
     property Pages[Index: Integer]: TBrowserPage read GetPageByIndex;
     property ActivePage: TBrowserPage read GetActivePageItem;
     property ActivePageIndex: Integer read GetActivePageIndex;
@@ -529,6 +553,10 @@ type
     property canGoForward: Boolean read GetActivePageCanGoForward;
     property ZoomLevel: string read GetZoomLevel;
 
+    property OnPageChanging: TOnPageChanging read FOnPageChanging
+      write FOnPageChanging;
+    property OnPageChanged: TOnPageChanged read FOnPageChanged
+      write FOnPageChanged;
     property OnPageLoadingStateChange: TOnPageLoadingStateChange
       read FOnPageLoadingStateChange write FOnPageLoadingStateChange;
     property OnPageStateChange: TOnPageStateChange read FOnPageStateChange
@@ -594,6 +622,7 @@ type
       write FOnUpdateDragCursor;
     property OnCursorChange: TOnCursorChange read FOnCursorChange
       write FOnCursorChange;
+    property TabVisible: Boolean read FTabVisible write SetTabVisible;
   end;
 
   TDcefBrowser = class(TCustomDcefBrowser)
@@ -650,6 +679,14 @@ type
     property OnUpdateDragCursor;
     property OnCursorChange;
   end;
+
+  TDefaultRenderProcessHandler = class(TCefRenderProcessHandlerOwn)
+  protected
+    procedure OnWebKitInitialized; override;
+  end;
+
+var
+  ObjList: array of TClass;
 
 implementation
 
@@ -725,45 +762,6 @@ begin
     FDefaultEncoding, PageID, False, URLStr, FShow);
   Result := FPageItems.Add(BrowserPageItem);
   doOnPageAdd(PageID, AddAtLast);
-end;
-
-procedure TCustomDcefBrowser.MainFormWndProc(var Message: TMessage;
-  const FormHandle: HWND);
-var
-  ActivateMsg: TWMActivateApp;
-begin
-  case Message.Msg of
-    WM_NCACTIVATE:
-      begin
-        if (Message.wParam = 0) and (Message.lParam <> 0) then
-        begin
-          Message.wParam := 1;
-        end;
-      end;
-    WM_ACTIVATEAPP:
-      begin
-        ActivateMsg := TWMActivateApp(Message);
-        if Not ActivateMsg.Active then
-        begin
-          if GetForegroundWindow = FormHandle then
-            PostMessage(FormHandle, WM_NCACTIVATE, 0, 0);
-        end
-        else if (FPageItems.Count > 0) and (ActivePage <> nil) then
-        begin
-          if ActivePage.FCreateByPopup and (Options.FrmWinHandle <> 0) then
-          begin
-            if GetForegroundWindow = ActivePage.browser.host.WindowHandle then
-            begin
-              SetForegroundWindow(ActivePage.browser.host.WindowHandle);
-              SetWindowPos(Options.FrmWinHandle, HWND_TOP, 0, 0, 0, 0,
-                SWP_NOSIZE or SWP_NOMOVE or SWP_NOACTIVATE);
-            end;
-          end
-          else if GetForegroundWindow = FormHandle then
-            ActivePage.FBasicBrowser.SetFocus;
-        end;
-      end;
-  end;
 end;
 
 function TCustomDcefBrowser.PageIDToIndex(PageID: Integer): Integer;
@@ -845,6 +843,25 @@ begin
     ActivePage.SetFocus;
 end;
 
+procedure TCustomDcefBrowser.SetTabVisible(const value: Boolean);
+var
+  ALastActive: TTabSheet;
+  I: Integer;
+begin
+  if FTabVisible <> value then
+  begin
+    ALastActive := FPageControl.ActivePage;
+    FTabVisible := value;
+    if value then
+      FPageControl.TabHeight := 24
+    else
+      FPageControl.TabHeight := 0;
+    for I := 0 to FPageControl.PageCount - 1 do
+      Pages[I].TabVisible := value;
+    FPageControl.ActivePage := ALastActive;
+  end;
+end;
+
 procedure TCustomDcefBrowser.ShowPage(PageID: Integer);
 var
   Page: TBrowserPage;
@@ -858,6 +875,22 @@ procedure TCustomDcefBrowser.StopLoad;
 begin
   if ActivePage <> nil then
     ActivePage.StopLoad;
+end;
+
+procedure TCustomDcefBrowser.UnhookWndProc;
+begin
+  if Assigned(FParentForm) then
+  begin
+    FParentForm.WindowProc := FLastWndProc;
+    FParentForm := nil;
+  end;
+end;
+
+procedure TCustomDcefBrowser.WndProc(var AMsg: TMessage);
+begin
+  inherited;
+  if AMsg.Msg = WM_CREATE then
+    HookWndProc; // Added by swish
 end;
 
 procedure TCustomDcefBrowser.CloseAllOtherPage(PageID: Integer);
@@ -969,12 +1002,14 @@ begin
   FDefaultUrl := SBlankPageUrl;
   FActivePageID := -1;
   FAddUpPageID := -1;
+  FTabVisible := False;
 
   FHMutex := CreateMutex(nil, False, 'DB_Pages_Mutex');
   FPageControl := TBorderLessPageControl.Create(Self);
   FPageControl.Parent := TWinControl(Self);
   FPageControl.Align := alClient;
-
+  FPageControl.OnChange := doOnPageChanged;
+  FPageControl.OnChanging := doOnPageChanging;
   FOptions := TDcefBrowserOptions.Create;
   FBasicFontOptions := TChromiumFontOptions.Create;
   FBasicOptions := TChromiumOptions.Create;
@@ -989,20 +1024,33 @@ begin
     ActivePage.DevTools;
 end;
 
+class procedure TCustomDcefBrowser.RegisterObject(const aObjList
+  : array of TClass);
+var
+  Index: Integer;
+begin
+  SetLength(ObjList, Length(aObjList));
+  for Index := Low(aObjList) to High(aObjList) do
+    ObjList[Index] := aObjList[Index];
+
+  CefRenderProcessHandler := TDefaultRenderProcessHandler.Create;
+end;
+
 destructor TCustomDcefBrowser.Destroy;
 var
-  i: Integer;
+  Index: Integer;
 begin
   if Assigned(FPageItems) then
-    for i := 0 to FPageItems.Count - 1 do
-      FPageItems[i].Free;
+    for Index := 0 to FPageItems.Count - 1 do
+      FPageItems[Index].Free;
+  FPageControl.Free;
   FPageItems.Free;
   FClosedPageURL.Free;
-  FPageControl.Free;
   FOptions.Free;
   FBasicFontOptions.Free;
   FBasicOptions.Free;
   CloseHandle(FHMutex);
+  UnhookWndProc; // Added by swish
   inherited;
 end;
 
@@ -1037,6 +1085,52 @@ procedure TCustomDcefBrowser.ExecuteJavaScript(const code: string);
 begin
   if ActivePage <> nil then
     ActivePage.ExecuteJavaScript(code);
+end;
+
+procedure TCustomDcefBrowser.FormWndProc(var AMsg: TMessage);
+var
+  ActivateMsg: TWMActivateApp;
+  FormHandle: HWND;
+begin
+  if Not(csDestroying in ComponentState) then
+  begin
+    FormHandle := GetParentForm(Self).Handle;
+
+    case AMsg.Msg of
+      WM_NCACTIVATE:
+        begin
+          if (AMsg.wParam = 0) and (AMsg.lParam <> 0) then
+          begin
+            AMsg.wParam := 1;
+          end;
+        end;
+      WM_ACTIVATEAPP:
+        begin
+          ActivateMsg := TWMActivateApp(AMsg);
+          if Not ActivateMsg.Active then
+          begin
+            if GetForegroundWindow = FormHandle then
+              PostMessage(FormHandle, WM_NCACTIVATE, 0, 0);
+          end
+          else if (FPageItems.Count > 0) and (ActivePage <> nil) then
+          begin
+            if ActivePage.FCreateByPopup and (FormHandle <> 0) then
+            begin
+              if GetForegroundWindow = ActivePage.browser.host.WindowHandle then
+              begin
+                SetForegroundWindow(ActivePage.browser.host.WindowHandle);
+                SetWindowPos(FormHandle, HWND_TOP, 0, 0, 0, 0,
+                  SWP_NOSIZE or SWP_NOMOVE or SWP_NOACTIVATE);
+              end;
+            end
+            else if GetForegroundWindow = FormHandle then
+              ActivePage.FBasicBrowser.SetFocus;
+          end;
+        end;
+    end;
+  end;
+
+  FLastWndProc(AMsg);
 end;
 
 procedure TCustomDcefBrowser.doOnDialogClosed(const PageIndex: Integer;
@@ -1188,8 +1282,24 @@ begin
     FOnCursorChange(PageIndex, browser, cursor, cursorType, customCursorInfo);
 end;
 
+procedure TCustomDcefBrowser.doOnPageChanged(Sender: TObject);
+begin
+  if FTabVisible then
+    FActivePageID := PageIndexToID(FPageControl.TabIndex);
+
+  if Assigned(FOnPageChanged) then
+    FOnPageChanged(Sender);
+end;
+
+procedure TCustomDcefBrowser.doOnPageChanging(Sender: TObject;
+  var Allow: Boolean);
+begin
+  if Assigned(FOnPageChanging) then
+    FOnPageChanging(Sender, Allow);
+end;
+
 procedure TCustomDcefBrowser.doOnPageClose(const ClosePageIDArr
-  : TArray<Integer>; Const ShowPageID: Integer);
+  : TArray<System.Integer>; Const ShowPageID: Integer);
 begin
   if Assigned(FOnPageClose) then
     FOnPageClose(ClosePageIDArr, ShowPageID);
@@ -1485,6 +1595,18 @@ begin
     Load(FDefaultUrl);
 end;
 
+procedure TCustomDcefBrowser.HookWndProc;
+var
+  AForm: TCustomForm;
+begin
+  AForm := GetParentForm(Self);
+  if AForm <> FParentForm then
+    UnhookWndProc;
+  FParentForm := AForm;
+  FLastWndProc := FParentForm.WindowProc;
+  FParentForm.WindowProc := FormWndProc;
+end;
+
 procedure TCustomDcefBrowser.Load(const URL: string);
 begin
   if FPageItems.Count > 0 then
@@ -1495,10 +1617,10 @@ end;
 
 { TBrowserPageItem }
 
-constructor TBasicBrowser.Create(AOwner: TComponent; ParentBrowserPage: Pointer;
-  DcefBrowser: Pointer; DefaultEncoding: ustring; PID: Integer;
-  CreateByPopup: Boolean; Const DefaultURL: ustring = SBlankPageUrl;
-  FShow: Boolean = True);
+constructor TBasicBrowser.Create(AOwner: TComponent;
+  ParentBrowserPage: TBrowserPage; DcefBrowser: TCustomDcefBrowser;
+  DefaultEncoding: ustring; PID: Integer; CreateByPopup: Boolean;
+  Const DefaultURL: ustring = SBlankPageUrl; FShow: Boolean = True);
 var
   FCreateByPopup: Boolean;
 begin
@@ -1816,7 +1938,7 @@ var
 
   function RightPos(const SubStr, Str: string): Integer;
   var
-    i, j, k, LenSub, LenS: Integer;
+    I, j, k, LenSub, LenS: Integer;
   begin
     Result := 0;
     LenSub := Length(SubStr);
@@ -1824,11 +1946,11 @@ var
     k := 0;
     if (LenSub = 0) or (LenS = 0) or (LenSub > LenS) then
       Exit;
-    for i := LenS downto 1 do
+    for I := LenS downto 1 do
     begin
-      if Str[i] = SubStr[LenSub] then
+      if Str[I] = SubStr[LenSub] then
       begin
-        k := i - 1;
+        k := I - 1;
         for j := LenSub - 1 downto 1 do
         begin
           if Str[k] = SubStr[j] then
@@ -1837,7 +1959,7 @@ var
             Break;
         end;
       end;
-      if i - k = LenSub then
+      if I - k = LenSub then
       begin
         Result := k + 1;
         Exit;
@@ -1847,7 +1969,7 @@ var
 
   function DealExistsFile(FilePath: string): string;
   var
-    i: Integer;
+    I: Integer;
     Temps, Path, FileExt: string;
   begin
     if FileExists(FilePath) then
@@ -1856,10 +1978,10 @@ var
       Temps := ExtractFileName(FilePath);
       FileExt := Temps;
       Delete(FileExt, 1, RightPos('.', FileExt));
-      for i := 1 to 99 do
+      for I := 1 to 99 do
       begin
         Result := Path + copy(Temps, 0, RightPos('.', Temps) - 1) + '(' +
-          inttostr(i) + ').' + FileExt;
+          inttostr(I) + ').' + FileExt;
         if Not FileExists(Result) then
           Break;
       end;
@@ -2266,6 +2388,7 @@ begin
   TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
     BrowserDataChange_Title, title, Actived);
   FLastTitle := title;
+  TBrowserPage(FParentBrowserPage).title := title;
 end;
 
 procedure TBasicBrowser.BrowserUpdateDragCursor(const browser: ICefBrowser;
@@ -2435,7 +2558,7 @@ begin
   begin
     PageControl := FPageControl;
     Caption := '';
-    // Tabvisible := False;
+    // TabVisible := TCustomDcefBrowser(FDcefBrowser).TabVisible;
   end;
   FBrowserPanel := TDcefB_Panel.Create(FTabsheet);
   with FBrowserPanel do
@@ -2515,11 +2638,24 @@ end;
 destructor TBrowserPage.Destroy;
 begin
   FBasicBrowser.Free;
-  FSearchTextBar.Free;
-  FDevToolsPanel.Free;
-  FBrowserPanel.Free;
-  FSplitter.Free;
-  FTabsheet.Free;
+  if Assigned(FSearchTextBar) then
+    FSearchTextBar.Free;
+  if Assigned(FDevToolsPanel) then
+    FDevToolsPanel.Free;
+  if Assigned(FBrowserPanel) then
+    FBrowserPanel.Free;
+  if Assigned(FSplitter) then
+    FSplitter.Free;
+  if Assigned(FTabsheet) then
+  begin
+    // swish:如果直接设置PageControl=nil，在程序退出时会操作PageControl的Handle从而出错
+    if FTabsheet.PageControl.HandleAllocated then
+      FTabsheet.PageControl := nil
+    else
+      PPointer(@FTabsheet.PageControl)^ := nil;
+    // changed done
+    FTabsheet.Free;
+  end;
   inherited;
 end;
 
@@ -2543,6 +2679,11 @@ end;
 function TBrowserPage.GetCanGoForward: Boolean;
 begin
   Result := FBasicBrowser.canGoForward;
+end;
+
+function TBrowserPage.GetTitle: String;
+begin
+  Result := FTabsheet.Caption;
 end;
 
 function TBrowserPage.GetIsLoading: Boolean;
@@ -2603,6 +2744,11 @@ end;
 procedure TBrowserPage.GetSourceInNewPage;
 begin
   TCustomDcefBrowser(FDcefBrowser).GetSourceInNewPage;
+end;
+
+function TBrowserPage.GetTabVisible: Boolean;
+begin
+  Result := FTabsheet.TabVisible;
 end;
 
 function TBrowserPage.GetText(var aText: string;
@@ -2766,6 +2912,11 @@ begin
   FSearchTextBar.EditSetFocus;
 end;
 
+procedure TBrowserPage.SetTitle(const value: String);
+begin
+  FTabsheet.Caption := value;
+end;
+
 procedure TBrowserPage.SetFocus;
 begin
   if Assigned(FBasicBrowser) and (FBasicBrowser.FBrowser <> nil) then
@@ -2773,6 +2924,11 @@ begin
       FBasicBrowser.FBrowser.host.SetFocus(True)
     else
       FBasicBrowser.SetFocus;
+end;
+
+procedure TBrowserPage.SetTabVisible(const value: Boolean);
+begin
+  FTabsheet.TabVisible := value;
 end;
 
 procedure TBrowserPage.Show;
@@ -2880,6 +3036,20 @@ begin
       Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS;
   else
     inherited WndProc(Message);
+  end;
+end;
+
+{ TDefaultRenderProcessHandler }
+
+procedure TDefaultRenderProcessHandler.OnWebKitInitialized;
+var
+  Index: Integer;
+begin
+  inherited;
+  for Index := Low(ObjList) to High(ObjList) do
+  begin
+    TCefRTTIExtension.Register(ObjList[Index].ClassName,
+      ObjList[Index]);
   end;
 end;
 

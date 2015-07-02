@@ -1,7 +1,7 @@
 object MainForm: TMainForm
   Left = 0
   Top = 0
-  Caption = 'SimpleDcefB'
+  Caption = 'Custom Tab For Browser'
   ClientHeight = 543
   ClientWidth = 1062
   Color = clBtnFace
@@ -13,10 +13,9 @@ object MainForm: TMainForm
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 17
-  object PageControl: TPageControl
+  object MyCustomTabs: TPageControl
     Left = 0
     Top = 36
     Width = 1062
@@ -25,7 +24,7 @@ object MainForm: TMainForm
     PopupMenu = PopupMenuPageControl
     TabOrder = 0
     TabWidth = 150
-    OnChange = PageControlChange
+    OnChange = MyCustomTabsChange
   end
   object DcefBrowser1: TDcefBrowser
     Left = 0
@@ -38,9 +37,8 @@ object MainForm: TMainForm
     Options.ExitPagesClosed = True
     Options.PopupNewWin = False
     Options.DevToolsEnable = True
-    Options.FrmWinHandle = 0
     Options.AutoDown = False
-    Options.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\bin\Download\'
+    Options.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\Bin\Download\'
     OnPageStateChange = DcefBrowser1PageStateChange
     OnPageAdd = DcefBrowser1PageAdd
     OnPageClose = DcefBrowser1PageClose
