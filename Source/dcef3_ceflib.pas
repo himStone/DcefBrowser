@@ -13607,7 +13607,7 @@ function TCefRTTIExtension.GetValue(pi: PTypeInfo; const v: ICefv8Value; var ret
     pd: PTypeData;
   begin
     pd := GetTypeData(pi);
-    if (v.IsInt or v.IsBool) and (v.GetIntValue >= pd.MinValue) and (v.GetIntValue <= pd.MaxValue) then
+    if v.IsInt and (v.GetIntValue >= pd.MinValue) and (v.GetIntValue <= pd.MaxValue) then
     begin
       case pd.OrdType of
         otSByte: sv.sb := v.GetIntValue;
@@ -13618,7 +13618,12 @@ function TCefRTTIExtension.GetValue(pi: PTypeInfo; const v: ICefv8Value; var ret
         otULong: sv.ui := v.GetIntValue;
       end;
       TValue.Make(@sv, pi, ret);
-    end else
+    end
+    //2015.7.3@swish:修正了参数为布尔类型时无法正确传递的问题
+    else if v.IsBool then
+      ret:=v.GetBoolValue
+    //End changes
+    else
       Exit(False);
     Result := True;
   end;

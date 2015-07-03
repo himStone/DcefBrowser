@@ -532,7 +532,7 @@ type
     function PageIDToIndex(PageID: Integer): Integer;
     function PageIndexToID(PageIndex: Integer): Integer;
 
-    class procedure RegisterObject(const aObjList: array of TClass);
+    class procedure RegisterClasses(const aObjList: array of TClass);
 
     property Pages[Index: Integer]: TBrowserPage read GetPageByIndex;
     property ActivePage: TBrowserPage read GetActivePageItem;
@@ -682,11 +682,9 @@ type
 
   TDefaultRenderProcessHandler = class(TCefRenderProcessHandlerOwn)
   protected
+    FClasses: array of TClass;
     procedure OnWebKitInitialized; override;
   end;
-
-var
-  ObjList: array of TClass;
 
 implementation
 
@@ -1024,16 +1022,36 @@ begin
     ActivePage.DevTools;
 end;
 
-class procedure TCustomDcefBrowser.RegisterObject(const aObjList
+class procedure TCustomDcefBrowser.RegisterClasses(const aObjList
   : array of TClass);
 var
-  Index: Integer;
+  I,J,C: Integer;
+  AFound:Boolean;
+  ARender:TDefaultRenderProcessHandler;
 begin
-  SetLength(ObjList, Length(aObjList));
-  for Index := Low(aObjList) to High(aObjList) do
-    ObjList[Index] := aObjList[Index];
-
-  CefRenderProcessHandler := TDefaultRenderProcessHandler.Create;
+  if not Assigned(CefRenderProcessHandler)  then
+    CefRenderProcessHandler:=TDefaultRenderProcessHandler.Create;
+  ARender:=CefRenderProcessHandler as TDefaultRenderProcessHandler;
+  C:=Length(ARender.FClasses);
+  SetLength(ARender.FClasses,C+Length(AObjList));
+  for I := 0 to High(AObjList) do
+    begin
+    AFound:=False;
+    for J := 0 to C-1 do
+      begin
+      if ARender.FClasses[J]=AObjList[I] then
+        begin
+        AFound:=True;
+        Break;
+        end;
+      end;
+    if not AFound then
+      begin
+      ARender.FClasses[C]:=AObjList[I];
+      Inc(C);
+      end;
+    end;
+  SetLength(ARender.FClasses,C);
 end;
 
 destructor TCustomDcefBrowser.Destroy;
@@ -3046,10 +3064,9 @@ var
   Index: Integer;
 begin
   inherited;
-  for Index := Low(ObjList) to High(ObjList) do
+  for Index := Low(FClasses) to High(FClasses) do
   begin
-    TCefRTTIExtension.Register(ObjList[Index].ClassName,
-      ObjList[Index]);
+    TCefRTTIExtension.Register(FClasses[Index].ClassName, FClasses[Index]);
   end;
 end;
 

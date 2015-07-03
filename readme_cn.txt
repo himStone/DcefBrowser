@@ -8,6 +8,7 @@ Email: bccsafe5988@gmail.com
 
 
 这是一个开源框架，提供了开发Chromium内核游览器的一种解决方案
+感谢qdac-swish提供了大量代码及改进思路
 
 
 需要cef3的 *.dll, *.pak, *.dat

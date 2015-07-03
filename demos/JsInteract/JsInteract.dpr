@@ -10,7 +10,7 @@ uses
 
 begin
   CefSingleProcess := False;
-  TDcefBrowser.RegisterObject([TTestExtension]);
+  TDcefBrowser.RegisterClasses([TTestExtension]);
   if not CefLoadLibDefault then
     Exit;
 
