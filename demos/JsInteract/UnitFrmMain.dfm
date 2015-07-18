@@ -12,13 +12,14 @@ object MainForm: TMainForm
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object DcefBrowser1: TDcefBrowser
     Left = 0
     Top = 0
     Width = 738
-    Height = 368
+    Height = 336
     TabOrder = 0
     Align = alClient
     DefaultURL = 'about:blank'
@@ -27,12 +28,13 @@ object MainForm: TMainForm
     Options.DevToolsEnable = True
     Options.AutoDown = False
     Options.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\bin\Download\'
+    ExplicitHeight = 368
   end
   object Panel1: TPanel
     Left = 0
-    Top = 368
+    Top = 336
     Width = 738
-    Height = 183
+    Height = 215
     Align = alBottom
     BevelOuter = bvNone
     Caption = 'Panel1'
@@ -41,28 +43,55 @@ object MainForm: TMainForm
     object Edit1: TEdit
       Left = 8
       Top = 6
-      Width = 634
+      Width = 65
       Height = 21
       TabOrder = 0
-      Text = 'TTestExtension.SendJsStr(%s, "Send Msg");'
+      Text = 'TestValue'
     end
     object Button1: TButton
-      Left = 648
+      Left = 79
       Top = 4
       Width = 75
       Height = 25
-      Caption = 'GetJsResult'
+      Caption = 'SetJsValue'
       TabOrder = 1
       OnClick = Button1Click
     end
     object Memo1: TMemo
       Left = 0
-      Top = 37
+      Top = 69
       Width = 738
       Height = 146
       Align = alBottom
       ScrollBars = ssVertical
       TabOrder = 2
+      ExplicitTop = 37
+    end
+    object Button2: TButton
+      Left = 160
+      Top = 4
+      Width = 75
+      Height = 25
+      Caption = 'GetJsValue'
+      TabOrder = 3
+      OnClick = Button2Click
+    end
+    object Edit2: TEdit
+      Left = 8
+      Top = 42
+      Width = 121
+      Height = 21
+      TabOrder = 4
+      Text = 'RunErrorJS();'
+    end
+    object Button3: TButton
+      Left = 135
+      Top = 40
+      Width = 75
+      Height = 25
+      Caption = 'RunJs'
+      TabOrder = 5
+      OnClick = Button3Click
     end
   end
 end

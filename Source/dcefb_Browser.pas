@@ -1,5 +1,5 @@
 unit dcefb_Browser;
-
+
 // 基于Dcef3编写的 多标签多进程浏览器 框架
 // By BccSafe
 // Blog: http://www.bccsafe.com/
@@ -26,6 +26,7 @@ Const
   SDialogTitleSuffix = ' 上的网页显示';
   SUnloadDialogTitle = '确认导航';
   SUnloadDialogText = '确定要离开此页吗？';
+  SRunOnlyInSinglePro = '暂时只支持单进程模式';
 
 type
   TCustomDcefBrowser = class;
@@ -211,6 +212,9 @@ type
     property canGoForward: Boolean read FCanGoForward;
   end;
 
+  TRenderProcessCallbackA = reference to procedure(ASender: TBrowserPage;
+    AContext: ICefv8Context; AData: Pointer);
+
   TBrowserPage = class
   private
     FBasicBrowser: TBasicBrowser;
@@ -246,6 +250,7 @@ type
     procedure SetTitle(const value: String);
     function GetTabVisible: Boolean;
     procedure SetTabVisible(const value: Boolean);
+    function GetClientRect: TRect;
   public
     constructor Create(PageControl: TBorderLessPageControl;
       ParentItems: Pointer; DcefBrowser: Pointer; DefaultEncoding: ustring;
@@ -272,6 +277,8 @@ type
     procedure ReduceZoomLevel;
     procedure ResetZoomLevel;
     procedure GetSourceInNewPage;
+    procedure RunInRenderProcess(AProc: TRenderProcessCallbackA;
+      AData: Pointer);
     function GetSource(var SourceText: string;
       Const TimeOut: Integer = 1000): Boolean;
     function GetText(var aText: string; Const TimeOut: Integer = 1000): Boolean;
@@ -287,6 +294,7 @@ type
     property ZoomLevel: string read GetZoomLevel;
     property title: String read GetTitle write SetTitle;
     property TabVisible: Boolean read GetTabVisible write SetTabVisible;
+    property ClientRect: TRect read GetClientRect;
   end;
 
   TCustomDcefBrowser = class(TWinControl)
@@ -532,6 +540,7 @@ type
     function PageIDToIndex(PageID: Integer): Integer;
     function PageIndexToID(PageIndex: Integer): Integer;
 
+    class procedure CreateDefaultRenderProcess;
     class procedure RegisterClasses(const aObjList: array of TClass);
 
     property Pages[Index: Integer]: TBrowserPage read GetPageByIndex;
@@ -684,6 +693,9 @@ type
   protected
     FClasses: array of TClass;
     procedure OnWebKitInitialized; override;
+    function OnProcessMessageReceived(const browser: ICefBrowser;
+      sourceProcess: TCefProcessId; const Message: ICefProcessMessage)
+      : Boolean; override;
   end;
 
 implementation
@@ -1016,6 +1028,12 @@ begin
   FClosedPageURL := TStringList.Create;
 end;
 
+class procedure TCustomDcefBrowser.CreateDefaultRenderProcess;
+begin
+  if not Assigned(CefRenderProcessHandler) then
+    CefRenderProcessHandler := TDefaultRenderProcessHandler.Create;
+end;
+
 procedure TCustomDcefBrowser.DevTools;
 begin
   if ActivePage <> nil then
@@ -1025,33 +1043,32 @@ end;
 class procedure TCustomDcefBrowser.RegisterClasses(const aObjList
   : array of TClass);
 var
-  I,J,C: Integer;
-  AFound:Boolean;
-  ARender:TDefaultRenderProcessHandler;
+  I, J, C: Integer;
+  AFound: Boolean;
+  ARender: TDefaultRenderProcessHandler;
 begin
-  if not Assigned(CefRenderProcessHandler)  then
-    CefRenderProcessHandler:=TDefaultRenderProcessHandler.Create;
-  ARender:=CefRenderProcessHandler as TDefaultRenderProcessHandler;
-  C:=Length(ARender.FClasses);
-  SetLength(ARender.FClasses,C+Length(AObjList));
-  for I := 0 to High(AObjList) do
+  CreateDefaultRenderProcess;
+  ARender := CefRenderProcessHandler as TDefaultRenderProcessHandler;
+  C := Length(ARender.FClasses);
+  SetLength(ARender.FClasses, C + Length(aObjList));
+  for I := 0 to High(aObjList) do
+  begin
+    AFound := False;
+    for J := 0 to C - 1 do
     begin
-    AFound:=False;
-    for J := 0 to C-1 do
+      if ARender.FClasses[J] = aObjList[I] then
       begin
-      if ARender.FClasses[J]=AObjList[I] then
-        begin
-        AFound:=True;
+        AFound := True;
         Break;
-        end;
-      end;
-    if not AFound then
-      begin
-      ARender.FClasses[C]:=AObjList[I];
-      Inc(C);
       end;
     end;
-  SetLength(ARender.FClasses,C);
+    if not AFound then
+    begin
+      ARender.FClasses[C] := aObjList[I];
+      Inc(C);
+    end;
+  end;
+  SetLength(ARender.FClasses, C);
 end;
 
 destructor TCustomDcefBrowser.Destroy;
@@ -1956,7 +1973,7 @@ var
 
   function RightPos(const SubStr, Str: string): Integer;
   var
-    I, j, k, LenSub, LenS: Integer;
+    I, J, k, LenSub, LenS: Integer;
   begin
     Result := 0;
     LenSub := Length(SubStr);
@@ -1969,9 +1986,9 @@ var
       if Str[I] = SubStr[LenSub] then
       begin
         k := I - 1;
-        for j := LenSub - 1 downto 1 do
+        for J := LenSub - 1 downto 1 do
         begin
-          if Str[k] = SubStr[j] then
+          if Str[k] = SubStr[J] then
             Dec(k)
           else
             Break;
@@ -2699,6 +2716,11 @@ begin
   Result := FBasicBrowser.canGoForward;
 end;
 
+function TBrowserPage.GetClientRect: TRect;
+begin
+  Result := FBrowserPanel.ClientRect;
+end;
+
 function TBrowserPage.GetTitle: String;
 begin
   Result := FTabsheet.Caption;
@@ -2900,6 +2922,7 @@ end;
 procedure TBrowserPage.Reload;
 begin
   FBasicBrowser.FBrowser.Reload;
+  FTabsheet.Invalidate;
   SetFocus;
 end;
 
@@ -2912,6 +2935,28 @@ end;
 procedure TBrowserPage.ResetZoomLevel;
 begin
   browser.host.ZoomLevel := 0;
+end;
+
+procedure TBrowserPage.RunInRenderProcess(AProc: TRenderProcessCallbackA;
+AData: Pointer);
+var
+  AMsg: ICefProcessMessage;
+  ATemp: Pointer;
+begin
+  if CefSingleProcess then
+  begin
+    AMsg := TCefProcessMessageRef.New('@dcefbrowser_runinrender');
+    AMsg.ArgumentList.SetSize(3);
+    // 这里使用字符串而不是整数，是因为JavaScript里没有64位整数
+    AMsg.ArgumentList.SetString(0, IntToHex(IntPtr(Self), SizeOf(Pointer)));
+    TRenderProcessCallbackA(ATemp) := AProc;
+    AMsg.ArgumentList.SetString(1, IntToHex(IntPtr(Pointer(ATemp)),
+      SizeOf(Pointer)));
+    AMsg.ArgumentList.SetString(2, IntToHex(IntPtr(AData), SizeOf(Pointer)));
+    browser.SendProcessMessage(PID_RENDERER, AMsg);
+  end
+  else
+    raise Exception.Create(SRunOnlyInSinglePro);
 end;
 
 procedure TBrowserPage.SearchText;
@@ -3059,6 +3104,36 @@ end;
 
 { TDefaultRenderProcessHandler }
 
+function TDefaultRenderProcessHandler.OnProcessMessageReceived
+  (const browser: ICefBrowser; sourceProcess: TCefProcessId;
+const Message: ICefProcessMessage): Boolean;
+  procedure DoRunInRender;
+  var
+    ASender: TBrowserPage;
+    ATemp: Pointer;
+    AProc: TRenderProcessCallbackA;
+    AData: Pointer;
+  begin
+    ASender := TBrowserPage
+      (StrToInt64('$' + message.ArgumentList.GetString(0)));
+    ATemp := Pointer(StrToInt64('$' + message.ArgumentList.GetString(1)));
+    AProc := TRenderProcessCallbackA(ATemp);
+    AData := Pointer(StrToInt64('$' + message.ArgumentList.GetString(2)));
+    if Assigned(AProc) then
+      AProc(ASender, browser.MainFrame.GetV8Context, AData);
+    TRenderProcessCallbackA(ATemp) := nil;
+  end;
+
+begin
+  if message.Name = '@dcefbrowser_runinrender' then
+  begin
+    DoRunInRender;
+    Result := True;
+  end
+  else
+    Result := False;
+end;
+
 procedure TDefaultRenderProcessHandler.OnWebKitInitialized;
 var
   Index: Integer;
@@ -3071,3 +3146,4 @@ begin
 end;
 
 end.
+

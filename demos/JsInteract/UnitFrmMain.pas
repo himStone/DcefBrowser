@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
-  dcefb_Browser, dcef3_ceflib;
+  dcefb_Browser, dcef3_ceflib, jsvarhelper;
 
 type
   TMainForm = class(TForm)
@@ -14,19 +14,20 @@ type
     Edit1: TEdit;
     Button1: TButton;
     Memo1: TMemo;
+    Button2: TButton;
+    Edit2: TEdit;
+    Button3: TButton;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
   private
-    procedure WMCopyData(var Message: TWMCopyData); message WM_COPYDATA;
+    JsVars: TJsVars;
     { Private declarations }
   public
     { Public declarations }
   end;
-
-  TTestExtension = class
-    class procedure SendJsStr(FormHandle: Integer; JsStr: string);
-  end;
-
 var
   MainForm: TMainForm;
 
@@ -34,52 +35,32 @@ implementation
 
 {$R *.dfm}
 
-function ByteLength(const S: string): Integer;
-begin
-  Result := Length(S) * SizeOf(Char);
-end;
-
-procedure SendStrToForm(FormHandle: HWND; Str: string);
-var
-  Size: Integer;
-  CopyDataStruct: TCopyDataStruct;
-begin
-  if FormHandle > 0 then
-  begin
-    Size := ByteLength(Str) + 2;
-    CopyDataStruct.lpData := PChar(Str + #0);
-    CopyDataStruct.dwData := WM_COPYDATA;
-    CopyDataStruct.cbData := Size;
-    SendMessage(FormHandle, WM_COPYDATA, 0, Integer(@CopyDataStruct));
-  end;
-end;
-
 procedure TMainForm.Button1Click(Sender: TObject);
-var
-  JsCode: string;
 begin
-  JsCode := Format(Edit1.Text, [IntToStr(Handle)]);
-  DcefBrowser1.ExecuteJavaScript(JsCode);
-  Memo1.Lines.Add('执行JS ' + JsCode);
+  JsVars.AsString['TestStr'] := Edit1.Text;
+  Memo1.Lines.Add(Format('Set TestStr = %s', [Edit1.Text]));
+end;
+
+procedure TMainForm.Button2Click(Sender: TObject);
+begin
+  Memo1.Lines.Add('Get TestStr = ' + JsVars.AsString['TestStr']);
+end;
+
+procedure TMainForm.Button3Click(Sender: TObject);
+begin
+  JsVars.ExecuteScript(Edit2.Text);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   DcefBrowser1.TabVisible := True;
   DcefBrowser1.AddPage('http://www.baidu.com');
+  JsVars := TJsVars.Create(DcefBrowser1);
 end;
 
-procedure TMainForm.WMCopyData(var Message: TWMCopyData);
+procedure TMainForm.FormDestroy(Sender: TObject);
 begin
-  memo1.Lines.Add('收到消息 ' + PChar(Message.CopyDataStruct.lpData));
-end;
-
-{ TDefaultDcefbExtension }
-
-class procedure TTestExtension.SendJsStr(FormHandle: Integer;
-  JsStr: string);
-begin
-  SendStrToForm(FormHandle, JsStr);
+  JsVars.Free;
 end;
 
 end.

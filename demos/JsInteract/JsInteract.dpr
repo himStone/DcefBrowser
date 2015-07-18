@@ -9,8 +9,8 @@ uses
 {$R *.res}
 
 begin
-  CefSingleProcess := False;
-  TDcefBrowser.RegisterClasses([TTestExtension]);
+  // CefSingleProcess := False;
+  TDcefBrowser.CreateDefaultRenderProcess;
   if not CefLoadLibDefault then
     Exit;
 
@@ -18,4 +18,5 @@ begin
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
+
 end.
