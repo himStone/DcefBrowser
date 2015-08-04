@@ -512,6 +512,7 @@ type
     function ClosePage(ArrayPageIndex: TArray<Integer>; ShowPageID: Integer)
       : Integer; overload;
     procedure CloseAllOtherPage(PageID: Integer);
+    procedure CloseAllPage(IsTrigClosePageEvent: Boolean);
     procedure ShowPage(PageID: Integer);
     procedure Load(Const URL: string);
     procedure SetPageFocus;
@@ -944,6 +945,26 @@ begin
   doOnPageClose(ClosePageIDArr, PageID);
 end;
 
+procedure TCustomDcefBrowser.CloseAllPage(IsTrigClosePageEvent: Boolean);
+var
+  Index: Integer;
+  ClosePageIDArr: TArray<Integer>;
+begin
+  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
+  begin
+    for Index := FPageItems.Count - 1 Downto 0 do
+    begin
+      SetLength(ClosePageIDArr, Length(ClosePageIDArr) + 1);
+      ClosePageIDArr[High(ClosePageIDArr)] := Pages[Index].PageID;
+      FPageItems[Index].Free;
+      FPageItems.Delete(Index);
+    end;
+    ReleaseMutex(FHMutex);
+  end;
+  if IsTrigClosePageEvent then
+    doOnPageClose(ClosePageIDArr, -1);
+end;
+
 function TCustomDcefBrowser.ClosePage(ArrayPageIndex: TArray<Integer>;
   ShowPageID: Integer): Integer;
 var
@@ -1104,7 +1125,8 @@ begin
   FBasicOptions.Free;
   CloseHandle(FHMutex);
   UnhookWndProc; // Added by swish
-  CefQuitMessageLoop;
+  if Not (csDesigning in ComponentState) then
+    CefQuitMessageLoop;
   inherited;
 end;
 
