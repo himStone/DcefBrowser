@@ -1,5 +1,6 @@
 unit dcefb_Browser;
 
+
 // 基于Dcef3编写的 多标签多进程浏览器 框架
 // By BccSafe
 // Blog: http://www.bccsafe.com/
@@ -701,11 +702,16 @@ type
 implementation
 
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
+  uses
+{$IFDEF DELPHI16_UP}
+  Vcl.AppEvnts;
+{$ELSE}
+  AppEvnts;
+{$ENDIF}
 
 var
   CefInstances: Integer = 0;
   CefTimer: UINT = 0;
-  looping: Boolean = False;
 {$ENDIF}
 
 type
@@ -717,23 +723,30 @@ type
 
   { TVCLClientHandler }
 
+{$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
+var
+  looping: Boolean = False;
+
 procedure TimerProc(HWND: HWND; uMsg: UINT; idEvent: Pointer;
   dwTime: DWORD); stdcall;
 begin
-{$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
   if looping then
     Exit;
   if CefInstances > 0 then
   begin
     looping := True;
     try
-      CefDoMessageLoopWork;
+      //CefDoMessageLoopWork
+      //avan lau 2015-08-04
+      //非阻塞模式，在Win8-64bit系统下，且为多进程模式（CefSingleProcess := False;）
+      //极易出现程序无响应的状况，故采用CefRunMessageLoop替代（阻塞）
+      CefRunMessageLoop;
     finally
       looping := False;
     end;
   end;
-{$ENDIF}
 end;
+{$ENDIF}
 
 constructor TVCLDcefClientHandler.Create(const crm: IChromiumEvents;
   renderer: Boolean);
@@ -751,7 +764,12 @@ begin
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
   InterlockedDecrement(CefInstances);
   if CefInstances = 0 then
+  begin
     KillTimer(0, CefTimer);
+    //avan lau 2015-08-04
+    //搭配CefRunMessageLoop使用
+    CefQuitMessageLoop;
+  end;
 {$ENDIF}
   inherited;
 end;
@@ -1086,6 +1104,7 @@ begin
   FBasicOptions.Free;
   CloseHandle(FHMutex);
   UnhookWndProc; // Added by swish
+  CefQuitMessageLoop;
   inherited;
 end;
 
@@ -1684,7 +1703,6 @@ begin
   if not(csDesigning in ComponentState) and Not FCreateByPopup then
     FClientHandler := TVCLDcefClientHandler.Create
       (FBasicDcefBrowserEvents, False);
-
   UpdatePageInfo(True);
 end;
 
@@ -1707,9 +1725,7 @@ begin
   settings.size := SizeOf(TCefBrowserSettings);
   GetSettings(settings);
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
-  CefBrowserHostCreate(@info, FClientHandler, FDefaultUrl, @settings,
-    TCefRequestContextRef.CreateContext((FHandler as ICefClientHandler)
-    .GetRequestContextHandler));
+  CefBrowserHostCreate(@info, FClientHandler, FDefaultUrl, @settings, nil);
 {$ELSE}
   CefLoadLibDefault;
   FBrowser := CefBrowserHostCreateSync(@info, FClientHandler, FDefaultUrl,
@@ -3141,7 +3157,8 @@ begin
   inherited;
   for Index := Low(FClasses) to High(FClasses) do
   begin
-    TCefRTTIExtension.Register(FClasses[Index].ClassName, FClasses[Index]);
+    TCefRTTIExtension.Register(FClasses[Index].ClassName, FClasses[Index]
+    {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}, True {$ENDIF});
   end;
 end;
 
