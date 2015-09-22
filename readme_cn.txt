@@ -16,6 +16,6 @@ Email: bccsafe5988@gmail.com
 
 
 编写环境 XE6
-XE2以上都可以编译
+在XE6下测试通过
 dcef3版本 dcef3-0cc175e7a629
 内置Flash插件版本 14.0.0.179

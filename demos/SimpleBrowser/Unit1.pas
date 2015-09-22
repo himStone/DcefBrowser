@@ -17,6 +17,8 @@ type
     Panel2: TPanel;
     Button4: TButton;
     Button1: TButton;
+    Panel3: TPanel;
+    Button2: TButton;
     procedure AddressEditKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure Button4Click(Sender: TObject);
@@ -26,6 +28,7 @@ type
       httpStatusCode: Integer);
     procedure FormCreate(Sender: TObject);
     procedure AddButtonClick(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateStates;
@@ -62,6 +65,11 @@ procedure TForm1.Button1Click(Sender: TObject);
 begin
   DcefBrowser1.GoForward;
   UpdateStates;
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+begin
+  DcefBrowser1.Load(AddressEdit.Text);
 end;
 
 procedure TForm1.Button4Click(Sender: TObject);

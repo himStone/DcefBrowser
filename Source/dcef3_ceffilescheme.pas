@@ -17,13 +17,13 @@
 {$IFDEF FPC}
 {$MODE DELPHI}{$H+}
 {$ENDIF}
-unit dcef3_ceffilescheme;
-{$R 'dcef3_ceffilescheme.res'}
+unit Dcef3_ceffilescheme;
+{$R 'Dcef3_ceffilescheme.res'}
 {$WARN SYMBOL_PLATFORM OFF}
 
 interface
 
-uses dcef3_ceflib, Classes;
+uses Dcef3_ceflib, Classes;
 
 type
   TFileScheme = class(TCefResourceHandlerOwn)

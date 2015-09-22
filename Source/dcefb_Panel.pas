@@ -1,22 +1,21 @@
-unit dcefb_Panel;
+unit DcefB_Panel;
 
 interface
 
 uses
-  Winapi.Windows, System.Classes, Vcl.ComCtrls, Winapi.Messages, Vcl.ExtCtrls,
-  System.SysUtils;
+  Windows, Classes, ComCtrls, Messages, ExtCtrls, SysUtils;
 
 type
-  TDcefB_Panel = class(TPanel)
+  TDcefBPanel = class(TPanel)
   private
     procedure WMGetDlgCode(var Message: TWMGetDlgCode); message WM_GETDLGCODE;
   end;
 
 implementation
 
-{ TDcefB_Panel }
+{ TDcefBPanel }
 
-procedure TDcefB_Panel.WMGetDlgCode(var Message: TWMGetDlgCode);
+procedure TDcefBPanel.WMGetDlgCode(var Message: TWMGetDlgCode);
 begin
   inherited;
   Message.Result := Message.Result or DLGC_WANTARROWS or DLGC_WANTTAB;

@@ -18,14 +18,14 @@
  *
  *)
 
-unit dcef3_cefgui;
+unit Dcef3_cefgui;
 
-{$I dcef3_cef.inc}
+{$I Dcef3_cef.inc}
 
 interface
 
 uses
-  Classes, dcef3_ceflib;
+  Classes, Dcef3_ceflib;
 
 type
   TOnProcessMessageReceived = procedure(Sender: TObject; const browser: ICefBrowser;

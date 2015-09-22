@@ -1,6 +1,6 @@
-unit UnitDcefBrowserReg;
+unit DcefBrowserReg;
 
-{$I ..\Source\dcef3_cef.inc}
+{$I ..\..\Source\Dcef3_cef.inc}
 
 interface
 
@@ -8,7 +8,7 @@ procedure Register;
 
 implementation
 
-uses System.Classes, dcefb_Browser;
+uses Classes, DcefB_Browser;
 
 procedure Register;
 begin

@@ -21,12 +21,12 @@
 {$IFDEF FPC}
   {$MODE DELPHI}{$H+}
 {$ENDIF}
-unit dcef3_ceflib;
+unit Dcef3_ceflib;
 {$IFNDEF CPUX64}
   {$ALIGN ON}
   {$MINENUMSIZE 4}
 {$ENDIF}
-{$I dcef3_cef.inc}
+{$I Dcef3_cef.inc}
 
 interface
 uses

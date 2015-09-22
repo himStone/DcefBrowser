@@ -1,6 +1,5 @@
-unit dcefb_Browser;
+unit DcefB_Browser;
 
-
 // 基于Dcef3编写的 多标签多进程浏览器 框架
 // By BccSafe
 // Blog: http://www.bccsafe.com/
@@ -11,14 +10,17 @@ unit dcefb_Browser;
 
 interface
 
-uses
-  Winapi.Windows, System.Classes, Vcl.Controls, Vcl.ComCtrls, Vcl.Forms,
-  Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, Generics.Collections,
-  System.SysUtils, Winapi.Messages, System.Math, dcef3_cefgui, dcef3_ceflib,
-  dcefb_BasicEvents, dcefb_BorderLessPC, dcefb_Events, dcefb_Options,
-  dcefb_BasicDialog, dcefb_Panel;
+{$I Dcef3_cef.inc}
 
-{$I dcef3_cef.inc}
+uses
+  Windows, Classes, Controls, ComCtrls, Forms, ExtCtrls, Dialogs, StrUtils,
+  SysUtils, Messages, Math,
+{$IFDEF DELPHI14_UP}
+  Generics.Collections,
+{$ENDIF}
+  Dcef3_cefgui, Dcef3_ceflib,
+  DcefB_BasicEvents, DcefB_BorderLessPC, DcefB_Events, DcefB_Options,
+  DcefB_BasicDialog, DcefB_Panel;
 
 Const
   SBlankPageUrl = 'about:blank';
@@ -32,15 +34,16 @@ Const
 type
   TCustomDcefBrowser = class;
   TBrowserPage = class;
+  TPageContainer = class;
 
   TChromiumDevTools = class(TWinControl)
   protected
     procedure WndProc(var Message: TMessage); override;
     procedure Resize; override;
   public
-    procedure ShowDevTools(const browser: ICefBrowser;
+    procedure ShowDevTools(const Browser: ICefBrowser;
       inspectElementAt: PCefPoint = nil);
-    procedure CloseDevTools(const browser: ICefBrowser);
+    procedure CloseDevTools(const Browser: ICefBrowser);
   published
     property Align;
     property Visible;
@@ -68,126 +71,125 @@ type
     FLastTitle: ustring;
     FLastAddress: ustring;
 
-    procedure BrowserLoadingStateChange(const browser: ICefBrowser;
+    procedure BrowserLoadingStateChange(const Browser: ICefBrowser;
       isLoading, canGoBack, canGoForward: Boolean);
-    procedure BrowserStatusMessage(const browser: ICefBrowser;
+    procedure BrowserStatusMessage(const Browser: ICefBrowser;
       const value: ustring);
-    procedure BrowserAddressChange(const browser: ICefBrowser;
+    procedure BrowserAddressChange(const Browser: ICefBrowser;
       const frame: ICefFrame; const URL: ustring);
-    procedure BrowserTitleChange(const browser: ICefBrowser;
+    procedure BrowserTitleChange(const Browser: ICefBrowser;
       const title: ustring);
 
-    procedure BrowserBeforePopup(const browser: ICefBrowser;
+    procedure BrowserBeforePopup(const Browser: ICefBrowser;
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean; out Result: Boolean);
-    procedure BrowserAfterCreated(const browser: ICefBrowser);
-    procedure BrowserClose(const browser: ICefBrowser; out Result: Boolean);
-    procedure BrowserBeforeBrowse(const browser: ICefBrowser;
+    procedure BrowserAfterCreated(const Browser: ICefBrowser);
+    procedure BrowserClose(const Browser: ICefBrowser; out Result: Boolean);
+    procedure BrowserBeforeBrowse(const Browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean;
       out Result: Boolean);
 
-    procedure BrowserPreKeyEvent(const browser: ICefBrowser;
+    procedure BrowserPreKeyEvent(const Browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle;
       out isKeyboardShortcut: Boolean; out Result: Boolean);
-    procedure BrowserKeyEvent(const browser: ICefBrowser;
+    procedure BrowserKeyEvent(const Browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle; out Result: Boolean);
 
-    procedure BrowserLoadStart(const browser: ICefBrowser;
+    procedure BrowserLoadStart(const Browser: ICefBrowser;
       const frame: ICefFrame);
-    procedure BrowserLoadEnd(const browser: ICefBrowser; const frame: ICefFrame;
+    procedure BrowserLoadEnd(const Browser: ICefBrowser; const frame: ICefFrame;
       httpStatusCode: Integer);
-    procedure BrowserLoadError(const browser: ICefBrowser;
+    procedure BrowserLoadError(const Browser: ICefBrowser;
       const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring);
 
-    procedure BrowserBeforeDownload(const browser: ICefBrowser;
+    procedure BrowserBeforeDownload(const Browser: ICefBrowser;
       const downloadItem: ICefDownloadItem; const suggestedName: ustring;
       const callback: ICefBeforeDownloadCallback);
-    procedure BrowserDownloadUpdated(const browser: ICefBrowser;
+    procedure BrowserDownloadUpdated(const Browser: ICefBrowser;
       const downloadItem: ICefDownloadItem;
       const callback: ICefDownloadItemCallback);
 
-    procedure BrowserBeforeResourceLoad(const browser: ICefBrowser;
+    procedure BrowserBeforeResourceLoad(const Browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest; out Result: Boolean);
-    procedure BrowserGetResourceHandler(const browser: ICefBrowser;
+    procedure BrowserGetResourceHandler(const Browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest;
       out Result: ICefResourceHandler);
-    procedure BrowserResourceRedirect(const browser: ICefBrowser;
+    procedure BrowserResourceRedirect(const Browser: ICefBrowser;
       const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring);
 
-    procedure BrowserGotFocus(const browser: ICefBrowser);
-    procedure BrowserSetFocus(const browser: ICefBrowser;
+    procedure BrowserGotFocus(const Browser: ICefBrowser);
+    procedure BrowserSetFocus(const Browser: ICefBrowser;
       source: TCefFocusSource; out Result: Boolean);
-    procedure BrowserTakeFocus(const browser: ICefBrowser; next: Boolean);
+    procedure BrowserTakeFocus(const Browser: ICefBrowser; next: Boolean);
 
-    procedure BrowserBeforeContextMenu(const browser: ICefBrowser;
+    procedure BrowserBeforeContextMenu(const Browser: ICefBrowser;
       const frame: ICefFrame; const params: ICefContextMenuParams;
       const model: ICefMenuModel);
-    procedure BrowserContextMenuCommand(const browser: ICefBrowser;
+    procedure BrowserContextMenuCommand(const Browser: ICefBrowser;
       const frame: ICefFrame; const params: ICefContextMenuParams;
       commandId: Integer; eventFlags: TCefEventFlags; out Result: Boolean);
-    procedure BrowserContextMenuDismissed(const browser: ICefBrowser;
+    procedure BrowserContextMenuDismissed(const Browser: ICefBrowser;
       const frame: ICefFrame);
 
-    procedure BrowserJsdialog(const browser: ICefBrowser;
+    procedure BrowserJsdialog(const Browser: ICefBrowser;
       const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
       const messageText, defaultPromptText: ustring;
       callback: ICefJsDialogCallback; out suppressMessage: Boolean;
       out Result: Boolean);
-    procedure BrowserBeforeUnloadDialog(const browser: ICefBrowser;
+    procedure BrowserBeforeUnloadDialog(const Browser: ICefBrowser;
       const messageText: ustring; isReload: Boolean;
       const callback: ICefJsDialogCallback; out Result: Boolean);
-    procedure BrowserDialogClosed(const browser: ICefBrowser);
+    procedure BrowserDialogClosed(const Browser: ICefBrowser);
 
-    procedure BrowserPluginCrashed(const browser: ICefBrowser;
+    procedure BrowserPluginCrashed(const Browser: ICefBrowser;
       const pluginPath: ustring);
-    procedure BrowserBeforePluginLoad(const browser: ICefBrowser;
+    procedure BrowserBeforePluginLoad(const Browser: ICefBrowser;
       const URL, policyUrl: ustring; const info: ICefWebPluginInfo;
       out Result: Boolean);
 
-    procedure BrowserGetAuthCredentials(const browser: ICefBrowser;
+    procedure BrowserGetAuthCredentials(const Browser: ICefBrowser;
       const frame: ICefFrame; isProxy: Boolean; const host: ustring;
       port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback; out Result: Boolean);
-    procedure BrowserConsoleMessage(const browser: ICefBrowser;
+    procedure BrowserConsoleMessage(const Browser: ICefBrowser;
       const Message, source: ustring; line: Integer; out Result: Boolean);
-    procedure BrowserProtocolExecution(const browser: ICefBrowser;
+    procedure BrowserProtocolExecution(const Browser: ICefBrowser;
       const URL: ustring; out allowOsExecution: Boolean);
 
-    procedure BrowserFileDialog(const browser: ICefBrowser;
+    procedure BrowserFileDialog(const Browser: ICefBrowser;
       mode: TCefFileDialogMode; const title, defaultFileName: ustring;
       acceptTypes: TStrings; const callback: ICefFileDialogCallback;
       out Result: Boolean);
 
-    procedure BrowserRequestGeolocationPermission(const browser: ICefBrowser;
+    procedure BrowserRequestGeolocationPermission(const Browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer;
       const callback: ICefGeolocationCallback; out Result: Boolean);
-    procedure BrowserCancelGeolocationPermission(const browser: ICefBrowser;
+    procedure BrowserCancelGeolocationPermission(const Browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer);
 
-    procedure BrowserQuotaRequest(const browser: ICefBrowser;
+    procedure BrowserQuotaRequest(const Browser: ICefBrowser;
       const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback; out Result: Boolean);
     procedure BrowserCertificateError(certError: TCefErrorCode;
       const requestUrl: ustring;
       const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
 
-    procedure BrowserDragEnter(const browser: ICefBrowser;
+    procedure BrowserDragEnter(const Browser: ICefBrowser;
       const dragData: ICefDragData; mask: TCefDragOperations;
       out Result: Boolean);
-    procedure BrowserStartDragging(const browser: ICefBrowser;
+    procedure BrowserStartDragging(const Browser: ICefBrowser;
       const dragData: ICefDragData; allowedOps: TCefDragOperations;
       x, y: Integer; out Result: Boolean);
-    procedure BrowserUpdateDragCursor(const browser: ICefBrowser;
+    procedure BrowserUpdateDragCursor(const Browser: ICefBrowser;
       operation: TCefDragOperation);
-    procedure BrowserCursorChange(const browser: ICefBrowser;
+    procedure BrowserCursorChange(const Browser: ICefBrowser;
       cursor: TCefCursorHandle; cursorType: TCefCursorType;
       const customCursorInfo: PCefCursorInfo);
 
     procedure LoadBrowserEvents;
-
     procedure GetSettings(var settings: TCefBrowserSettings);
     procedure CreateBrowser;
 
@@ -213,14 +215,15 @@ type
     property canGoForward: Boolean read FCanGoForward;
   end;
 
-  TRenderProcessCallbackA = reference to procedure(ASender: TBrowserPage;
-    AContext: ICefv8Context; AData: Pointer);
+  TRenderProcessCallbackA = {$IFDEF DELPHI14_UP}reference to
+{$ENDIF} procedure(ASender: TBrowserPage; AContext: ICefv8Context;
+    AData: Pointer);
 
   TBrowserPage = class
   private
     FBasicBrowser: TBasicBrowser;
-    FBrowserPanel: TDcefB_Panel;
-    FDevToolsPanel: TDcefB_Panel;
+    FBrowserPanel: TDcefBPanel;
+    FDevToolsPanel: TDcefBPanel;
     FDevTools: TChromiumDevTools;
     FSplitter: TSplitter;
     FTabsheet: TTabSheet;
@@ -231,7 +234,7 @@ type
 
     FPageControl: TBorderLessPageControl;
     FDcefBrowser: Pointer;
-    FParentItems: Pointer;
+    FParentItems: TPageContainer;
 
     FCreateByPopup: Boolean; // 1 dcef3弹出的新窗体   0 自己创建的窗体
 
@@ -278,15 +281,16 @@ type
     procedure ReduceZoomLevel;
     procedure ResetZoomLevel;
     procedure GetSourceInNewPage;
+{$IFDEF DELPHI14_UP}
     procedure RunInRenderProcess(AProc: TRenderProcessCallbackA;
       AData: Pointer);
     function GetSource(var SourceText: string;
       Const TimeOut: Integer = 1000): Boolean;
     function GetText(var aText: string; Const TimeOut: Integer = 1000): Boolean;
-
+{$ENDIF}
     property PageIndex: Integer read GetPageIndex;
     property PageID: Integer read FPageID;
-    property browser: ICefBrowser read GetBrowser;
+    property Browser: ICefBrowser read GetBrowser;
     property CreateByPopup: Boolean read FCreateByPopup;
     property isLoading: Boolean read GetIsLoading;
     property canGoBack: Boolean read GetCanGoBack;
@@ -298,12 +302,70 @@ type
     property ClientRect: TRect read GetClientRect;
   end;
 
+  TPageContainerLocker = class
+  private
+    FCS: TRTLCriticalSection;
+  public
+    constructor Create();
+    destructor Destroy(); override;
+
+    procedure Lock();
+    procedure UnLock();
+  end;
+
+{$IFDEF DELPHI14_UP}
+
+  TDynStrArr = array of string;
+  TDynIntArr = array of Integer;
+
+  // 线程安全
+  TPageContainer = class
+  private
+    FItems: TList<TBrowserPage>;
+    function GetItems(Index: Integer): TBrowserPage;
+    function GetCount: Integer;
+  public
+    constructor Create();
+    destructor Destroy; override;
+
+    procedure FreeAndDelElement(Index: Integer); overload;
+    procedure FreeAndDelElement(Const ExceptPageID: Integer;
+      var Urls: TDynStrArr; var IDs: TDynIntArr); overload;
+    procedure FreeAndDelElement(var DelIDArr: TDynIntArr; var Urls: TDynStrArr;
+      var IDs: TDynIntArr); overload;
+    function Add(const value: TBrowserPage): Integer;
+    procedure Clear; overload;
+    procedure Clear(var Urls: TDynStrArr; var IDs: TDynIntArr); overload;
+    function IndexOf(const value: TBrowserPage): Integer;
+    function GetPageIdByIndex(Index: Integer): Integer;
+    function GetPageIndexByID(aID: Integer): Integer;
+    function GetPageByID(aID: Integer): TBrowserPage;
+
+    property Items[Index: Integer]: TBrowserPage read GetItems;
+    property Count: Integer read GetCount;
+  end;
+{$ELSE}
+
+  TPageContainer = class
+  private
+    FItems: Array of TBrowserPage;
+    function GetCount: Integer;
+  public
+    constructor Create();
+    destructor Destroy;
+    function Add(aBrowserPage: TBrowserPage): Integer;
+    function IndexOf(aBrowserPage: TBrowserPage): Integer;
+    procedure FreeAndDelElement(Index: Integer);
+    function GetByIndex(Index: Integer): TBrowserPage;
+    property Count: Integer read GetCount;
+  end;
+{$ENDIF}
+
   TCustomDcefBrowser = class(TWinControl)
   private
     FPageControl: TBorderLessPageControl;
-    FPageItems: TList<TBrowserPage>;
+    FPageItems: TPageContainer;
     FClosedPageURL: TStringList;
-    FHMutex: THandle;
 
     FOptions: TDcefBrowserOptions;
     FBasicOptions: TChromiumOptions;
@@ -381,124 +443,124 @@ type
     // swish add
     procedure doOnPageChanged(Sender: TObject); // swish add
     procedure doOnPageLoadingStateChange(const PageID: Integer;
-      const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
+      const Browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
     procedure doOnPageStateChange(const PageID: Integer;
       const Kind: TBrowserDataChangeKind; const value: string;
       const PageActived: Boolean);
     procedure doOnPageAdd(const PageID: Integer; Const AddAtLast: Boolean);
-    procedure doOnPageClose(const ClosePageIDArr: TArray<System.Integer>;
+    procedure doOnPageClose(const ClosePageIDArr: Array of Integer;
       Const ShowPageID: Integer);
 
     procedure doOnLoadStart(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame);
-    procedure doOnLoadEnd(const PageIndex: Integer; const browser: ICefBrowser;
+      const Browser: ICefBrowser; const frame: ICefFrame);
+    procedure doOnLoadEnd(const PageIndex: Integer; const Browser: ICefBrowser;
       const frame: ICefFrame; httpStatusCode: Integer);
     procedure doOnLoadError(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
+      const Browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring);
     procedure doOnBeforeBrowse(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame;
+      const Browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; isRedirect: Boolean; var Cancel: Boolean);
 
     procedure doOnPreKeyEvent(const PageIndex: Integer;
-      const browser: ICefBrowser; const event: PCefKeyEvent;
+      const Browser: ICefBrowser; const event: PCefKeyEvent;
       osEvent: TCefEventHandle; var isKeyboardShortcut: Boolean;
       var Cancel: Boolean);
-    procedure doOnKeyEvent(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnKeyEvent(const PageIndex: Integer; const Browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle; var Cancel: Boolean);
 
     procedure doOnBeforeResourceLoad(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame;
+      const Browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; var CancelLoad: Boolean);
     procedure doOnGetResourceHandler(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame;
+      const Browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; var ResourceHandler: ICefResourceHandler);
     procedure doOnResourceRedirect(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame; const oldUrl: ustring;
+      const Browser: ICefBrowser; const frame: ICefFrame; const oldUrl: ustring;
       var newUrl: ustring);
 
-    procedure doOnGotFocus(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnGotFocus(const PageIndex: Integer; const Browser: ICefBrowser;
       var CancelEventBuiltIn: Boolean);
-    procedure doOnSetFocus(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnSetFocus(const PageIndex: Integer; const Browser: ICefBrowser;
       source: TCefFocusSource; var CancelFocus: Boolean);
     procedure doOnTakeFocus(const PageIndex: Integer;
-      const browser: ICefBrowser; next: Boolean);
+      const Browser: ICefBrowser; next: Boolean);
 
     procedure doOnBeforeContextMenu(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame;
+      const Browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; const model: ICefMenuModel);
     procedure doOnContextMenuCommand(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame;
+      const Browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; commandId: Integer;
       eventFlags: TCefEventFlags; var CancelEventBuiltIn: Boolean);
     procedure doOnContextMenuDismissed(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame);
+      const Browser: ICefBrowser; const frame: ICefFrame);
 
-    procedure doOnJsdialog(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnJsdialog(const PageIndex: Integer; const Browser: ICefBrowser;
       const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
       const messageText, defaultPromptText: ustring;
       const callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean);
     procedure doOnBeforeUnloadDialog(const PageIndex: Integer;
-      const browser: ICefBrowser; const messageText: ustring; isReload: Boolean;
+      const Browser: ICefBrowser; const messageText: ustring; isReload: Boolean;
       const callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean);
     procedure doOnDialogClosed(const PageIndex: Integer;
-      const browser: ICefBrowser);
+      const Browser: ICefBrowser);
 
     procedure doOnPluginCrashed(const PageIndex: Integer;
-      const browser: ICefBrowser; const pluginPath: ustring);
+      const Browser: ICefBrowser; const pluginPath: ustring);
     procedure doOnBeforePluginLoad(const PageIndex: Integer;
-      const browser: ICefBrowser; const URL, policyUrl: ustring;
+      const Browser: ICefBrowser; const URL, policyUrl: ustring;
       const info: ICefWebPluginInfo; var CancelLoad: Boolean);
 
     { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
       Const Kind: TBrowserDownloadUpdatedKind); }
     procedure doOnBeforeDownload(const PageIndex: Integer;
-      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const Browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
       var CancelBuiltinPro: Boolean);
     procedure doOnDownloadUpdated(const PageIndex: Integer;
-      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const Browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const callback: ICefDownloadItemCallback);
     procedure doOnGetAuthCredentials(const PageIndex: Integer;
-      const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
+      const Browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
       const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean);
     procedure doOnConsoleMessage(const PageIndex: Integer;
-      const browser: ICefBrowser; const Message, source: ustring;
+      const Browser: ICefBrowser; const Message, source: ustring;
       line: Integer);
     procedure doOnProtocolExecution(const PageIndex: Integer;
-      const browser: ICefBrowser; const URL: ustring;
+      const Browser: ICefBrowser; const URL: ustring;
       out allowOsExecution: Boolean);
     procedure doOnFileDialog(const PageIndex: Integer;
-      const browser: ICefBrowser; mode: TCefFileDialogMode;
+      const Browser: ICefBrowser; mode: TCefFileDialogMode;
       const title, defaultFileName: ustring; acceptTypes: TStrings;
       const callback: ICefFileDialogCallback; out Result: Boolean);
 
     procedure doOnRequestGeolocationPermission(const PageIndex: Integer;
-      const browser: ICefBrowser; const requestingUrl: ustring;
+      const Browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer; const callback: ICefGeolocationCallback;
       out Result: Boolean);
     procedure doOnCancelGeolocationPermission(const PageIndex: Integer;
-      const browser: ICefBrowser; const requestingUrl: ustring;
+      const Browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer);
 
     procedure doOnQuotaRequest(const PageIndex: Integer;
-      const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
+      const Browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback; out Result: Boolean);
     procedure doOnCertificateError(const PageIndex: Integer;
       certError: TCefErrorCode; const requestUrl: ustring;
       const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
 
     procedure doOnDragEnter(const PageIndex: Integer;
-      const browser: ICefBrowser; const dragData: ICefDragData;
+      const Browser: ICefBrowser; const dragData: ICefDragData;
       mask: TCefDragOperations; out Result: Boolean);
     procedure doOnStartDragging(const PageIndex: Integer;
-      const browser: ICefBrowser; const dragData: ICefDragData;
+      const Browser: ICefBrowser; const dragData: ICefDragData;
       allowedOps: TCefDragOperations; x, y: Integer; out Result: Boolean);
     procedure doOnUpdateDragCursor(const PageIndex: Integer;
-      const browser: ICefBrowser; operation: TCefDragOperation);
+      const Browser: ICefBrowser; operation: TCefDragOperation);
     procedure doOnCursorChange(const PageIndex: Integer;
-      const browser: ICefBrowser; cursor: TCefCursorHandle;
+      const Browser: ICefBrowser; cursor: TCefCursorHandle;
       cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
   public
     constructor Create(AOwner: TComponent); override;
@@ -509,7 +571,7 @@ type
     function ClosePage(PageIndex: Integer;
       Const AutoChooseShowPageID: Boolean = True;
       Const ShowPageID: Integer = -1): Integer; overload;
-    function ClosePage(ArrayPageIndex: TArray<Integer>; ShowPageID: Integer)
+    function ClosePage(ArrayPageIndex: Array of Integer; ShowPageID: Integer)
       : Integer; overload;
     procedure CloseAllOtherPage(PageID: Integer);
     procedure CloseAllPage(IsTrigClosePageEvent: Boolean);
@@ -534,17 +596,19 @@ type
     procedure ReduceZoomLevel;
     procedure ResetZoomLevel;
     procedure GetSourceInNewPage;
+{$IFDEF DELPHI14_UP}
     function GetSource(var SourceText: string;
       Const TimeOut: Integer = 1000): Boolean;
     function GetText(var aText: string; Const TimeOut: Integer = 1000): Boolean;
-
+{$ENDIF}
     function GetPageByID(ID: Integer): TBrowserPage;
     function PageIDToIndex(PageID: Integer): Integer;
     function PageIndexToID(PageIndex: Integer): Integer;
 
     class procedure CreateDefaultRenderProcess;
+{$IFDEF DELPHI14_UP}
     class procedure RegisterClasses(const aObjList: array of TClass);
-
+{$ENDIF}
     property Pages[Index: Integer]: TBrowserPage read GetPageByIndex;
     property ActivePage: TBrowserPage read GetActivePageItem;
     property ActivePageIndex: Integer read GetActivePageIndex;
@@ -695,15 +759,19 @@ type
   protected
     FClasses: array of TClass;
     procedure OnWebKitInitialized; override;
-    function OnProcessMessageReceived(const browser: ICefBrowser;
+    function OnProcessMessageReceived(const Browser: ICefBrowser;
       sourceProcess: TCefProcessId; const Message: ICefProcessMessage)
       : Boolean; override;
   end;
 
+var
+  PagesHelper: TPageContainerLocker;
+
 implementation
 
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
-  uses
+
+uses
 {$IFDEF DELPHI16_UP}
   Vcl.AppEvnts;
 {$ELSE}
@@ -725,6 +793,7 @@ type
   { TVCLClientHandler }
 
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
+
 var
   looping: Boolean = False;
 
@@ -737,11 +806,15 @@ begin
   begin
     looping := True;
     try
-      //CefDoMessageLoopWork
-      //avan lau 2015-08-04
-      //非阻塞模式，在Win8-64bit系统下，且为多进程模式（CefSingleProcess := False;）
-      //极易出现程序无响应的状况，故采用CefRunMessageLoop替代（阻塞）
-      CefRunMessageLoop;
+      CefDoMessageLoopWork
+
+      // avan lau 2015-08-04
+      // 非阻塞模式，在Win8-64bit系统下，且为多进程模式（CefSingleProcess := False;）
+      // 极易出现程序无响应的状况，故采用CefRunMessageLoop替代（阻塞）
+      // CefRunMessageLoop;
+      // BccSafe 2015-08-12
+      // 使用CefRunMessageLoop方法将会导致多个问题，目前暂无解决方案
+      // 故还原 如果你使用时出现了如avan lau的状况，可以手动更改
     finally
       looping := False;
     end;
@@ -767,14 +840,285 @@ begin
   if CefInstances = 0 then
   begin
     KillTimer(0, CefTimer);
-    //avan lau 2015-08-04
-    //搭配CefRunMessageLoop使用
-    CefQuitMessageLoop;
+    // avan lau 2015-08-04
+    // 搭配CefRunMessageLoop使用
+    // CefQuitMessageLoop;
+    // BccSafe 2015-08-12
+    // 还原 理由见TimerProc内
   end;
 {$ENDIF}
   inherited;
 end;
 
+{ TPageContainer }
+
+{$IFDEF DELPHI14_UP}
+
+function TPageContainer.GetItems(Index: Integer): TBrowserPage;
+begin
+  Result := nil;
+  PagesHelper.Lock;
+  try
+    if (Index > -1) and (Index < FItems.Count) then
+      Result := FItems[Index];
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+function TPageContainer.GetCount: Integer;
+begin
+  PagesHelper.Lock;
+  try
+    Result := FItems.Count;
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+constructor TPageContainer.Create();
+begin
+  FItems := TList<TBrowserPage>.Create;
+end;
+
+destructor TPageContainer.Destroy;
+begin
+  Clear;
+  FItems.Free;
+end;
+
+procedure TPageContainer.FreeAndDelElement(Index: Integer);
+begin
+  PagesHelper.Lock;
+  try
+    FItems[Index].Free;
+    FItems.Delete(Index);
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+procedure TPageContainer.FreeAndDelElement(Const ExceptPageID: Integer;
+  var Urls: TDynStrArr; var IDs: TDynIntArr);
+var
+  Index: Integer;
+begin
+  PagesHelper.Lock;
+  try
+    for Index := FItems.Count - 1 downto 0 do
+    begin
+      if FItems[Index].PageID <> ExceptPageID then
+      begin
+        SetLength(Urls, Length(Urls) + 1);
+        SetLength(IDs, Length(IDs) + 1);
+        Urls[High(Urls)] := FItems[Index].URL;
+        IDs[High(IDs)] := FItems[Index].PageID;
+        FItems[Index].Free;
+        FItems.Delete(Index);
+      end;
+    end;
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+procedure TPageContainer.FreeAndDelElement(var DelIDArr: TDynIntArr;
+  var Urls: TDynStrArr; var IDs: TDynIntArr);
+var
+  Index, ii, TempInt: Integer;
+begin
+  for Index := Low(DelIDArr) to High(DelIDArr) do
+    for ii := Index + 1 to High(DelIDArr) do
+      if DelIDArr[Index] > DelIDArr[ii] then
+      begin
+        TempInt := DelIDArr[Index];
+        DelIDArr[Index] := DelIDArr[ii];
+        DelIDArr[ii] := TempInt;
+      end;
+
+  PagesHelper.Lock;
+  try
+    for Index := High(DelIDArr) downto Low(DelIDArr) do
+    begin
+      SetLength(Urls, Length(Urls) + 1);
+      SetLength(IDs, Length(IDs) + 1);
+      Urls[High(Urls)] := FItems[Index].URL;
+      IDs[High(IDs)] := FItems[Index].PageID;
+      FItems[Index].Free;
+      FItems.Delete(Index);
+    end;
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+function TPageContainer.Add(const value: TBrowserPage): Integer;
+begin
+  PagesHelper.Lock;
+  try
+    Result := FItems.Add(value);
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+function TPageContainer.IndexOf(const value: TBrowserPage): Integer;
+begin
+  PagesHelper.Lock;
+  try
+    Result := FItems.IndexOf(value);
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+function TPageContainer.GetPageIdByIndex(Index: Integer): Integer;
+begin
+  Result := -1;
+  PagesHelper.Lock;
+  try
+    if (Index > -1) and (Index < FItems.Count) then
+      Result := FItems[Index].PageID;
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+function TPageContainer.GetPageIndexByID(aID: Integer): Integer;
+var
+  Index: Integer;
+begin
+  Result := -1;
+  PagesHelper.Lock;
+  try
+    for Index := 0 to FItems.Count - 1 do
+    begin
+      if FItems[Index].PageID = aID then
+      begin
+        Result := Index;
+        Break;
+      end;
+    end;
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+function TPageContainer.GetPageByID(aID: Integer): TBrowserPage;
+var
+  Index: Integer;
+begin
+  Result := nil;
+  PagesHelper.Lock;
+  try
+    for Index := 0 to FItems.Count - 1 do
+    begin
+      if FItems[Index].PageID = aID then
+      begin
+        Result := FItems[Index];
+        Break;
+      end;
+    end;
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+procedure TPageContainer.Clear;
+var
+  Index: Integer;
+begin
+  PagesHelper.Lock;
+  try
+    for Index := FItems.Count - 1 downto 0 do
+    begin
+      FItems[Index].Free;
+      FItems.Delete(Index);
+    end;
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+procedure TPageContainer.Clear(var Urls: TDynStrArr; var IDs: TDynIntArr);
+var
+  Index: Integer;
+begin
+  PagesHelper.Lock;
+  try
+    for Index := FItems.Count - 1 downto 0 do
+    begin
+      SetLength(Urls, Length(Urls) + 1);
+      Urls[High(Urls)] := FItems[Index].URL;
+      SetLength(IDs, Length(IDs) + 1);
+      IDs[High(IDs)] := FItems[Index].PageID;
+      FItems[Index].Free;
+      FItems.Delete(Index);
+    end;
+  finally
+    PagesHelper.UnLock;
+  end;
+end;
+
+{$ELSE}
+
+constructor TPageContainer.Create();
+begin
+
+end;
+
+destructor TPageContainer.Destroy;
+var
+  Index: Integer;
+begin
+  for Index := High(FItems) downto Low(FItems) do
+    FItems[Index].Free;
+  SetLength(FItems, 0);
+end;
+
+function TPageContainer.GetCount: Integer;
+begin
+  Result := Length(FItems);
+end;
+
+function TPageContainer.GetByIndex(Index: Integer): TBrowserPage;
+begin
+  Result := FItems[Index];
+end;
+
+function TPageContainer.Add(aBrowserPage: TBrowserPage): Integer;
+begin
+  SetLength(FItems, Length(FItems) + 1);
+  FItems[High(FItems)] := aBrowserPage;
+  Result := High(FItems);
+end;
+
+function TPageContainer.IndexOf(aBrowserPage: TBrowserPage): Integer;
+var
+  Index: Integer;
+begin
+  Result := -1;
+  for Index := Low(FItems) to High(FItems) do
+    if FItems[Index] = aBrowserPage then
+    begin
+      Result := Index;
+      Break;
+    end;
+end;
+
+procedure TPageContainer.FreeAndDelElement(Index: Integer);
+var
+  Count: Cardinal;
+begin
+  GetByIndex(Index).Free;
+  Count := Length(FItems);
+  if (Count = 0) or (Index < 0) or (Index >= Count) then
+    Exit;
+  Move(FItems[Index + 1], FItems[Index], (Count - Index) *
+    SizeOf(TBrowserPage));
+  SetLength(FItems, Count - 1);
+end;
+{$ENDIF}
 { TDcefBrowser }
 
 function TCustomDcefBrowser.AddPage(Const URL: string = '';
@@ -794,31 +1138,13 @@ begin
 end;
 
 function TCustomDcefBrowser.PageIDToIndex(PageID: Integer): Integer;
-var
-  Index: Integer;
 begin
-  Result := -1;
-  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
-  begin
-    for Index := 0 to FPageItems.Count - 1 do
-      if FPageItems[Index].PageID = PageID then
-      begin
-        Result := Index;
-        Break;
-      end;
-    ReleaseMutex(FHMutex);
-  end;
+  Result := FPageItems.GetPageIndexByID(PageID);
 end;
 
 function TCustomDcefBrowser.PageIndexToID(PageIndex: Integer): Integer;
 begin
-  Result := -1;
-  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
-  begin
-    if (PageIndex < FPageItems.Count) and (PageIndex > -1) then
-      Result := FPageItems[PageIndex].PageID;
-    ReleaseMutex(FHMutex);
-  end;
+  Result := FPageItems.GetPageIdByIndex(PageIndex);
 end;
 
 procedure TCustomDcefBrowser.Print;
@@ -875,7 +1201,7 @@ end;
 procedure TCustomDcefBrowser.SetTabVisible(const value: Boolean);
 var
   ALastActive: TTabSheet;
-  I: Integer;
+  i: Integer;
 begin
   if FTabVisible <> value then
   begin
@@ -885,8 +1211,8 @@ begin
       FPageControl.TabHeight := 24
     else
       FPageControl.TabHeight := 0;
-    for I := 0 to FPageControl.PageCount - 1 do
-      Pages[I].TabVisible := value;
+    for i := 0 to FPageControl.PageCount - 1 do
+      Pages[i].TabVisible := value;
     FPageControl.ActivePage := ALastActive;
   end;
 end;
@@ -924,77 +1250,57 @@ end;
 
 procedure TCustomDcefBrowser.CloseAllOtherPage(PageID: Integer);
 var
-  Index, ID: Integer;
-  ClosePageIDArr: TArray<Integer>;
+  Index: Integer;
+  Urls: TDynStrArr;
+  ClosePageIDArr: TDynIntArr;
 begin
-  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
-  begin
-    for Index := FPageItems.Count - 1 Downto 0 do
-    begin
-      ID := Pages[Index].PageID;
-      if PageID <> ID then
-      begin
-        SetLength(ClosePageIDArr, Length(ClosePageIDArr) + 1);
-        ClosePageIDArr[High(ClosePageIDArr)] := ID;
-        FPageItems[Index].Free;
-        FPageItems.Delete(Index);
-      end;
-    end;
-    ReleaseMutex(FHMutex);
-  end;
+  FPageItems.FreeAndDelElement(PageID, Urls, ClosePageIDArr);
+  for Index := Low(Urls) to High(Urls) do
+    FClosedPageURL.Add(Urls[Index]);
+
   doOnPageClose(ClosePageIDArr, PageID);
+  SetLength(Urls, 0);
+  SetLength(ClosePageIDArr, 0);
 end;
 
 procedure TCustomDcefBrowser.CloseAllPage(IsTrigClosePageEvent: Boolean);
 var
   Index: Integer;
-  ClosePageIDArr: TArray<Integer>;
+  Urls: TDynStrArr;
+  ClosePageIDArr: TDynIntArr;
 begin
-  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
-  begin
-    for Index := FPageItems.Count - 1 Downto 0 do
-    begin
-      SetLength(ClosePageIDArr, Length(ClosePageIDArr) + 1);
-      ClosePageIDArr[High(ClosePageIDArr)] := Pages[Index].PageID;
-      FPageItems[Index].Free;
-      FPageItems.Delete(Index);
-    end;
-    ReleaseMutex(FHMutex);
-  end;
+  FPageItems.Clear(Urls, ClosePageIDArr);
+  for Index := Low(Urls) to High(Urls) do
+    FClosedPageURL.Add(Urls[Index]);
+
   if IsTrigClosePageEvent then
     doOnPageClose(ClosePageIDArr, -1);
+  SetLength(Urls, 0);
+  SetLength(ClosePageIDArr, 0);
 end;
 
-function TCustomDcefBrowser.ClosePage(ArrayPageIndex: TArray<Integer>;
+function TCustomDcefBrowser.ClosePage(ArrayPageIndex: Array of Integer;
   ShowPageID: Integer): Integer;
 var
-  Index, ID, ii, TempInt: Integer;
-  ClosePageIDArr: TArray<Integer>;
+  Index: Integer;
+  Urls: TDynStrArr;
+  DelIDArr, ClosePageIDArr: TDynIntArr;
 begin
   Result := PageIDToIndex(ShowPageID);
-
   for Index := Low(ArrayPageIndex) to High(ArrayPageIndex) do
-    for ii := Index + 1 to High(ArrayPageIndex) do
-      if ArrayPageIndex[Index] > ArrayPageIndex[ii] then
-      begin
-        TempInt := ArrayPageIndex[Index];
-        ArrayPageIndex[Index] := ArrayPageIndex[ii];
-        ArrayPageIndex[ii] := TempInt;
-      end;
-
-  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
   begin
-    for Index := High(ArrayPageIndex) downto Low(ArrayPageIndex) do
-    begin
-      ID := Pages[Index].PageID;
-      SetLength(ClosePageIDArr, Length(ClosePageIDArr) + 1);
-      ClosePageIDArr[High(ClosePageIDArr)] := ID;
-      FPageItems[Index].Free;
-      FPageItems.Delete(Index);
-    end;
-    ReleaseMutex(FHMutex);
+    SetLength(DelIDArr, Length(DelIDArr) + 1);
+    DelIDArr[High(DelIDArr)] := ArrayPageIndex[Index];
   end;
+  FPageItems.FreeAndDelElement(DelIDArr, Urls, ClosePageIDArr);
+
+  for Index := Low(Urls) to High(Urls) do
+    FClosedPageURL.Add(Urls[Index]);
+
   doOnPageClose(ClosePageIDArr, ShowPageID);
+  SetLength(DelIDArr, 0);
+  SetLength(Urls, 0);
+  SetLength(ClosePageIDArr, 0);
 end;
 
 function TCustomDcefBrowser.ClosePage(PageIndex: Integer;
@@ -1003,7 +1309,7 @@ function TCustomDcefBrowser.ClosePage(PageIndex: Integer;
 var
   FLastIndex: Boolean;
   Page: TBrowserPage;
-  ClosePageArr: TArray<Integer>;
+  ClosePageArr: Array of Integer;
 begin
   Result := -1;
   if (PageIndex > -1) and (PageIndex < PageCount) then
@@ -1018,12 +1324,7 @@ begin
       ClosePageArr[High(ClosePageArr)] := Page.PageID;
       doOnPageClose(ClosePageArr, IfThen(AutoChooseShowPageID, Result,
         ShowPageID));
-      if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
-      begin
-        FPageItems[PageIndex].Free;
-        FPageItems.Delete(PageIndex);
-        ReleaseMutex(FHMutex);
-      end;
+      FPageItems.FreeAndDelElement(PageIndex);
       if (PageCount > 0) then
         ShowPage(IfThen(AutoChooseShowPageID, Result, ShowPageID))
       else if FOptions.ExitPagesClosed then
@@ -1053,7 +1354,6 @@ begin
   FAddUpPageID := -1;
   FTabVisible := False;
 
-  FHMutex := CreateMutex(nil, False, 'DB_Pages_Mutex');
   FPageControl := TBorderLessPageControl.Create(Self);
   FPageControl.Parent := TWinControl(Self);
   FPageControl.Align := alClient;
@@ -1063,7 +1363,7 @@ begin
   FBasicFontOptions := TChromiumFontOptions.Create;
   FBasicOptions := TChromiumOptions.Create;
 
-  FPageItems := TList<TBrowserPage>.Create;
+  FPageItems := TPageContainer.Create;
   FClosedPageURL := TStringList.Create;
 end;
 
@@ -1079,10 +1379,12 @@ begin
     ActivePage.DevTools;
 end;
 
+{$IFDEF DELPHI14_UP}
+
 class procedure TCustomDcefBrowser.RegisterClasses(const aObjList
   : array of TClass);
 var
-  I, J, C: Integer;
+  i, J, C: Integer;
   AFound: Boolean;
   ARender: TDefaultRenderProcessHandler;
 begin
@@ -1090,12 +1392,12 @@ begin
   ARender := CefRenderProcessHandler as TDefaultRenderProcessHandler;
   C := Length(ARender.FClasses);
   SetLength(ARender.FClasses, C + Length(aObjList));
-  for I := 0 to High(aObjList) do
+  for i := 0 to High(aObjList) do
   begin
     AFound := False;
     for J := 0 to C - 1 do
     begin
-      if ARender.FClasses[J] = aObjList[I] then
+      if ARender.FClasses[J] = aObjList[i] then
       begin
         AFound := True;
         Break;
@@ -1103,30 +1405,28 @@ begin
     end;
     if not AFound then
     begin
-      ARender.FClasses[C] := aObjList[I];
+      ARender.FClasses[C] := aObjList[i];
       Inc(C);
     end;
   end;
   SetLength(ARender.FClasses, C);
 end;
+{$ENDIF}
 
 destructor TCustomDcefBrowser.Destroy;
-var
-  Index: Integer;
 begin
-  if Assigned(FPageItems) then
-    for Index := 0 to FPageItems.Count - 1 do
-      FPageItems[Index].Free;
-  FPageControl.Free;
   FPageItems.Free;
+  FPageControl.Free;
   FClosedPageURL.Free;
   FOptions.Free;
   FBasicFontOptions.Free;
   FBasicOptions.Free;
-  CloseHandle(FHMutex);
-  UnhookWndProc; // Added by swish
-  if Not (csDesigning in ComponentState) then
-    CefQuitMessageLoop;
+  UnhookWndProc;
+  // Added by swish
+  // if Not (csDesigning in ComponentState) then
+  // CefQuitMessageLoop;
+  // BccSafe 2015-08-12
+  // 还原 理由见TimerProc内
   inherited;
 end;
 
@@ -1139,10 +1439,10 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnPluginCrashed(const PageIndex: Integer;
-  const browser: ICefBrowser; const pluginPath: ustring);
+  const Browser: ICefBrowser; const pluginPath: ustring);
 begin
   if Assigned(FOnPluginCrashed) and (PageIndex > -1) then
-    FOnPluginCrashed(PageIndex, browser, pluginPath);
+    FOnPluginCrashed(PageIndex, Browser, pluginPath);
 end;
 
 procedure TCustomDcefBrowser.DownloadFile(FileURL: string);
@@ -1192,9 +1492,9 @@ begin
           begin
             if ActivePage.FCreateByPopup and (FormHandle <> 0) then
             begin
-              if GetForegroundWindow = ActivePage.browser.host.WindowHandle then
+              if GetForegroundWindow = ActivePage.Browser.host.WindowHandle then
               begin
-                SetForegroundWindow(ActivePage.browser.host.WindowHandle);
+                SetForegroundWindow(ActivePage.Browser.host.WindowHandle);
                 SetWindowPos(FormHandle, HWND_TOP, 0, 0, 0, 0,
                   SWP_NOSIZE or SWP_NOMOVE or SWP_NOACTIVATE);
               end;
@@ -1210,18 +1510,18 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnDialogClosed(const PageIndex: Integer;
-  const browser: ICefBrowser);
+  const Browser: ICefBrowser);
 begin
   if Assigned(FOnDialogClosed) and (PageIndex > -1) then
-    FOnDialogClosed(PageIndex, browser);
+    FOnDialogClosed(PageIndex, Browser);
 end;
 
 procedure TCustomDcefBrowser.doOnDownloadUpdated(const PageIndex: Integer;
-  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const Browser: ICefBrowser; const downloadItem: ICefDownloadItem;
   const callback: ICefDownloadItemCallback);
 begin
   if Assigned(FOnDownloadUpdated) and (PageIndex > -1) then
-    FOnDownloadUpdated(PageIndex, browser, downloadItem, callback);
+    FOnDownloadUpdated(PageIndex, Browser, downloadItem, callback);
 end;
 
 {
@@ -1234,20 +1534,20 @@ end;
 }
 
 procedure TCustomDcefBrowser.doOnDragEnter(const PageIndex: Integer;
-  const browser: ICefBrowser; const dragData: ICefDragData;
+  const Browser: ICefBrowser; const dragData: ICefDragData;
   mask: TCefDragOperations; out Result: Boolean);
 begin
   if Assigned(FOnDragEnter) and (PageIndex > -1) then
-    FOnDragEnter(PageIndex, browser, dragData, mask, Result);
+    FOnDragEnter(PageIndex, Browser, dragData, mask, Result);
 end;
 
 procedure TCustomDcefBrowser.doOnFileDialog(const PageIndex: Integer;
-  const browser: ICefBrowser; mode: TCefFileDialogMode;
+  const Browser: ICefBrowser; mode: TCefFileDialogMode;
   const title, defaultFileName: ustring; acceptTypes: TStrings;
   const callback: ICefFileDialogCallback; out Result: Boolean);
 begin
   if Assigned(FOnFileDialog) and (PageIndex > -1) then
-    FOnFileDialog(PageIndex, browser, mode, title, defaultFileName, acceptTypes,
+    FOnFileDialog(PageIndex, Browser, mode, title, defaultFileName, acceptTypes,
       callback, Result);
 end;
 
@@ -1259,62 +1559,62 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnBeforeBrowse(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame;
+  const Browser: ICefBrowser; const frame: ICefFrame;
   const request: ICefRequest; isRedirect: Boolean; var Cancel: Boolean);
 begin
   if Assigned(FOnBeforeBrowse) and (PageIndex > -1) then
-    FOnBeforeBrowse(PageIndex, browser, frame, request, isRedirect, Cancel);
+    FOnBeforeBrowse(PageIndex, Browser, frame, request, isRedirect, Cancel);
 end;
 
 procedure TCustomDcefBrowser.doOnBeforeContextMenu(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame;
+  const Browser: ICefBrowser; const frame: ICefFrame;
   const params: ICefContextMenuParams; const model: ICefMenuModel);
 begin
   if Assigned(FOnBeforeContextMenu) and (PageIndex > -1) then
-    FOnBeforeContextMenu(PageIndex, browser, frame, params, model);
+    FOnBeforeContextMenu(PageIndex, Browser, frame, params, model);
 end;
 
 procedure TCustomDcefBrowser.doOnBeforeDownload(const PageIndex: Integer;
-  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const Browser: ICefBrowser; const downloadItem: ICefDownloadItem;
   const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
   var CancelBuiltinPro: Boolean);
 begin
   if Assigned(FOnBeforeDownload) then
-    FOnBeforeDownload(PageIndex, browser, downloadItem, suggestedName, callback,
+    FOnBeforeDownload(PageIndex, Browser, downloadItem, suggestedName, callback,
       CancelBuiltinPro);
 end;
 
 procedure TCustomDcefBrowser.doOnBeforePluginLoad(const PageIndex: Integer;
-  const browser: ICefBrowser; const URL, policyUrl: ustring;
+  const Browser: ICefBrowser; const URL, policyUrl: ustring;
   const info: ICefWebPluginInfo; var CancelLoad: Boolean);
 begin
   if Assigned(FOnBeforePluginLoad) and (PageIndex > -1) then
-    FOnBeforePluginLoad(PageIndex, browser, URL, policyUrl, info, CancelLoad);
+    FOnBeforePluginLoad(PageIndex, Browser, URL, policyUrl, info, CancelLoad);
 end;
 
 procedure TCustomDcefBrowser.doOnBeforeResourceLoad(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame;
+  const Browser: ICefBrowser; const frame: ICefFrame;
   const request: ICefRequest; var CancelLoad: Boolean);
 begin
   if Assigned(FOnBeforeResourceLoad) and (PageIndex > -1) then
-    FOnBeforeResourceLoad(PageIndex, browser, frame, request, CancelLoad);
+    FOnBeforeResourceLoad(PageIndex, Browser, frame, request, CancelLoad);
 end;
 
 procedure TCustomDcefBrowser.doOnBeforeUnloadDialog(const PageIndex: Integer;
-  const browser: ICefBrowser; const messageText: ustring; isReload: Boolean;
+  const Browser: ICefBrowser; const messageText: ustring; isReload: Boolean;
   const callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnBeforeUnloadDialog) and (PageIndex > -1) then
-    FOnBeforeUnloadDialog(PageIndex, browser, messageText, isReload, callback,
+    FOnBeforeUnloadDialog(PageIndex, Browser, messageText, isReload, callback,
       CancelEventBuiltIn);
 end;
 
 procedure TCustomDcefBrowser.doOnCancelGeolocationPermission(const PageIndex
-  : Integer; const browser: ICefBrowser; const requestingUrl: ustring;
+  : Integer; const Browser: ICefBrowser; const requestingUrl: ustring;
   requestId: Integer);
 begin
   if Assigned(FOnCancelGeolocationPermission) and (PageIndex > -1) then
-    FOnCancelGeolocationPermission(PageIndex, browser, requestingUrl,
+    FOnCancelGeolocationPermission(PageIndex, Browser, requestingUrl,
       requestId);
 end;
 
@@ -1327,35 +1627,35 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnConsoleMessage(const PageIndex: Integer;
-  const browser: ICefBrowser; const Message, source: ustring; line: Integer);
+  const Browser: ICefBrowser; const Message, source: ustring; line: Integer);
 begin
   if Assigned(FOnConsoleMessage) and (PageIndex > -1) then
-    FOnConsoleMessage(PageIndex, browser, message, source, line);
+    FOnConsoleMessage(PageIndex, Browser, message, source, line);
 end;
 
 procedure TCustomDcefBrowser.doOnContextMenuCommand(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame;
+  const Browser: ICefBrowser; const frame: ICefFrame;
   const params: ICefContextMenuParams; commandId: Integer;
   eventFlags: TCefEventFlags; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnContextMenuCommand) and (PageIndex > -1) then
-    FOnContextMenuCommand(PageIndex, browser, frame, params, commandId,
+    FOnContextMenuCommand(PageIndex, Browser, frame, params, commandId,
       eventFlags, CancelEventBuiltIn);
 end;
 
 procedure TCustomDcefBrowser.doOnContextMenuDismissed(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame);
+  const Browser: ICefBrowser; const frame: ICefFrame);
 begin
   if Assigned(FOnContextMenuDismissed) and (PageIndex > -1) then
-    FOnContextMenuDismissed(PageIndex, browser, frame);
+    FOnContextMenuDismissed(PageIndex, Browser, frame);
 end;
 
 procedure TCustomDcefBrowser.doOnCursorChange(const PageIndex: Integer;
-  const browser: ICefBrowser; cursor: TCefCursorHandle;
+  const Browser: ICefBrowser; cursor: TCefCursorHandle;
   cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
 begin
   if Assigned(FOnCursorChange) then
-    FOnCursorChange(PageIndex, browser, cursor, cursorType, customCursorInfo);
+    FOnCursorChange(PageIndex, Browser, cursor, cursorType, customCursorInfo);
 end;
 
 procedure TCustomDcefBrowser.doOnPageChanged(Sender: TObject);
@@ -1375,156 +1675,156 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnPageClose(const ClosePageIDArr
-  : TArray<System.Integer>; Const ShowPageID: Integer);
+  : Array of Integer; Const ShowPageID: Integer);
 begin
   if Assigned(FOnPageClose) then
     FOnPageClose(ClosePageIDArr, ShowPageID);
 end;
 
 procedure TCustomDcefBrowser.doOnPageLoadingStateChange(const PageID: Integer;
-  const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
+  const Browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
 begin
   if Assigned(FOnPageLoadingStateChange) and (PageID > -1) then
-    FOnPageLoadingStateChange(PageID, browser, isLoading, canGoBack,
+    FOnPageLoadingStateChange(PageID, Browser, isLoading, canGoBack,
       canGoForward);
 end;
 
 procedure TCustomDcefBrowser.doOnGetAuthCredentials(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
+  const Browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
   const host: ustring; port: Integer; const realm, scheme: ustring;
   const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnGetAuthCredentials) and (PageIndex > -1) then
-    FOnGetAuthCredentials(PageIndex, browser, frame, isProxy, host, port, realm,
+    FOnGetAuthCredentials(PageIndex, Browser, frame, isProxy, host, port, realm,
       scheme, callback, CancelEventBuiltIn);
 end;
 
 procedure TCustomDcefBrowser.doOnGetResourceHandler(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame;
+  const Browser: ICefBrowser; const frame: ICefFrame;
   const request: ICefRequest; var ResourceHandler: ICefResourceHandler);
 begin
   if Assigned(FOnGetResourceHandler) and (PageIndex > -1) then
-    FOnGetResourceHandler(PageIndex, browser, frame, request, ResourceHandler);
+    FOnGetResourceHandler(PageIndex, Browser, frame, request, ResourceHandler);
 end;
 
 procedure TCustomDcefBrowser.doOnGotFocus(const PageIndex: Integer;
-  const browser: ICefBrowser; var CancelEventBuiltIn: Boolean);
+  const Browser: ICefBrowser; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnGotFocus) and (PageIndex > -1) then
-    FOnGotFocus(PageIndex, browser, CancelEventBuiltIn);
+    FOnGotFocus(PageIndex, Browser, CancelEventBuiltIn);
 end;
 
 procedure TCustomDcefBrowser.doOnJsdialog(const PageIndex: Integer;
-  const browser: ICefBrowser; const originUrl, acceptLang: ustring;
+  const Browser: ICefBrowser; const originUrl, acceptLang: ustring;
   dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
   const callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnJsdialog) and (PageIndex > -1) then
-    FOnJsdialog(PageIndex, browser, originUrl, acceptLang, dialogType,
+    FOnJsdialog(PageIndex, Browser, originUrl, acceptLang, dialogType,
       messageText, defaultPromptText, callback, CancelEventBuiltIn);
 end;
 
 procedure TCustomDcefBrowser.doOnKeyEvent(const PageIndex: Integer;
-  const browser: ICefBrowser; const event: PCefKeyEvent;
+  const Browser: ICefBrowser; const event: PCefKeyEvent;
   osEvent: TCefEventHandle; var Cancel: Boolean);
 begin
   if Assigned(FOnKeyEvent) and (PageIndex > -1) then
-    FOnKeyEvent(PageIndex, browser, event, osEvent, Cancel);
+    FOnKeyEvent(PageIndex, Browser, event, osEvent, Cancel);
 end;
 
 procedure TCustomDcefBrowser.doOnLoadEnd(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer);
+  const Browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer);
 begin
   if Assigned(FOnLoadEnd) and (PageIndex > -1) then
-    FOnLoadEnd(PageIndex, browser, frame, httpStatusCode);
+    FOnLoadEnd(PageIndex, Browser, frame, httpStatusCode);
 end;
 
 procedure TCustomDcefBrowser.doOnLoadError(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
+  const Browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
   const errorText, failedUrl: ustring);
 begin
   if Assigned(FOnLoadError) and (PageIndex > -1) then
-    FOnLoadError(PageIndex, browser, frame, errorCode, errorText, failedUrl);
+    FOnLoadError(PageIndex, Browser, frame, errorCode, errorText, failedUrl);
 end;
 
 procedure TCustomDcefBrowser.doOnLoadStart(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame);
+  const Browser: ICefBrowser; const frame: ICefFrame);
 begin
   if Assigned(FOnLoadStart) and (PageIndex > -1) then
-    FOnLoadStart(PageIndex, browser, frame);
+    FOnLoadStart(PageIndex, Browser, frame);
 end;
 
 procedure TCustomDcefBrowser.doOnPreKeyEvent(const PageIndex: Integer;
-  const browser: ICefBrowser; const event: PCefKeyEvent;
+  const Browser: ICefBrowser; const event: PCefKeyEvent;
   osEvent: TCefEventHandle; var isKeyboardShortcut, Cancel: Boolean);
 begin
   if Assigned(FOnPreKeyEvent) and (PageIndex > -1) then
-    FOnPreKeyEvent(PageIndex, browser, event, osEvent,
+    FOnPreKeyEvent(PageIndex, Browser, event, osEvent,
       isKeyboardShortcut, Cancel);
 end;
 
 procedure TCustomDcefBrowser.doOnProtocolExecution(const PageIndex: Integer;
-  const browser: ICefBrowser; const URL: ustring;
+  const Browser: ICefBrowser; const URL: ustring;
   out allowOsExecution: Boolean);
 begin
   if Assigned(FOnProtocolExecution) and (PageIndex > -1) then
-    FOnProtocolExecution(PageIndex, browser, URL, allowOsExecution);
+    FOnProtocolExecution(PageIndex, Browser, URL, allowOsExecution);
 end;
 
 procedure TCustomDcefBrowser.doOnQuotaRequest(const PageIndex: Integer;
-  const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
+  const Browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
   const callback: ICefQuotaCallback; out Result: Boolean);
 begin
   if Assigned(FOnQuotaRequest) and (PageIndex > -1) then
-    FOnQuotaRequest(PageIndex, browser, originUrl, newSize, callback, Result);
+    FOnQuotaRequest(PageIndex, Browser, originUrl, newSize, callback, Result);
 end;
 
 procedure TCustomDcefBrowser.doOnRequestGeolocationPermission(const PageIndex
-  : Integer; const browser: ICefBrowser; const requestingUrl: ustring;
+  : Integer; const Browser: ICefBrowser; const requestingUrl: ustring;
   requestId: Integer; const callback: ICefGeolocationCallback;
   out Result: Boolean);
 begin
   if Assigned(FOnRequestGeolocationPermission) and (PageIndex > -1) then
-    FOnRequestGeolocationPermission(PageIndex, browser, requestingUrl,
+    FOnRequestGeolocationPermission(PageIndex, Browser, requestingUrl,
       requestId, callback, Result);
 end;
 
 procedure TCustomDcefBrowser.doOnResourceRedirect(const PageIndex: Integer;
-  const browser: ICefBrowser; const frame: ICefFrame; const oldUrl: ustring;
+  const Browser: ICefBrowser; const frame: ICefFrame; const oldUrl: ustring;
   var newUrl: ustring);
 begin
   if Assigned(FOnResourceRedirect) and (PageIndex > -1) then
-    FOnResourceRedirect(PageIndex, browser, frame, oldUrl, newUrl);
+    FOnResourceRedirect(PageIndex, Browser, frame, oldUrl, newUrl);
 end;
 
 procedure TCustomDcefBrowser.doOnSetFocus(const PageIndex: Integer;
-  const browser: ICefBrowser; source: TCefFocusSource;
+  const Browser: ICefBrowser; source: TCefFocusSource;
   var CancelFocus: Boolean);
 begin
   if Assigned(FOnSetFocus) and (PageIndex > -1) then
-    FOnSetFocus(PageIndex, browser, source, CancelFocus);
+    FOnSetFocus(PageIndex, Browser, source, CancelFocus);
 end;
 
 procedure TCustomDcefBrowser.doOnStartDragging(const PageIndex: Integer;
-  const browser: ICefBrowser; const dragData: ICefDragData;
+  const Browser: ICefBrowser; const dragData: ICefDragData;
   allowedOps: TCefDragOperations; x, y: Integer; out Result: Boolean);
 begin
   if Assigned(FOnStartDragging) and (PageIndex > -1) then
-    FOnStartDragging(PageIndex, browser, dragData, allowedOps, x, y, Result);
+    FOnStartDragging(PageIndex, Browser, dragData, allowedOps, x, y, Result);
 end;
 
 procedure TCustomDcefBrowser.doOnTakeFocus(const PageIndex: Integer;
-  const browser: ICefBrowser; next: Boolean);
+  const Browser: ICefBrowser; next: Boolean);
 begin
   if Assigned(FOnTakeFocus) and (PageIndex > -1) then
-    FOnTakeFocus(PageIndex, browser, next);
+    FOnTakeFocus(PageIndex, Browser, next);
 end;
 
 procedure TCustomDcefBrowser.doOnUpdateDragCursor(const PageIndex: Integer;
-  const browser: ICefBrowser; operation: TCefDragOperation);
+  const Browser: ICefBrowser; operation: TCefDragOperation);
 begin
   if Assigned(FOnUpdateDragCursor) and (PageIndex > -1) then
-    FOnUpdateDragCursor(PageIndex, browser, operation);
+    FOnUpdateDragCursor(PageIndex, Browser, operation);
 end;
 
 function TCustomDcefBrowser.GetActivePageCanGoBack: Boolean;
@@ -1568,17 +1868,6 @@ begin
     Result := FClosedPageURL.Count;
 end;
 
-{ function TCustomDcefBrowser.GetHidedPageCount: Integer;
-  var
-  Index: Integer;
-  begin
-  Result := 0;
-  if Assigned(FPageItems) then
-  for Index := 0 to FPageItems.Count - 1 do
-  if FPageItems[Index].Hided then
-  Inc(Result);
-  end; }
-
 function TCustomDcefBrowser.GetNewPageID: Integer;
 begin
   Inc(FAddUpPageID);
@@ -1586,43 +1875,23 @@ begin
 end;
 
 function TCustomDcefBrowser.GetPageByID(ID: Integer): TBrowserPage;
-var
-  Index: Integer;
 begin
-  Result := nil;
-  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
-  begin
-    for Index := 0 to FPageItems.Count - 1 do
-      if FPageItems[Index].PageID = ID then
-      begin
-        Result := FPageItems[Index];
-        Break;
-      end;
-    ReleaseMutex(FHMutex);
-  end;
+  Result := FPageItems.GetPageByID(ID);
 end;
 
 function TCustomDcefBrowser.GetPageByIndex(Index: Integer): TBrowserPage;
 begin
-  Result := nil;
-  if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
-  begin
-    if Assigned(FPageItems) and (Index > -1) and (Index < FPageItems.Count) then
-      Result := FPageItems[Index];
-    ReleaseMutex(FHMutex);
-  end;
+  Result := FPageItems.Items[Index];
 end;
 
 function TCustomDcefBrowser.GetPageCount: Integer;
 begin
   Result := 0;
   if Assigned(FPageItems) then
-    if WaitForSingleObject(FHMutex, INFINITE) = WAIT_OBJECT_0 then
-    begin
-      Result := FPageItems.Count;
-      ReleaseMutex(FHMutex);
-    end;
+    Result := FPageItems.Count;
 end;
+
+{$IFDEF DELPHI14_UP}
 
 function TCustomDcefBrowser.GetSource(var SourceText: string;
   Const TimeOut: Integer = 1000): Boolean;
@@ -1632,11 +1901,15 @@ begin
     Result := ActivePage.GetSource(SourceText, TimeOut);
 end;
 
+{$ENDIF}
+
 procedure TCustomDcefBrowser.GetSourceInNewPage;
 begin
   if ActivePage <> nil then
     AddPage('view-source:' + ActivePage.URL);
 end;
+
+{$IFDEF DELPHI14_UP}
 
 function TCustomDcefBrowser.GetText(var aText: string;
   const TimeOut: Integer): Boolean;
@@ -1645,6 +1918,8 @@ begin
   if ActivePage <> nil then
     Result := ActivePage.GetText(aText, TimeOut);
 end;
+
+{$ENDIF}
 
 function TCustomDcefBrowser.GetZoomLevel: string;
 begin
@@ -1760,13 +2035,17 @@ destructor TBasicBrowser.Destroy;
 begin
   if FBrowserId > -1 then
   begin
-    if FClientHandler <> nil then
-      (FClientHandler as ICefClientHandler).Disconnect;
-
-    FClientHandler := nil;
-    FBrowser := nil;
+    if FBrowser <> nil then
+    begin
+      FBrowser.StopLoad;
+      FBrowser.host.CloseBrowser(False);
+    end;
     FBasicDcefBrowserEvents := nil;
     FBasicDcefBrowserEvents.Free;
+    if FClientHandler <> nil then
+      (FClientHandler as ICefClientHandler).Disconnect;
+    FClientHandler := nil;
+    FBrowser := nil;
   end;
   inherited;
 end;
@@ -1778,7 +2057,9 @@ end;
 
 function TBasicBrowser.GetPageIndex: Integer;
 begin
-  Result := TBrowserPage(FParentBrowserPage).PageIndex;
+  Result := -1;
+  if (not(csDestroying in ComponentState)) and Assigned(FParentBrowserPage) then
+    Result := FParentBrowserPage.PageIndex;
 end;
 
 procedure TBasicBrowser.GetSettings(var settings: TCefBrowserSettings);
@@ -1940,7 +2221,7 @@ begin
   FBasicDcefBrowserEvents.OnCursorChange := BrowserCursorChange;
 end;
 
-procedure TBasicBrowser.BrowserAddressChange(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserAddressChange(const Browser: ICefBrowser;
   const frame: ICefFrame; const URL: ustring);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
@@ -1948,7 +2229,7 @@ begin
   FLastAddress := URL;
 end;
 
-procedure TBasicBrowser.BrowserAfterCreated(const browser: ICefBrowser);
+procedure TBasicBrowser.BrowserAfterCreated(const Browser: ICefBrowser);
 var
   WinHandle: HWND;
   BrowserPage: TBrowserPage;
@@ -1957,17 +2238,17 @@ var
   // MyRect: TRect;
 begin
   MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
-  if browser.IsPopup and (Not MyDcefBrowser.Options.PopupNewWin) then
+  if Browser.IsPopup and (Not MyDcefBrowser.Options.PopupNewWin) then
   begin
     BrowserPage := TBrowserPage(FParentBrowserPage);
     if (BrowserPage.FBasicBrowser.FBrowserId = -1) and BrowserPage.FCreateByPopup
     then
     begin
-      WinHandle := browser.host.WindowHandle;
-      BrowserPage.FBasicBrowser.FBrowserId := browser.Identifier;
-      BrowserPage.FBasicBrowser.FBrowser := browser;
+      WinHandle := Browser.host.WindowHandle;
+      BrowserPage.FBasicBrowser.FBrowserId := Browser.Identifier;
+      BrowserPage.FBasicBrowser.FBrowser := Browser;
 
-      Winapi.Windows.SetParent(WinHandle, BrowserPage.FBrowserPanel.Handle);
+      Windows.SetParent(WinHandle, BrowserPage.FBrowserPanel.Handle);
       { SetWindowPos(WinHandle, 0, 0, 0, 0, 0, SWP_NOSIZE or SWP_NOZORDER);
         WindowStyle := GetWindowLong(WinHandle, GWL_STYLE);
         WindowStyle := WindowStyle and (not WS_CAPTION) and (not WS_BORDER) and
@@ -1984,23 +2265,23 @@ begin
   end;
 end;
 
-procedure TBasicBrowser.BrowserBeforeBrowse(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserBeforeBrowse(const Browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean;
   out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforeBrowse(PageIndex, browser, frame,
+  TCustomDcefBrowser(FDcefBrowser).doOnBeforeBrowse(PageIndex, Browser, frame,
     request, isRedirect, Result);
 end;
 
-procedure TBasicBrowser.BrowserBeforeContextMenu(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserBeforeContextMenu(const Browser: ICefBrowser;
   const frame: ICefFrame; const params: ICefContextMenuParams;
   const model: ICefMenuModel);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforeContextMenu(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnBeforeContextMenu(PageIndex, Browser,
     frame, params, model);
 end;
 
-procedure TBasicBrowser.BrowserBeforeDownload(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserBeforeDownload(const Browser: ICefBrowser;
   const downloadItem: ICefDownloadItem; const suggestedName: ustring;
   const callback: ICefBeforeDownloadCallback);
 var
@@ -2011,7 +2292,7 @@ var
 
   function RightPos(const SubStr, Str: string): Integer;
   var
-    I, J, k, LenSub, LenS: Integer;
+    i, J, k, LenSub, LenS: Integer;
   begin
     Result := 0;
     LenSub := Length(SubStr);
@@ -2019,11 +2300,11 @@ var
     k := 0;
     if (LenSub = 0) or (LenS = 0) or (LenSub > LenS) then
       Exit;
-    for I := LenS downto 1 do
+    for i := LenS downto 1 do
     begin
-      if Str[I] = SubStr[LenSub] then
+      if Str[i] = SubStr[LenSub] then
       begin
-        k := I - 1;
+        k := i - 1;
         for J := LenSub - 1 downto 1 do
         begin
           if Str[k] = SubStr[J] then
@@ -2032,7 +2313,7 @@ var
             Break;
         end;
       end;
-      if I - k = LenSub then
+      if i - k = LenSub then
       begin
         Result := k + 1;
         Exit;
@@ -2042,7 +2323,7 @@ var
 
   function DealExistsFile(FilePath: string): string;
   var
-    I: Integer;
+    i: Integer;
     Temps, Path, FileExt: string;
   begin
     if FileExists(FilePath) then
@@ -2051,10 +2332,10 @@ var
       Temps := ExtractFileName(FilePath);
       FileExt := Temps;
       Delete(FileExt, 1, RightPos('.', FileExt));
-      for I := 1 to 99 do
+      for i := 1 to 99 do
       begin
         Result := Path + copy(Temps, 0, RightPos('.', Temps) - 1) + '(' +
-          inttostr(I) + ').' + FileExt;
+          inttostr(i) + ').' + FileExt;
         if Not FileExists(Result) then
           Break;
       end;
@@ -2075,7 +2356,7 @@ begin
   // end; // else
 
   FCancelBuiltInPro := True;
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforeDownload(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnBeforeDownload(PageIndex, Browser,
     downloadItem, suggestedName, callback, FCancelBuiltInPro);
   if FCancelBuiltInPro then
   begin
@@ -2088,15 +2369,15 @@ begin
   end;
 end;
 
-procedure TBasicBrowser.BrowserBeforePluginLoad(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserBeforePluginLoad(const Browser: ICefBrowser;
   const URL, policyUrl: ustring; const info: ICefWebPluginInfo;
   out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforePluginLoad(PageIndex, browser, URL,
+  TCustomDcefBrowser(FDcefBrowser).doOnBeforePluginLoad(PageIndex, Browser, URL,
     policyUrl, info, Result);
 end;
 
-procedure TBasicBrowser.BrowserBeforePopup(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserBeforePopup(const Browser: ICefBrowser;
   const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
   var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
   var client: ICefClient; var settings: TCefBrowserSettings;
@@ -2110,7 +2391,7 @@ begin
   MyBrowserPage := TBrowserPage(FParentBrowserPage);
   MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
 
-  if (browser.Identifier = FBrowserId) and
+  if (Browser.Identifier = FBrowserId) and
     (Not SameText(targetUrl, SBlankPageUrl)) and
     (Not MyDcefBrowser.Options.PopupNewWin) then
   begin
@@ -2118,7 +2399,7 @@ begin
       MyBrowserPage.FParentItems, FDcefBrowser, FDefaultEncoding,
       MyDcefBrowser.GetNewPageID, True, targetUrl, False);
     NewBrowserPage.FBasicBrowser.GetSettings(settings);
-    TList<TBrowserPage>(MyBrowserPage.FParentItems).Add(NewBrowserPage);
+    MyBrowserPage.FParentItems.Add(NewBrowserPage);
 
     client := TVCLDcefClientHandler.Create
       (NewBrowserPage.FBasicBrowser.FBasicDcefBrowserEvents, False);
@@ -2145,43 +2426,47 @@ begin
   Result := False;
 end;
 
-procedure TBasicBrowser.BrowserBeforeResourceLoad(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserBeforeResourceLoad(const Browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforeResourceLoad(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnBeforeResourceLoad(PageIndex, Browser,
     frame, request, Result);
 end;
 
-procedure TBasicBrowser.BrowserBeforeUnloadDialog(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserBeforeUnloadDialog(const Browser: ICefBrowser;
   const messageText: ustring; isReload: Boolean;
   const callback: ICefJsDialogCallback; out Result: Boolean);
 var
   CancelEventBuiltIn, IsContinue: Boolean;
 begin
   CancelEventBuiltIn := False;
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforeUnloadDialog(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnBeforeUnloadDialog(PageIndex, Browser,
     messageText, isReload, callback, CancelEventBuiltIn);
 
   if Not CancelEventBuiltIn then
   begin
+{$IFDEF DELPHI14_UP}
     TThread.Synchronize(nil,
       procedure
       begin
+{$ENDIF}
         IsContinue := MessageBox(0,
           PChar(messageText + #13#10 + SUnloadDialogText),
           PChar(SUnloadDialogTitle), MB_OKCANCEL) = idOk;
+{$IFDEF DELPHI14_UP}
       end);
+{$ENDIF}
     callback.Cont(IsContinue, '');
   end;
   Result := True;
 end;
 
 procedure TBasicBrowser.BrowserCancelGeolocationPermission
-  (const browser: ICefBrowser; const requestingUrl: ustring;
+  (const Browser: ICefBrowser; const requestingUrl: ustring;
 requestId: Integer);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnCancelGeolocationPermission(PageIndex,
-    browser, requestingUrl, requestId);
+    Browser, requestingUrl, requestId);
 end;
 
 procedure TBasicBrowser.BrowserCertificateError(certError: TCefErrorCode;
@@ -2192,53 +2477,53 @@ begin
     requestUrl, callback, Result);
 end;
 
-procedure TBasicBrowser.BrowserClose(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserClose(const Browser: ICefBrowser;
 out Result: Boolean);
 begin
   TBrowserPage(FParentBrowserPage).Close;
   Result := True;
 end;
 
-procedure TBasicBrowser.BrowserConsoleMessage(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserConsoleMessage(const Browser: ICefBrowser;
 const Message, source: ustring; line: Integer; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnConsoleMessage(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnConsoleMessage(PageIndex, Browser,
     message, source, line);
   Result := True;
 end;
 
-procedure TBasicBrowser.BrowserContextMenuCommand(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserContextMenuCommand(const Browser: ICefBrowser;
 const frame: ICefFrame; const params: ICefContextMenuParams; commandId: Integer;
 eventFlags: TCefEventFlags; out Result: Boolean);
 var
   CancelEventBuiltIn: Boolean;
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnContextMenuCommand(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnContextMenuCommand(PageIndex, Browser,
     frame, params, commandId, eventFlags, CancelEventBuiltIn);
   Result := CancelEventBuiltIn;
 end;
 
-procedure TBasicBrowser.BrowserContextMenuDismissed(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserContextMenuDismissed(const Browser: ICefBrowser;
 const frame: ICefFrame);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnContextMenuDismissed(PageIndex,
-    browser, frame);
+    Browser, frame);
 end;
 
-procedure TBasicBrowser.BrowserCursorChange(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserCursorChange(const Browser: ICefBrowser;
 cursor: TCefCursorHandle; cursorType: TCefCursorType;
 const customCursorInfo: PCefCursorInfo);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnCursorChange(PageIndex, browser, cursor,
+  TCustomDcefBrowser(FDcefBrowser).doOnCursorChange(PageIndex, Browser, cursor,
     cursorType, customCursorInfo);
 end;
 
-procedure TBasicBrowser.BrowserDialogClosed(const browser: ICefBrowser);
+procedure TBasicBrowser.BrowserDialogClosed(const Browser: ICefBrowser);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnDialogClosed(PageIndex, browser);
+  TCustomDcefBrowser(FDcefBrowser).doOnDialogClosed(PageIndex, Browser);
 end;
 
-procedure TBasicBrowser.BrowserDownloadUpdated(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserDownloadUpdated(const Browser: ICefBrowser;
 const downloadItem: ICefDownloadItem; const callback: ICefDownloadItemCallback);
 { var
   MyDcefBrowser: TCustomDcefBrowser;
@@ -2247,7 +2532,7 @@ const downloadItem: ICefDownloadItem; const callback: ICefDownloadItemCallback);
   DownLoadItemIndex: Integer;
   DownloadComplete: Boolean; }
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnDownloadUpdated(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnDownloadUpdated(PageIndex, Browser,
     downloadItem, callback);
   { if downloadItem.IsValid then
     begin
@@ -2271,23 +2556,23 @@ begin
     end; }
 end;
 
-procedure TBasicBrowser.BrowserDragEnter(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserDragEnter(const Browser: ICefBrowser;
 const dragData: ICefDragData; mask: TCefDragOperations; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnDragEnter(PageIndex, browser, dragData,
+  TCustomDcefBrowser(FDcefBrowser).doOnDragEnter(PageIndex, Browser, dragData,
     mask, Result);
 end;
 
-procedure TBasicBrowser.BrowserFileDialog(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserFileDialog(const Browser: ICefBrowser;
 mode: TCefFileDialogMode; const title, defaultFileName: ustring;
 acceptTypes: TStrings; const callback: ICefFileDialogCallback;
 out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnFileDialog(PageIndex, browser, mode,
+  TCustomDcefBrowser(FDcefBrowser).doOnFileDialog(PageIndex, Browser, mode,
     title, defaultFileName, acceptTypes, callback, Result);
 end;
 
-procedure TBasicBrowser.BrowserGetAuthCredentials(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserGetAuthCredentials(const Browser: ICefBrowser;
 const frame: ICefFrame; isProxy: Boolean; const host: ustring; port: Integer;
 const realm, scheme: ustring; const callback: ICefAuthCallback;
 out Result: Boolean);
@@ -2296,16 +2581,18 @@ var
   TempBool, CancelEventBuiltIn: Boolean;
 begin
   CancelEventBuiltIn := False;
-  TCustomDcefBrowser(FDcefBrowser).doOnGetAuthCredentials(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnGetAuthCredentials(PageIndex, Browser,
     frame, isProxy, host, port, realm, scheme, callback, CancelEventBuiltIn);
 
   if CancelEventBuiltIn then
     Result := True
   else
   begin
+{$IFDEF DELPHI14_UP}
     TThread.Synchronize(nil,
       procedure
       begin
+{$ENDIF}
         with TPasswordDialogForm.Create do
           try
             if ShowModal = mrOk then
@@ -2318,34 +2605,36 @@ begin
               TempBool := False;
           finally
             Free;
-          end
+          end;
+{$IFDEF DELPHI14_UP}
       end);
+{$ENDIF}
     Result := TempBool;
     if TempBool = True then
       callback.Cont(UserName, Password);
   end;
 end;
 
-procedure TBasicBrowser.BrowserGetResourceHandler(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserGetResourceHandler(const Browser: ICefBrowser;
 const frame: ICefFrame; const request: ICefRequest;
 out Result: ICefResourceHandler);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnGetResourceHandler(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnGetResourceHandler(PageIndex, Browser,
     frame, request, Result);
 end;
 
-procedure TBasicBrowser.BrowserGotFocus(const browser: ICefBrowser);
+procedure TBasicBrowser.BrowserGotFocus(const Browser: ICefBrowser);
 var
   CancelEventBuiltIn: Boolean;
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnGotFocus(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnGotFocus(PageIndex, Browser,
     CancelEventBuiltIn);
 
   if Not CancelEventBuiltIn then
     TBrowserPage(FParentBrowserPage).BringSearchBarToFront;
 end;
 
-procedure TBasicBrowser.BrowserJsdialog(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserJsdialog(const Browser: ICefBrowser;
 const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
 const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
 out suppressMessage, Result: Boolean);
@@ -2355,7 +2644,7 @@ var
 begin
   CancelEventBuiltIn := False;
   IsContinue := True;
-  TCustomDcefBrowser(FDcefBrowser).doOnJsdialog(PageIndex, browser, originUrl,
+  TCustomDcefBrowser(FDcefBrowser).doOnJsdialog(PageIndex, Browser, originUrl,
     acceptLang, dialogType, messageText, defaultPromptText, callback,
     CancelEventBuiltIn);
 
@@ -2363,27 +2652,44 @@ begin
   begin // 这里不能使用MessageBox，得使用模态窗口
     case dialogType of
       JSDIALOGTYPE_ALERT:
+{$IFDEF DELPHI14_UP}
         TThread.Synchronize(nil,
           procedure
           begin
+{$ENDIF}
             ShowMessage(messageText);
+{$IFDEF DELPHI14_UP}
           end);
+{$ENDIF}
       JSDIALOGTYPE_CONFIRM:
-        TThread.Synchronize(nil,
-          procedure
-          begin
-            MyConfirm(originUrl + SDialogTitleSuffix, messageText, IsContinue);
-            callback.Cont(IsContinue, '');
-          end);
+        begin
+{$IFDEF DELPHI14_UP}
+          TThread.Synchronize(nil,
+            procedure
+            begin
+{$ENDIF}
+              MyConfirm(originUrl + SDialogTitleSuffix, messageText,
+                IsContinue);
+              callback.Cont(IsContinue, '');
+{$IFDEF DELPHI14_UP}
+            end);
+{$ENDIF}
+        end;
       JSDIALOGTYPE_PROMPT:
-        TThread.Synchronize(nil,
-          procedure
-          begin
-            UserInput := defaultPromptText;
-            IsContinue := InputQuery(PChar(originUrl + SDialogTitleSuffix),
-              PChar(messageText), UserInput);
-            callback.Cont(IsContinue, UserInput);
-          end);
+        begin
+{$IFDEF DELPHI14_UP}
+          TThread.Synchronize(nil,
+            procedure
+            begin
+{$ENDIF}
+              UserInput := defaultPromptText;
+              IsContinue := InputQuery(PChar(originUrl + SDialogTitleSuffix),
+                PChar(messageText), UserInput);
+              callback.Cont(IsContinue, UserInput);
+{$IFDEF DELPHI14_UP}
+            end);
+{$ENDIF}
+        end;
     end;
   end;
 
@@ -2406,56 +2712,56 @@ begin
   end;
 end;
 
-procedure TBasicBrowser.BrowserKeyEvent(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserKeyEvent(const Browser: ICefBrowser;
 const event: PCefKeyEvent; osEvent: TCefEventHandle; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnKeyEvent(PageIndex, browser, event,
+  TCustomDcefBrowser(FDcefBrowser).doOnKeyEvent(PageIndex, Browser, event,
     osEvent, Result);
 end;
 
-procedure TBasicBrowser.BrowserLoadEnd(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserLoadEnd(const Browser: ICefBrowser;
 const frame: ICefFrame; httpStatusCode: Integer);
 begin
   if SameText(FLastTitle, '') then
     FLastTitle := SNoTitleText;
-  TCustomDcefBrowser(FDcefBrowser).doOnLoadEnd(PageIndex, browser, frame,
+  TCustomDcefBrowser(FDcefBrowser).doOnLoadEnd(PageIndex, Browser, frame,
     httpStatusCode);
 end;
 
-procedure TBasicBrowser.BrowserLoadError(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserLoadError(const Browser: ICefBrowser;
 const frame: ICefFrame; errorCode: Integer;
 const errorText, failedUrl: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnLoadError(PageIndex, browser, frame,
+  TCustomDcefBrowser(FDcefBrowser).doOnLoadError(PageIndex, Browser, frame,
     errorCode, errorText, failedUrl);
 end;
 
-procedure TBasicBrowser.BrowserLoadingStateChange(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserLoadingStateChange(const Browser: ICefBrowser;
 isLoading, canGoBack, canGoForward: Boolean);
 begin
-  if browser.Identifier = FBrowserId then
+  if Browser.Identifier = FBrowserId then
   begin
     FIsLoading := isLoading;
     FCanGoForward := canGoForward;
     FCanGoBack := canGoBack;
-    TCustomDcefBrowser(FDcefBrowser).doOnPageLoadingStateChange(PageID, browser,
+    TCustomDcefBrowser(FDcefBrowser).doOnPageLoadingStateChange(PageID, Browser,
       isLoading, canGoBack, canGoForward);
   end;
 end;
 
-procedure TBasicBrowser.BrowserLoadStart(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserLoadStart(const Browser: ICefBrowser;
 const frame: ICefFrame);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnLoadStart(PageIndex, browser, frame);
+  TCustomDcefBrowser(FDcefBrowser).doOnLoadStart(PageIndex, Browser, frame);
 end;
 
-procedure TBasicBrowser.BrowserTakeFocus(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserTakeFocus(const Browser: ICefBrowser;
 next: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnTakeFocus(PageIndex, browser, next);
+  TCustomDcefBrowser(FDcefBrowser).doOnTakeFocus(PageIndex, Browser, next);
 end;
 
-procedure TBasicBrowser.BrowserTitleChange(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserTitleChange(const Browser: ICefBrowser;
 const title: ustring);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
@@ -2464,25 +2770,25 @@ begin
   TBrowserPage(FParentBrowserPage).title := title;
 end;
 
-procedure TBasicBrowser.BrowserUpdateDragCursor(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserUpdateDragCursor(const Browser: ICefBrowser;
 operation: TCefDragOperation);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnUpdateDragCursor(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnUpdateDragCursor(PageIndex, Browser,
     operation);
 end;
 
-procedure TBasicBrowser.BrowserPluginCrashed(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserPluginCrashed(const Browser: ICefBrowser;
 const pluginPath: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnPluginCrashed(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnPluginCrashed(PageIndex, Browser,
     pluginPath);
 end;
 
-procedure TBasicBrowser.BrowserPreKeyEvent(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserPreKeyEvent(const Browser: ICefBrowser;
 const event: PCefKeyEvent; osEvent: TCefEventHandle;
 out isKeyboardShortcut, Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnPreKeyEvent(PageIndex, browser, event,
+  TCustomDcefBrowser(FDcefBrowser).doOnPreKeyEvent(PageIndex, Browser, event,
     osEvent, isKeyboardShortcut, Result);
 
   if (event.windows_key_code = 123) and (event.Kind = KEYEVENT_KEYUP) and
@@ -2501,53 +2807,53 @@ begin
     Result := True; // Alt+F4 这里得屏蔽掉 不然用户按下这组合键会使整个程序关闭
 end;
 
-procedure TBasicBrowser.BrowserProtocolExecution(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserProtocolExecution(const Browser: ICefBrowser;
 const URL: ustring; out allowOsExecution: Boolean);
 begin
   allowOsExecution := True;
-  TCustomDcefBrowser(FDcefBrowser).doOnProtocolExecution(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnProtocolExecution(PageIndex, Browser,
     URL, allowOsExecution);
 end;
 
-procedure TBasicBrowser.BrowserQuotaRequest(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserQuotaRequest(const Browser: ICefBrowser;
 const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
 out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnQuotaRequest(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnQuotaRequest(PageIndex, Browser,
     originUrl, newSize, callback, Result);
 end;
 
 procedure TBasicBrowser.BrowserRequestGeolocationPermission
-  (const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer;
+  (const Browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer;
 const callback: ICefGeolocationCallback; out Result: Boolean);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnRequestGeolocationPermission(PageIndex,
-    browser, requestingUrl, requestId, callback, Result);
+    Browser, requestingUrl, requestId, callback, Result);
 end;
 
-procedure TBasicBrowser.BrowserResourceRedirect(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserResourceRedirect(const Browser: ICefBrowser;
 const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnResourceRedirect(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnResourceRedirect(PageIndex, Browser,
     frame, oldUrl, newUrl);
 end;
 
-procedure TBasicBrowser.BrowserSetFocus(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserSetFocus(const Browser: ICefBrowser;
 source: TCefFocusSource; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnSetFocus(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnSetFocus(PageIndex, Browser,
     source, Result);
 end;
 
-procedure TBasicBrowser.BrowserStartDragging(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserStartDragging(const Browser: ICefBrowser;
 const dragData: ICefDragData; allowedOps: TCefDragOperations; x, y: Integer;
 out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnStartDragging(PageIndex, browser,
+  TCustomDcefBrowser(FDcefBrowser).doOnStartDragging(PageIndex, Browser,
     dragData, allowedOps, x, y, Result);
 end;
 
-procedure TBasicBrowser.BrowserStatusMessage(const browser: ICefBrowser;
+procedure TBasicBrowser.BrowserStatusMessage(const Browser: ICefBrowser;
 const value: ustring);
 begin
   TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
@@ -2558,14 +2864,14 @@ end;
 
 procedure TBrowserPage.AddZoomLevel;
 begin
-  if browser.host.ZoomLevel < 9 then
-    browser.host.ZoomLevel := browser.host.ZoomLevel + 1;
+  if Browser.host.ZoomLevel < 9 then
+    Browser.host.ZoomLevel := Browser.host.ZoomLevel + 1;
 end;
 
 procedure TBrowserPage.BringSearchBarToFront;
 begin
   if FCreateByPopup and Assigned(FSearchTextBar) then
-    Winapi.Windows.BringWindowToTop(FSearchTextBar.Handle);
+    Windows.BringWindowToTop(FSearchTextBar.Handle);
 end;
 
 procedure TBrowserPage.BrowserPanelResize(Sender: TObject);
@@ -2633,13 +2939,15 @@ begin
     Caption := '';
     // TabVisible := TCustomDcefBrowser(FDcefBrowser).TabVisible;
   end;
-  FBrowserPanel := TDcefB_Panel.Create(FTabsheet);
+  FBrowserPanel := TDcefBPanel.Create(FTabsheet);
   with FBrowserPanel do
   begin
     Parent := FTabsheet;
     Align := alClient;
     BevelOuter := bvNone;
+{$IFDEF DELPHI14_UP}
     ShowCaption := False;
+{$ENDIF}
     OnResize := BrowserPanelResize;
   end;
 
@@ -2659,7 +2967,10 @@ begin
   if Assigned(FDevToolsPanel) and (FDebugWinHandle <> 0) then
   begin
     MyRect := FDevToolsPanel.ClientRect;
-    MoveWindow(FDebugWinHandle, 0, 0, MyRect.Width, MyRect.Height + 1, True);
+    MoveWindow(FDebugWinHandle, 0, 0,
+{$IFDEF DELPHI14_UP}MyRect.Width{$ELSE}MyRect.right - MyRect.left{$ENDIF},
+{$IFDEF DELPHI14_UP}MyRect.Height{$ELSE}MyRect.bottom - MyRect.top{$ENDIF} +
+      1, True);
   end;
 end;
 
@@ -2667,8 +2978,8 @@ procedure TBrowserPage.DevTools;
 begin
   if Assigned(FDevToolsPanel) then
   begin
-    if Assigned(browser) then
-      FDevTools.CloseDevTools(browser);
+    if Assigned(Browser) then
+      FDevTools.CloseDevTools(Browser);
     FSplitter.Free;
     FSplitter := nil;
     FDevTools.Free;
@@ -2687,7 +2998,7 @@ begin
       cursor := crVSplit;
     end;
 
-    FDevToolsPanel := TDcefB_Panel.Create(FTabsheet);
+    FDevToolsPanel := TDcefBPanel.Create(FTabsheet);
     with FDevToolsPanel do
     begin
       Parent := FTabsheet;
@@ -2703,7 +3014,7 @@ begin
       Parent := FDevToolsPanel;
       Align := alClient;
       if Assigned(FBasicBrowser.FBrowser) then
-        ShowDevTools(browser);
+        ShowDevTools(Browser);
     end;
   end;
 end;
@@ -2771,8 +3082,10 @@ end;
 
 function TBrowserPage.GetPageIndex: Integer;
 begin
-  Result := TList<TBrowserPage>(FParentItems).IndexOf(Self);
+  Result := FParentItems.IndexOf(Self);
 end;
+
+{$IFDEF DELPHI14_UP}
 
 function TBrowserPage.GetSource(var SourceText: string;
 Const TimeOut: Integer = 1000): Boolean;
@@ -2786,7 +3099,7 @@ begin
   { if browser.isLoading then
     Exit; }
 
-  browser.MainFrame.GetSourceProc(
+  Browser.MainFrame.GetSourceProc(
     procedure(const Str: ustring)
     begin
       TempSource := Str;
@@ -2818,6 +3131,7 @@ begin
   SourceText := TempSource;
   Result := Not SameText(SourceText, '');
 end;
+{$ENDIF}
 
 procedure TBrowserPage.GetSourceInNewPage;
 begin
@@ -2828,6 +3142,8 @@ function TBrowserPage.GetTabVisible: Boolean;
 begin
   Result := FTabsheet.TabVisible;
 end;
+
+{$IFDEF DELPHI14_UP}
 
 function TBrowserPage.GetText(var aText: string;
 const TimeOut: Integer): Boolean;
@@ -2842,7 +3158,7 @@ begin
   { if browser.isLoading then
     Exit; }
 
-  browser.MainFrame.GetTextProc(
+  Browser.MainFrame.GetTextProc(
     procedure(const Str: ustring)
     begin
       TempText := Str;
@@ -2875,9 +3191,11 @@ begin
   Result := Not SameText(aText, '');
 end;
 
+{$ENDIF}
+
 function TBrowserPage.GetUrl: string;
 begin
-  Result := browser.MainFrame.URL;
+  Result := Browser.MainFrame.URL;
 end;
 
 function TBrowserPage.GetZoomLevel: string;
@@ -2907,10 +3225,10 @@ var
   end;
 
 begin
-  if DoubleIndex(browser.host.ZoomLevel, DoubleCases, ZoomIndex) then
+  if DoubleIndex(Browser.host.ZoomLevel, DoubleCases, ZoomIndex) then
     Result := ResultCases[ZoomIndex]
   else
-    Result := FloatToStr(browser.host.ZoomLevel);
+    Result := FloatToStr(Browser.host.ZoomLevel);
 end;
 
 procedure TBrowserPage.GoBack;
@@ -2938,11 +3256,15 @@ begin
   MyRect := FBrowserPanel.ClientRect;
   case Method of
     0:
-      MoveWindow(FBasicBrowser.FBrowser.host.WindowHandle, 0, 0, MyRect.Width,
-        MyRect.Height, True);
+      MoveWindow(FBasicBrowser.FBrowser.host.WindowHandle, 0, 0,
+{$IFDEF DELPHI14_UP}MyRect.Width{$ELSE}MyRect.right - MyRect.left{$ENDIF},
+{$IFDEF DELPHI14_UP}MyRect.Height{$ELSE}MyRect.bottom -
+        MyRect.top{$ENDIF}, True);
     1:
-      MoveWindow(FBasicBrowser.FBrowser.host.WindowHandle, 0, 0, MyRect.Width,
-        MyRect.Height + 1, True);
+      MoveWindow(FBasicBrowser.FBrowser.host.WindowHandle, 0, 0,
+{$IFDEF DELPHI14_UP}MyRect.Width{$ELSE}MyRect.right - MyRect.left{$ENDIF},
+{$IFDEF DELPHI14_UP}MyRect.Height{$ELSE}MyRect.bottom - MyRect.top{$ENDIF} +
+        1, True);
   end;
 end;
 
@@ -2953,8 +3275,8 @@ end;
 
 procedure TBrowserPage.ReduceZoomLevel;
 begin
-  if browser.host.ZoomLevel > -6 then
-    browser.host.ZoomLevel := browser.host.ZoomLevel - 1;
+  if Browser.host.ZoomLevel > -6 then
+    Browser.host.ZoomLevel := Browser.host.ZoomLevel - 1;
 end;
 
 procedure TBrowserPage.Reload;
@@ -2972,8 +3294,10 @@ end;
 
 procedure TBrowserPage.ResetZoomLevel;
 begin
-  browser.host.ZoomLevel := 0;
+  Browser.host.ZoomLevel := 0;
 end;
+
+{$IFDEF DELPHI14_UP}
 
 procedure TBrowserPage.RunInRenderProcess(AProc: TRenderProcessCallbackA;
 AData: Pointer);
@@ -2991,11 +3315,12 @@ begin
     AMsg.ArgumentList.SetString(1, IntToHex(IntPtr(Pointer(ATemp)),
       SizeOf(Pointer)));
     AMsg.ArgumentList.SetString(2, IntToHex(IntPtr(AData), SizeOf(Pointer)));
-    browser.SendProcessMessage(PID_RENDERER, AMsg);
+    Browser.SendProcessMessage(PID_RENDERER, AMsg);
   end
   else
     raise Exception.Create(SRunOnlyInSinglePro);
 end;
+{$ENDIF}
 
 procedure TBrowserPage.SearchText;
 begin
@@ -3051,12 +3376,12 @@ end;
 
 { TChromiumDevTools }
 
-procedure TChromiumDevTools.CloseDevTools(const browser: ICefBrowser);
+procedure TChromiumDevTools.CloseDevTools(const Browser: ICefBrowser);
 begin
-  if browser <> nil then
+  if Browser <> nil then
   begin
-    Winapi.Windows.SetParent(GetWindow(Handle, GW_CHILD), 0);
-    browser.host.CloseDevTools;
+    Windows.SetParent(GetWindow(Handle, GW_CHILD), 0);
+    Browser.host.CloseDevTools;
   end;
 end;
 
@@ -3081,14 +3406,14 @@ begin
   end;
 end;
 
-procedure TChromiumDevTools.ShowDevTools(const browser: ICefBrowser;
+procedure TChromiumDevTools.ShowDevTools(const Browser: ICefBrowser;
 inspectElementAt: PCefPoint);
 var
   info: TCefWindowInfo;
   setting: TCefBrowserSettings;
   rect: TRect;
 begin
-  if browser = nil then
+  if Browser = nil then
     Exit;
 
   FillChar(info, SizeOf(info), 0);
@@ -3106,7 +3431,7 @@ begin
   FillChar(setting, SizeOf(setting), 0);
   setting.size := SizeOf(setting);
 
-  browser.host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @setting,
+  Browser.host.ShowDevTools(@info, TCefClientOwn.Create as ICefClient, @setting,
     inspectElementAt);
 end;
 
@@ -3143,7 +3468,7 @@ end;
 { TDefaultRenderProcessHandler }
 
 function TDefaultRenderProcessHandler.OnProcessMessageReceived
-  (const browser: ICefBrowser; sourceProcess: TCefProcessId;
+  (const Browser: ICefBrowser; sourceProcess: TCefProcessId;
 const Message: ICefProcessMessage): Boolean;
   procedure DoRunInRender;
   var
@@ -3158,7 +3483,7 @@ const Message: ICefProcessMessage): Boolean;
     AProc := TRenderProcessCallbackA(ATemp);
     AData := Pointer(StrToInt64('$' + message.ArgumentList.GetString(2)));
     if Assigned(AProc) then
-      AProc(ASender, browser.MainFrame.GetV8Context, AData);
+      AProc(ASender, Browser.MainFrame.GetV8Context, AData);
     TRenderProcessCallbackA(ATemp) := nil;
   end;
 
@@ -3179,10 +3504,43 @@ begin
   inherited;
   for Index := Low(FClasses) to High(FClasses) do
   begin
+{$IFDEF DELPHI14_UP}
     TCefRTTIExtension.Register(FClasses[Index].ClassName, FClasses[Index]
-    {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}, True {$ENDIF});
+{$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}, True {$ENDIF});
+{$ENDIF}
   end;
 end;
+
+{ TPageContainerLocker }
+
+constructor TPageContainerLocker.Create;
+begin
+  InitializeCriticalSection(FCS);
+end;
+
+destructor TPageContainerLocker.Destroy;
+begin
+  DeleteCriticalSection(FCS);
+  inherited;
+end;
+
+procedure TPageContainerLocker.Lock;
+begin
+  EnterCriticalSection(FCS);
+end;
+
+procedure TPageContainerLocker.UnLock;
+begin
+  LeaveCriticalSection(FCS);
+end;
+
+Initialization
+
+PagesHelper := TPageContainerLocker.Create;
+
+Finalization
+
+PagesHelper.Free;
 
 end.
 

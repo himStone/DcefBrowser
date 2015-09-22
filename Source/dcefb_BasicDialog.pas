@@ -1,11 +1,10 @@
-unit dcefb_BasicDialog;
+unit DcefB_BasicDialog;
 
 interface
 
 uses
-  Vcl.Forms, Vcl.StdCtrls, Vcl.Controls, Vcl.Consts, System.Classes,
-  Vcl.Graphics, Vcl.Dialogs, Vcl.ExtCtrls, Winapi.Windows, System.Math,
-  dcef3_ceflib;
+  Forms, StdCtrls, Controls, Consts, Classes, Graphics, Dialogs, ExtCtrls, Windows, 
+  Math, Dcef3_ceflib;
 
 type
   TPasswordDialogForm = class
@@ -209,7 +208,9 @@ begin
   BevelInner := bvNone;
   BevelKind := bksoft;
   BevelOuter := bvNone;
+  {$IFDEF DELPHI14_UP}
   ShowCaption := False;
+  {$ENDIF}
 
   FEditSearch := TEdit.Create(nil);
   FButtonGoBack := TButton.Create(nil);
@@ -275,7 +276,7 @@ begin
 end;
 
 function GetAveCharSize(Canvas: TCanvas): TPoint;
-{$IF DEFINED(CLR)}
+{$IFDEF CLR}
 var
   I: Integer;
   Buffer: string;
@@ -291,7 +292,6 @@ begin
   Result.Y := Size.cy;
 end;
 {$ELSE}
-
 var
   I: Integer;
   Buffer: array [0 .. 51] of Char;
@@ -310,13 +310,20 @@ var
   tm: TTextMetric;
   ClientRect: TRect;
   Ascent: Integer;
+  P: TPoint;
 begin
   ClientRect := AControl.ClientRect;
   GetTextMetrics(ACanvas.Handle, tm);
   Ascent := tm.tmAscent + 1;
   Result := ClientRect.Top + Ascent;
+  {$IFDEF DELPHI14_UP}
+    P := TPoint.Create(0, Result)
+  {$ELSE}
+    P.X := 0;
+    P.Y := Result;
+  {$ENDIF}
   Result := AControl.Parent.ScreenToClient
-    (AControl.ClientToScreen(TPoint.Create(0, Result))).Y - AControl.Top;
+  (AControl.ClientToScreen(P)).Y - AControl.Top;
 end;
 
 procedure MyConfirm(const ACaption: string; const AText: string;
@@ -371,7 +378,9 @@ begin
       BorderStyle := bsDialog;
       Caption := ACaption;
       ClientWidth := MulDiv(180 + MaxPromptWidth, DialogUnits.X, 4);
+      {$IFDEF DELPHI14_UP}
       PopupMode := pmAuto;
+      {$ENDIF}
       Position := poScreenCenter;
       CurPrompt := MulDiv(8, DialogUnits.Y, 8);
 

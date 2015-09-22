@@ -1,9 +1,9 @@
-unit dcefb_Options;
+unit DcefB_Options;
 
 interface
 
 uses
-  System.Classes, System.StrUtils, System.SysUtils, Winapi.Windows;
+  Classes, StrUtils, SysUtils, Windows;
 
 type
   TDcefBrowserOptions = class(TPersistent)

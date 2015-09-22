@@ -1,9 +1,9 @@
-unit dcefb_BorderLessPC;
+unit DcefB_BorderLessPC;
 
 interface
 
 uses
-  Winapi.Windows, System.Classes, Vcl.ComCtrls;
+  Windows, Classes, ComCtrls;
 
 type
   TBorderLessPageControl = class(TPageControl)

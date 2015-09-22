@@ -1,9 +1,9 @@
-unit dcefb_BasicEvents;
+unit DcefB_BasicEvents;
 
 interface
 
 uses
-  Winapi.Windows, System.Classes, Vcl.Controls, dcef3_cefgui, dcef3_ceflib;
+  Windows, Classes, Controls, Dcef3_cefgui, Dcef3_ceflib;
 
 type
   TOnProcessMessageReceived = procedure(const browser: ICefBrowser;

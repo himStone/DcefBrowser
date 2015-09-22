@@ -1,9 +1,9 @@
-unit dcefb_Events;
+unit DcefB_Events;
 
 interface
 
 uses
-  Winapi.Windows, System.Classes, Vcl.Controls, dcef3_ceflib;
+  Windows, Classes, Controls, Dcef3_ceflib;
 
 type
   TBrowserDataChangeKind = (BrowserDataChange_StatusMessage,
@@ -23,7 +23,7 @@ type
     const PageActived: Boolean) of object;
   TOnPageAdd = procedure(const PageID: Integer; Const AddAtLast: Boolean)
     of object;
-  TOnPageClose = procedure(const ClosePageIDArr: TArray<System.Integer>;
+  TOnPageClose = procedure(const ClosePageIDArr: Array of Integer;
     Const ShowPageID: Integer) of object;
 
   TOnLoadStart = procedure(const PageIndex: Integer; const browser: ICefBrowser;
@@ -157,7 +157,7 @@ type
       const Kind: TBrowserDataChangeKind; const Value: string;
       const PageActived: Boolean);
     procedure doOnPageAdd(const PageID: Integer; Const AddAtLast: Boolean);
-    procedure doOnPageClose(const ClosePageIDArr: TArray<System.Integer>;
+    procedure doOnPageClose(const ClosePageIDArr: Array of Integer;
       Const ShowPageID: Integer);
 
     procedure doOnLoadStart(const PageIndex: Integer;
@@ -339,7 +339,7 @@ type
       const PageActived: Boolean); virtual;
     procedure doOnPageAdd(const PageID: Integer;
       Const AddAtLast: Boolean); virtual;
-    procedure doOnPageClose(const ClosePageIDArr: TArray<System.Integer>;
+    procedure doOnPageClose(const ClosePageIDArr: Array of Integer;
       Const ShowPageID: Integer); virtual;
 
     procedure doOnLoadStart(const PageIndex: Integer;
@@ -723,7 +723,7 @@ begin
 end;
 
 procedure TDcefBrowserEvents.doOnPageClose(const ClosePageIDArr
-  : TArray<System.Integer>; Const ShowPageID: Integer);
+  : Array of System.Integer; Const ShowPageID: Integer);
 begin
   if Assigned(FOnPageClose) then
     FOnPageClose(ClosePageIDArr, ShowPageID);

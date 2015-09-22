@@ -26,7 +26,7 @@ object Form1: TForm1
     Options.PopupNewWin = False
     Options.DevToolsEnable = True
     Options.AutoDown = False
-    Options.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\Bin\Download\'
+    Options.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\bin\Download\'
     OnLoadEnd = DcefBrowser1LoadEnd
   end
   object Panel1: TPanel
@@ -43,7 +43,7 @@ object Form1: TForm1
       AlignWithMargins = True
       Left = 108
       Top = 8
-      Width = 660
+      Width = 585
       Height = 20
       Margins.Top = 8
       Margins.Bottom = 8
@@ -51,7 +51,7 @@ object Form1: TForm1
       TabOrder = 0
       Text = 'www.baidu.com'
       OnKeyUp = AddressEditKeyUp
-      ExplicitHeight = 21
+      ExplicitWidth = 645
     end
     object Panel2: TPanel
       Left = 0
@@ -89,6 +89,26 @@ object Form1: TForm1
         Caption = '+'
         TabOrder = 2
         OnClick = AddButtonClick
+      end
+    end
+    object Panel3: TPanel
+      Left = 696
+      Top = 0
+      Width = 75
+      Height = 36
+      Align = alRight
+      BevelOuter = bvNone
+      Caption = 'Panel3'
+      ShowCaption = False
+      TabOrder = 2
+      object Button2: TButton
+        Left = 3
+        Top = 5
+        Width = 62
+        Height = 25
+        Caption = 'Go'
+        TabOrder = 0
+        OnClick = Button2Click
       end
     end
   end
