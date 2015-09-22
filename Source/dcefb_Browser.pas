@@ -1,13 +1,15 @@
 unit DcefB_Browser;
 
-// 基于Dcef3编写的 多标签多进程浏览器 框架
-// By BccSafe
-// Blog: http://www.bccsafe.com/
-
-// 编程资质尚浅 若发现BUG或是设计缺陷 希望能联系我
-// QQ: 1262807955
-// Email: bccsafe5988@gmail.com
-
+(*
+  基于Dcef3编写的 多标签多进程浏览器 框架
+  By BccSafe
+  Blog: http://www.bccsafe.com/
+  
+  编程资质尚浅 若发现BUG或是设计缺陷 希望能联系我
+  QQ: 1262807955
+  Email: bccsafe5988@gmail.com
+  
+*)
 interface
 
 {$I Dcef3_cef.inc}
@@ -526,8 +528,8 @@ type
       const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean);
     procedure doOnConsoleMessage(const PageIndex: Integer;
-      const Browser: ICefBrowser; const Message, source: ustring;
-      line: Integer);
+      const Browser: ICefBrowser; const Message, source: ustring; line: Integer;
+      var CancelEventBuiltIn: Boolean);
     procedure doOnProtocolExecution(const PageIndex: Integer;
       const Browser: ICefBrowser; const URL: ustring;
       out allowOsExecution: Boolean);
@@ -1627,10 +1629,12 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnConsoleMessage(const PageIndex: Integer;
-  const Browser: ICefBrowser; const Message, source: ustring; line: Integer);
+  const Browser: ICefBrowser; const Message, source: ustring; line: Integer;
+  var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnConsoleMessage) and (PageIndex > -1) then
-    FOnConsoleMessage(PageIndex, Browser, message, source, line);
+    FOnConsoleMessage(PageIndex, Browser, message, source, line,
+      CancelEventBuiltIn);
 end;
 
 procedure TCustomDcefBrowser.doOnContextMenuCommand(const PageIndex: Integer;
@@ -2224,9 +2228,12 @@ end;
 procedure TBasicBrowser.BrowserAddressChange(const Browser: ICefBrowser;
   const frame: ICefFrame; const URL: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
-    BrowserDataChange_Address, URL, Actived);
-  FLastAddress := URL;
+  if Not(csDestroying in ComponentState) then
+  begin
+    TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
+      BrowserDataChange_Address, URL, Actived);
+    FLastAddress := URL;
+  end;
 end;
 
 procedure TBasicBrowser.BrowserAfterCreated(const Browser: ICefBrowser);
@@ -2237,6 +2244,9 @@ var
   // WindowStyle: Integer;
   // MyRect: TRect;
 begin
+  if csDestroying in ComponentState then
+    Exit;
+
   MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
   if Browser.IsPopup and (Not MyDcefBrowser.Options.PopupNewWin) then
   begin
@@ -2269,16 +2279,18 @@ procedure TBasicBrowser.BrowserBeforeBrowse(const Browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean;
   out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforeBrowse(PageIndex, Browser, frame,
-    request, isRedirect, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnBeforeBrowse(PageIndex, Browser, frame,
+      request, isRedirect, Result);
 end;
 
 procedure TBasicBrowser.BrowserBeforeContextMenu(const Browser: ICefBrowser;
   const frame: ICefFrame; const params: ICefContextMenuParams;
   const model: ICefMenuModel);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforeContextMenu(PageIndex, Browser,
-    frame, params, model);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnBeforeContextMenu(PageIndex, Browser,
+      frame, params, model);
 end;
 
 procedure TBasicBrowser.BrowserBeforeDownload(const Browser: ICefBrowser;
@@ -2345,6 +2357,8 @@ var
   end;
 
 begin
+  if csDestroying in ComponentState then
+    Exit;
   { if Not browser.HasDocument then
     TBrowserPage(FParentBrowserPage).Close; }
   // DownloadManager := TCustomDcefBrowser(FDcefBrowser).DownloadManager;
@@ -2373,8 +2387,9 @@ procedure TBasicBrowser.BrowserBeforePluginLoad(const Browser: ICefBrowser;
   const URL, policyUrl: ustring; const info: ICefWebPluginInfo;
   out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforePluginLoad(PageIndex, Browser, URL,
-    policyUrl, info, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnBeforePluginLoad(PageIndex, Browser,
+      URL, policyUrl, info, Result);
 end;
 
 procedure TBasicBrowser.BrowserBeforePopup(const Browser: ICefBrowser;
@@ -2388,6 +2403,12 @@ var
   NewBrowserPage: TBrowserPage;
   MyDcefBrowser: TCustomDcefBrowser;
 begin
+  if csDestroying in ComponentState then
+  begin
+    Result := False;
+    Exit;
+  end;
+
   MyBrowserPage := TBrowserPage(FParentBrowserPage);
   MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
 
@@ -2429,8 +2450,9 @@ end;
 procedure TBasicBrowser.BrowserBeforeResourceLoad(const Browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnBeforeResourceLoad(PageIndex, Browser,
-    frame, request, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnBeforeResourceLoad(PageIndex, Browser,
+      frame, request, Result);
 end;
 
 procedure TBasicBrowser.BrowserBeforeUnloadDialog(const Browser: ICefBrowser;
@@ -2439,6 +2461,9 @@ procedure TBasicBrowser.BrowserBeforeUnloadDialog(const Browser: ICefBrowser;
 var
   CancelEventBuiltIn, IsContinue: Boolean;
 begin
+  if csDestroying in ComponentState then
+    Exit;
+
   CancelEventBuiltIn := False;
   TCustomDcefBrowser(FDcefBrowser).doOnBeforeUnloadDialog(PageIndex, Browser,
     messageText, isReload, callback, CancelEventBuiltIn);
@@ -2465,31 +2490,36 @@ procedure TBasicBrowser.BrowserCancelGeolocationPermission
   (const Browser: ICefBrowser; const requestingUrl: ustring;
 requestId: Integer);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnCancelGeolocationPermission(PageIndex,
-    Browser, requestingUrl, requestId);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnCancelGeolocationPermission(PageIndex,
+      Browser, requestingUrl, requestId);
 end;
 
 procedure TBasicBrowser.BrowserCertificateError(certError: TCefErrorCode;
 const requestUrl: ustring; const callback: ICefAllowCertificateErrorCallback;
 out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnCertificateError(PageIndex, certError,
-    requestUrl, callback, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnCertificateError(PageIndex, certError,
+      requestUrl, callback, Result);
 end;
 
 procedure TBasicBrowser.BrowserClose(const Browser: ICefBrowser;
 out Result: Boolean);
 begin
-  TBrowserPage(FParentBrowserPage).Close;
-  Result := True;
+  if Not(csDestroying in ComponentState) then
+  begin
+    TBrowserPage(FParentBrowserPage).Close;
+    Result := True;
+  end;
 end;
 
 procedure TBasicBrowser.BrowserConsoleMessage(const Browser: ICefBrowser;
 const Message, source: ustring; line: Integer; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnConsoleMessage(PageIndex, Browser,
-    message, source, line);
-  Result := True;
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnConsoleMessage(PageIndex, Browser,
+      message, source, line, Result);
 end;
 
 procedure TBasicBrowser.BrowserContextMenuCommand(const Browser: ICefBrowser;
@@ -2498,29 +2528,34 @@ eventFlags: TCefEventFlags; out Result: Boolean);
 var
   CancelEventBuiltIn: Boolean;
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnContextMenuCommand(PageIndex, Browser,
-    frame, params, commandId, eventFlags, CancelEventBuiltIn);
+  CancelEventBuiltIn := False;
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnContextMenuCommand(PageIndex, Browser,
+      frame, params, commandId, eventFlags, CancelEventBuiltIn);
   Result := CancelEventBuiltIn;
 end;
 
 procedure TBasicBrowser.BrowserContextMenuDismissed(const Browser: ICefBrowser;
 const frame: ICefFrame);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnContextMenuDismissed(PageIndex,
-    Browser, frame);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnContextMenuDismissed(PageIndex,
+      Browser, frame);
 end;
 
 procedure TBasicBrowser.BrowserCursorChange(const Browser: ICefBrowser;
 cursor: TCefCursorHandle; cursorType: TCefCursorType;
 const customCursorInfo: PCefCursorInfo);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnCursorChange(PageIndex, Browser, cursor,
-    cursorType, customCursorInfo);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnCursorChange(PageIndex, Browser,
+      cursor, cursorType, customCursorInfo);
 end;
 
 procedure TBasicBrowser.BrowserDialogClosed(const Browser: ICefBrowser);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnDialogClosed(PageIndex, Browser);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnDialogClosed(PageIndex, Browser);
 end;
 
 procedure TBasicBrowser.BrowserDownloadUpdated(const Browser: ICefBrowser;
@@ -2532,8 +2567,9 @@ const downloadItem: ICefDownloadItem; const callback: ICefDownloadItemCallback);
   DownLoadItemIndex: Integer;
   DownloadComplete: Boolean; }
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnDownloadUpdated(PageIndex, Browser,
-    downloadItem, callback);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnDownloadUpdated(PageIndex, Browser,
+      downloadItem, callback);
   { if downloadItem.IsValid then
     begin
     MyDcefBrowser := TCustomDcefBrowser(FDcefBrowser);
@@ -2559,8 +2595,9 @@ end;
 procedure TBasicBrowser.BrowserDragEnter(const Browser: ICefBrowser;
 const dragData: ICefDragData; mask: TCefDragOperations; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnDragEnter(PageIndex, Browser, dragData,
-    mask, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnDragEnter(PageIndex, Browser, dragData,
+      mask, Result);
 end;
 
 procedure TBasicBrowser.BrowserFileDialog(const Browser: ICefBrowser;
@@ -2568,8 +2605,9 @@ mode: TCefFileDialogMode; const title, defaultFileName: ustring;
 acceptTypes: TStrings; const callback: ICefFileDialogCallback;
 out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnFileDialog(PageIndex, Browser, mode,
-    title, defaultFileName, acceptTypes, callback, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnFileDialog(PageIndex, Browser, mode,
+      title, defaultFileName, acceptTypes, callback, Result);
 end;
 
 procedure TBasicBrowser.BrowserGetAuthCredentials(const Browser: ICefBrowser;
@@ -2580,6 +2618,9 @@ var
   UserName, Password: string;
   TempBool, CancelEventBuiltIn: Boolean;
 begin
+  if csDestroying in ComponentState then
+    Exit;
+
   CancelEventBuiltIn := False;
   TCustomDcefBrowser(FDcefBrowser).doOnGetAuthCredentials(PageIndex, Browser,
     frame, isProxy, host, port, realm, scheme, callback, CancelEventBuiltIn);
@@ -2619,19 +2660,23 @@ procedure TBasicBrowser.BrowserGetResourceHandler(const Browser: ICefBrowser;
 const frame: ICefFrame; const request: ICefRequest;
 out Result: ICefResourceHandler);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnGetResourceHandler(PageIndex, Browser,
-    frame, request, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnGetResourceHandler(PageIndex, Browser,
+      frame, request, Result);
 end;
 
 procedure TBasicBrowser.BrowserGotFocus(const Browser: ICefBrowser);
 var
   CancelEventBuiltIn: Boolean;
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnGotFocus(PageIndex, Browser,
-    CancelEventBuiltIn);
+  if Not(csDestroying in ComponentState) then
+  begin
+    TCustomDcefBrowser(FDcefBrowser).doOnGotFocus(PageIndex, Browser,
+      CancelEventBuiltIn);
 
-  if Not CancelEventBuiltIn then
-    TBrowserPage(FParentBrowserPage).BringSearchBarToFront;
+    if Not CancelEventBuiltIn then
+      TBrowserPage(FParentBrowserPage).BringSearchBarToFront;
+  end;
 end;
 
 procedure TBasicBrowser.BrowserJsdialog(const Browser: ICefBrowser;
@@ -2642,6 +2687,9 @@ var
   CancelEventBuiltIn, IsContinue: Boolean;
   UserInput: string;
 begin
+  if csDestroying in ComponentState then
+    Exit;
+
   CancelEventBuiltIn := False;
   IsContinue := True;
   TCustomDcefBrowser(FDcefBrowser).doOnJsdialog(PageIndex, Browser, originUrl,
@@ -2715,31 +2763,37 @@ end;
 procedure TBasicBrowser.BrowserKeyEvent(const Browser: ICefBrowser;
 const event: PCefKeyEvent; osEvent: TCefEventHandle; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnKeyEvent(PageIndex, Browser, event,
-    osEvent, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnKeyEvent(PageIndex, Browser, event,
+      osEvent, Result);
 end;
 
 procedure TBasicBrowser.BrowserLoadEnd(const Browser: ICefBrowser;
 const frame: ICefFrame; httpStatusCode: Integer);
 begin
-  if SameText(FLastTitle, '') then
-    FLastTitle := SNoTitleText;
-  TCustomDcefBrowser(FDcefBrowser).doOnLoadEnd(PageIndex, Browser, frame,
-    httpStatusCode);
+  if Not(csDestroying in ComponentState) then
+  begin
+    if SameText(FLastTitle, '') then
+      FLastTitle := SNoTitleText;
+    TCustomDcefBrowser(FDcefBrowser).doOnLoadEnd(PageIndex, Browser, frame,
+      httpStatusCode);
+  end;
 end;
 
 procedure TBasicBrowser.BrowserLoadError(const Browser: ICefBrowser;
 const frame: ICefFrame; errorCode: Integer;
 const errorText, failedUrl: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnLoadError(PageIndex, Browser, frame,
-    errorCode, errorText, failedUrl);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnLoadError(PageIndex, Browser, frame,
+      errorCode, errorText, failedUrl);
 end;
 
 procedure TBasicBrowser.BrowserLoadingStateChange(const Browser: ICefBrowser;
 isLoading, canGoBack, canGoForward: Boolean);
 begin
-  if Browser.Identifier = FBrowserId then
+  if (Not(csDestroying in ComponentState)) and (Browser.Identifier = FBrowserId)
+  then
   begin
     FIsLoading := isLoading;
     FCanGoForward := canGoForward;
@@ -2752,42 +2806,55 @@ end;
 procedure TBasicBrowser.BrowserLoadStart(const Browser: ICefBrowser;
 const frame: ICefFrame);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnLoadStart(PageIndex, Browser, frame);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnLoadStart(PageIndex, Browser, frame);
 end;
 
 procedure TBasicBrowser.BrowserTakeFocus(const Browser: ICefBrowser;
 next: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnTakeFocus(PageIndex, Browser, next);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnTakeFocus(PageIndex, Browser, next);
 end;
 
 procedure TBasicBrowser.BrowserTitleChange(const Browser: ICefBrowser;
 const title: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
-    BrowserDataChange_Title, title, Actived);
-  FLastTitle := title;
-  TBrowserPage(FParentBrowserPage).title := title;
+  if Not(csDestroying in ComponentState) then
+  begin
+    TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
+      BrowserDataChange_Title, title, Actived);
+    FLastTitle := title;
+    TBrowserPage(FParentBrowserPage).title := title;
+  end;
 end;
 
 procedure TBasicBrowser.BrowserUpdateDragCursor(const Browser: ICefBrowser;
 operation: TCefDragOperation);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnUpdateDragCursor(PageIndex, Browser,
-    operation);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnUpdateDragCursor(PageIndex, Browser,
+      operation);
 end;
 
 procedure TBasicBrowser.BrowserPluginCrashed(const Browser: ICefBrowser;
 const pluginPath: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnPluginCrashed(PageIndex, Browser,
-    pluginPath);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnPluginCrashed(PageIndex, Browser,
+      pluginPath);
 end;
 
 procedure TBasicBrowser.BrowserPreKeyEvent(const Browser: ICefBrowser;
 const event: PCefKeyEvent; osEvent: TCefEventHandle;
 out isKeyboardShortcut, Result: Boolean);
 begin
+  if csDestroying in ComponentState then
+  begin
+    Result := False;
+    Exit;
+  end;
+
   TCustomDcefBrowser(FDcefBrowser).doOnPreKeyEvent(PageIndex, Browser, event,
     osEvent, isKeyboardShortcut, Result);
 
@@ -2810,54 +2877,63 @@ end;
 procedure TBasicBrowser.BrowserProtocolExecution(const Browser: ICefBrowser;
 const URL: ustring; out allowOsExecution: Boolean);
 begin
-  allowOsExecution := True;
-  TCustomDcefBrowser(FDcefBrowser).doOnProtocolExecution(PageIndex, Browser,
-    URL, allowOsExecution);
+  if Not(csDestroying in ComponentState) then
+  begin
+    allowOsExecution := True;
+    TCustomDcefBrowser(FDcefBrowser).doOnProtocolExecution(PageIndex, Browser,
+      URL, allowOsExecution);
+  end;
 end;
 
 procedure TBasicBrowser.BrowserQuotaRequest(const Browser: ICefBrowser;
 const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
 out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnQuotaRequest(PageIndex, Browser,
-    originUrl, newSize, callback, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnQuotaRequest(PageIndex, Browser,
+      originUrl, newSize, callback, Result);
 end;
 
 procedure TBasicBrowser.BrowserRequestGeolocationPermission
   (const Browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer;
 const callback: ICefGeolocationCallback; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnRequestGeolocationPermission(PageIndex,
-    Browser, requestingUrl, requestId, callback, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnRequestGeolocationPermission(PageIndex,
+      Browser, requestingUrl, requestId, callback, Result);
 end;
 
 procedure TBasicBrowser.BrowserResourceRedirect(const Browser: ICefBrowser;
 const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnResourceRedirect(PageIndex, Browser,
-    frame, oldUrl, newUrl);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnResourceRedirect(PageIndex, Browser,
+      frame, oldUrl, newUrl);
 end;
 
 procedure TBasicBrowser.BrowserSetFocus(const Browser: ICefBrowser;
 source: TCefFocusSource; out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnSetFocus(PageIndex, Browser,
-    source, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnSetFocus(PageIndex, Browser,
+      source, Result);
 end;
 
 procedure TBasicBrowser.BrowserStartDragging(const Browser: ICefBrowser;
 const dragData: ICefDragData; allowedOps: TCefDragOperations; x, y: Integer;
 out Result: Boolean);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnStartDragging(PageIndex, Browser,
-    dragData, allowedOps, x, y, Result);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnStartDragging(PageIndex, Browser,
+      dragData, allowedOps, x, y, Result);
 end;
 
 procedure TBasicBrowser.BrowserStatusMessage(const Browser: ICefBrowser;
 const value: ustring);
 begin
-  TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
-    BrowserDataChange_StatusMessage, value, Actived);
+  if Not(csDestroying in ComponentState) then
+    TCustomDcefBrowser(FDcefBrowser).doOnPageStateChange(PageID,
+      BrowserDataChange_StatusMessage, value, Actived);
 end;
 
 { TBrowserPage }
@@ -3253,6 +3329,8 @@ procedure TBrowserPage.MoveBrowserWin(Method: Integer);
 var
   MyRect: TRect;
 begin
+  FBasicBrowser.FBrowser.host.NotifyMoveOrResizeStarted;
+
   MyRect := FBrowserPanel.ClientRect;
   case Method of
     0:

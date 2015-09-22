@@ -99,8 +99,8 @@ type
     const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean)
     of object;
   TOnConsoleMessage = procedure(const PageIndex: Integer;
-    const browser: ICefBrowser; const message, source: ustring; line: Integer)
-    of object;
+    const browser: ICefBrowser; const message, source: ustring; line: Integer;
+    var CancelEventBuiltIn: Boolean) of object;
   TOnProtocolExecution = procedure(const PageIndex: Integer;
     browser: ICefBrowser; const url: ustring; var allowOsExecution: Boolean)
     of object;
@@ -235,8 +235,8 @@ type
       const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean);
     procedure doOnConsoleMessage(const PageIndex: Integer;
-      const browser: ICefBrowser; const message, source: ustring;
-      line: Integer);
+      const browser: ICefBrowser; const message, source: ustring; line: Integer;
+      var CancelEventBuiltIn: Boolean);
     procedure doOnProtocolExecution(const PageIndex: Integer;
       browser: ICefBrowser; const url: ustring; var allowOsExecution: Boolean);
     procedure doOnFileDialog(const PageIndex: Integer;
@@ -423,8 +423,8 @@ type
       const callback: ICefAuthCallback;
       var CancelEventBuiltIn: Boolean); virtual;
     procedure doOnConsoleMessage(const PageIndex: Integer;
-      const browser: ICefBrowser; const message, source: ustring;
-      line: Integer); virtual;
+      const browser: ICefBrowser; const message, source: ustring; line: Integer;
+      var CancelEventBuiltIn: Boolean); virtual;
     procedure doOnProtocolExecution(const PageIndex: Integer;
       browser: ICefBrowser; const url: ustring;
       var allowOsExecution: Boolean); virtual;
@@ -678,10 +678,12 @@ begin
 end;
 
 procedure TDcefBrowserEvents.doOnConsoleMessage(const PageIndex: Integer;
-  const browser: ICefBrowser; const message, source: ustring; line: Integer);
+  const browser: ICefBrowser; const message, source: ustring; line: Integer;
+  var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnConsoleMessage) then
-    FOnConsoleMessage(PageIndex, browser, message, source, line);
+    FOnConsoleMessage(PageIndex, browser, message, source, line,
+      CancelEventBuiltIn);
 end;
 
 procedure TDcefBrowserEvents.doOnContextMenuCommand(const PageIndex: Integer;
