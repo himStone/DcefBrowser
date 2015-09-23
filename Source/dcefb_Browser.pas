@@ -4,11 +4,11 @@ unit DcefB_Browser;
   基于Dcef3编写的 多标签多进程浏览器 框架
   By BccSafe
   Blog: http://www.bccsafe.com/
-  
+
   编程资质尚浅 若发现BUG或是设计缺陷 希望能联系我
   QQ: 1262807955
   Email: bccsafe5988@gmail.com
-  
+
 *)
 interface
 
@@ -2042,7 +2042,7 @@ begin
     if FBrowser <> nil then
     begin
       FBrowser.StopLoad;
-      FBrowser.host.CloseBrowser(False);
+      // FBrowser.host.CloseBrowser(False);
     end;
     FBasicDcefBrowserEvents := nil;
     FBasicDcefBrowserEvents.Free;
