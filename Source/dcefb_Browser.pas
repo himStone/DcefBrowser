@@ -1964,10 +1964,13 @@ end;
 
 procedure TCustomDcefBrowser.Load(const URL: string);
 begin
-  if FPageItems.Count > 0 then
-    ActivePage.Load(URL)
-  else
-    AddPage(URL, True);
+  if not(csDestroying in ComponentState) then
+  begin
+    if FPageItems.Count > 0 then
+      ActivePage.Load(URL)
+    else
+      AddPage(URL, True);
+  end;
 end;
 
 { TBrowserPageItem }
