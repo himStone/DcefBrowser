@@ -28,121 +28,121 @@ type
 
   TOnLoadStart = procedure(const PageIndex: Integer; const browser: ICefBrowser;
     const frame: ICefFrame) of object;
-  TOnLoadEnd = procedure(const PageIndex: Integer; const browser: ICefBrowser;
+  TOnLoadEnd = procedure(const PageID: Integer; const browser: ICefBrowser;
     const frame: ICefFrame; httpStatusCode: Integer) of object;
   TOnLoadError = procedure(const PageIndex: Integer; const browser: ICefBrowser;
     const frame: ICefFrame; errorCode: Integer;
     const errorText, failedUrl: ustring) of object;
-  TOnBeforeBrowse = procedure(const PageIndex: Integer;
+  TOnBeforeBrowse = procedure(const PageID: Integer;
     const browser: ICefBrowser; const frame: ICefFrame;
     const request: ICefRequest; isRedirect: Boolean; var Cancel: Boolean)
     of object;
 
-  TOnPreKeyEvent = procedure(const PageIndex: Integer;
+  TOnPreKeyEvent = procedure(const PageID: Integer;
     const browser: ICefBrowser; const event: PCefKeyEvent;
     osEvent: TCefEventHandle; var isKeyboardShortcut: Boolean;
     var Cancel: Boolean) of object;
-  TOnKeyEvent = procedure(const PageIndex: Integer; const browser: ICefBrowser;
+  TOnKeyEvent = procedure(const PageID: Integer; const browser: ICefBrowser;
     const event: PCefKeyEvent; osEvent: TCefEventHandle; var Cancel: Boolean)
     of object;
 
-  TOnBeforeResourceLoad = procedure(const PageIndex: Integer;
+  TOnBeforeResourceLoad = procedure(const PageID: Integer;
     const browser: ICefBrowser; const frame: ICefFrame;
     const request: ICefRequest; var CancelLoad: Boolean) of object;
-  TOnGetResourceHandler = procedure(const PageIndex: Integer;
+  TOnGetResourceHandler = procedure(const PageID: Integer;
     const browser: ICefBrowser; const frame: ICefFrame;
     const request: ICefRequest; var ResourceHandler: ICefResourceHandler)
     of object;
-  TOnResourceRedirect = procedure(const PageIndex: Integer;
+  TOnResourceRedirect = procedure(const PageID: Integer;
     const browser: ICefBrowser; const frame: ICefFrame; const oldUrl: ustring;
     var newUrl: ustring) of object;
 
-  TOnGotFocus = procedure(const PageIndex: Integer; const browser: ICefBrowser;
+  TOnGotFocus = procedure(const PageID: Integer; const browser: ICefBrowser;
     var CancelEventBuiltIn: Boolean) of object;
-  TOnSetFocus = procedure(const PageIndex: Integer; const browser: ICefBrowser;
+  TOnSetFocus = procedure(const PageID: Integer; const browser: ICefBrowser;
     source: TCefFocusSource; var CancelFocus: Boolean) of object;
-  TOnTakeFocus = procedure(const PageIndex: Integer; const browser: ICefBrowser;
+  TOnTakeFocus = procedure(const PageID: Integer; const browser: ICefBrowser;
     next: Boolean) of object;
 
-  TOnBeforeContextMenu = procedure(const PageIndex: Integer;
+  TOnBeforeContextMenu = procedure(const PageID: Integer;
     const browser: ICefBrowser; const frame: ICefFrame;
     const params: ICefContextMenuParams; const model: ICefMenuModel) of object;
-  TOnContextMenuCommand = procedure(const PageIndex: Integer;
+  TOnContextMenuCommand = procedure(const PageID: Integer;
     const browser: ICefBrowser; const frame: ICefFrame;
     const params: ICefContextMenuParams; commandId: Integer;
     eventFlags: TCefEventFlags; var CancelEventBuiltIn: Boolean) of object;
-  TOnContextMenuDismissed = procedure(const PageIndex: Integer;
+  TOnContextMenuDismissed = procedure(const PageID: Integer;
     const browser: ICefBrowser; const frame: ICefFrame) of object;
 
-  TOnJsdialog = procedure(const PageIndex: Integer; const browser: ICefBrowser;
+  TOnJsdialog = procedure(const PageID: Integer; const browser: ICefBrowser;
     const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
     const messageText, defaultPromptText: ustring;
     callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean) of object;
-  TOnBeforeUnloadDialog = procedure(const PageIndex: Integer;
+  TOnBeforeUnloadDialog = procedure(const PageID: Integer;
     const browser: ICefBrowser; const messageText: ustring; isReload: Boolean;
     callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean) of object;
-  TOnDialogClosed = procedure(const PageIndex: Integer;
+  TOnDialogClosed = procedure(const PageID: Integer;
     const browser: ICefBrowser) of object;
 
   { TOnDownloadUpdated = procedure(Const DcefItemIndex: Integer;
     Const Kind: TBrowserDownloadUpdatedKind) of object; }
-  TOnBeforeDownload = procedure(const PageIndex: Integer;
+  TOnBeforeDownload = procedure(const PageID: Integer;
     const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
     const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
     var CancelBuiltinPro: Boolean) of object;
-  TOnDownloadUpdated = procedure(const PageIndex: Integer;
+  TOnDownloadUpdated = procedure(const PageID: Integer;
     const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
     const callback: ICefDownloadItemCallback) of object;
-  TOnGetAuthCredentials = procedure(const PageIndex: Integer;
+  TOnGetAuthCredentials = procedure(const PageID: Integer;
     const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
     const host: ustring; port: Integer; const realm, scheme: ustring;
     const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean)
     of object;
-  TOnConsoleMessage = procedure(const PageIndex: Integer;
+  TOnConsoleMessage = procedure(const PageID: Integer;
     const browser: ICefBrowser; const message, source: ustring; line: Integer;
     var CancelEventBuiltIn: Boolean) of object;
-  TOnProtocolExecution = procedure(const PageIndex: Integer;
+  TOnProtocolExecution = procedure(const PageID: Integer;
     browser: ICefBrowser; const url: ustring; var allowOsExecution: Boolean)
     of object;
-  TOnFileDialog = procedure(const PageIndex: Integer;
+  TOnFileDialog = procedure(const PageID: Integer;
     const browser: ICefBrowser; mode: TCefFileDialogMode;
     const title, defaultFileName: ustring; acceptTypes: TStrings;
     const callback: ICefFileDialogCallback; out Result: Boolean) of object;
 
-  TOnPluginCrashed = procedure(const PageIndex: Integer;
+  TOnPluginCrashed = procedure(const PageID: Integer;
     const browser: ICefBrowser; const pluginPath: ustring) of object;
-  TOnBeforePluginLoad = procedure(const PageIndex: Integer;
+  TOnBeforePluginLoad = procedure(const PageID: Integer;
     const browser: ICefBrowser; const url, policyUrl: ustring;
     const info: ICefWebPluginInfo; var CancelLoad: Boolean) of object;
 
-  TOnRequestGeolocationPermission = procedure(const PageIndex: Integer;
+  TOnRequestGeolocationPermission = procedure(const PageID: Integer;
     const browser: ICefBrowser; const requestingUrl: ustring;
     requestId: Integer; const callback: ICefGeolocationCallback;
     out Result: Boolean) of object;
-  TOnCancelGeolocationPermission = procedure(const PageIndex: Integer;
+  TOnCancelGeolocationPermission = procedure(const PageID: Integer;
     const browser: ICefBrowser; const requestingUrl: ustring;
     requestId: Integer) of object;
 
-  TOnQuotaRequest = procedure(const PageIndex: Integer;
+  TOnQuotaRequest = procedure(const PageID: Integer;
     const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
     const callback: ICefQuotaCallback; out Result: Boolean) of object;
 
-  TOnDragEnter = procedure(const PageIndex: Integer; const browser: ICefBrowser;
+  TOnDragEnter = procedure(const PageID: Integer; const browser: ICefBrowser;
     const dragData: ICefDragData; mask: TCefDragOperations; out Result: Boolean)
     of object;
-  TOnStartDragging = procedure(const PageIndex: Integer;
+  TOnStartDragging = procedure(const PageID: Integer;
     const browser: ICefBrowser; const dragData: ICefDragData;
     allowedOps: TCefDragOperations; x, y: Integer; out Result: Boolean)
     of object;
-  TOnUpdateDragCursor = procedure(const PageIndex: Integer;
+  TOnUpdateDragCursor = procedure(const PageID: Integer;
     const browser: ICefBrowser; operation: TCefDragOperation) of object;
 
-  TOnCertificateError = procedure(const PageIndex: Integer;
+  TOnCertificateError = procedure(const PageID: Integer;
     certError: TCefErrorCode; const requestUrl: ustring;
     const callback: ICefAllowCertificateErrorCallback; out Result: Boolean)
     of object;
 
-  TOnCursorChange = procedure(const PageIndex: Integer;
+  TOnCursorChange = procedure(const PageID: Integer;
     const browser: ICefBrowser; cursor: TCefCursorHandle;
     cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo)
     of object;
@@ -160,115 +160,115 @@ type
     procedure doOnPageClose(const ClosePageIDArr: Array of Integer;
       Const ShowPageID: Integer);
 
-    procedure doOnLoadStart(const PageIndex: Integer;
+    procedure doOnLoadStart(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame);
-    procedure doOnLoadEnd(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnLoadEnd(const PageID: Integer; const browser: ICefBrowser;
       const frame: ICefFrame; httpStatusCode: Integer);
-    procedure doOnLoadError(const PageIndex: Integer;
+    procedure doOnLoadError(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring);
-    procedure doOnBeforeBrowse(const PageIndex: Integer;
+    procedure doOnBeforeBrowse(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; isRedirect: Boolean; var Cancel: Boolean);
 
-    procedure doOnPreKeyEvent(const PageIndex: Integer;
+    procedure doOnPreKeyEvent(const PageID: Integer;
       const browser: ICefBrowser; const event: PCefKeyEvent;
       osEvent: TCefEventHandle; var isKeyboardShortcut: Boolean;
       var Cancel: Boolean);
-    procedure doOnKeyEvent(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnKeyEvent(const PageID: Integer; const browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle; var Cancel: Boolean);
 
-    procedure doOnBeforeResourceLoad(const PageIndex: Integer;
+    procedure doOnBeforeResourceLoad(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; var CancelLoad: Boolean);
-    procedure doOnGetResourceHandler(const PageIndex: Integer;
+    procedure doOnGetResourceHandler(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; var ResourceHandler: ICefResourceHandler);
-    procedure doOnResourceRedirect(const PageIndex: Integer;
+    procedure doOnResourceRedirect(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; const oldUrl: ustring;
       var newUrl: ustring);
 
-    procedure doOnGotFocus(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnGotFocus(const PageID: Integer; const browser: ICefBrowser;
       var CancelEventBuiltIn: Boolean);
-    procedure doOnSetFocus(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnSetFocus(const PageID: Integer; const browser: ICefBrowser;
       source: TCefFocusSource; var CancelFocus: Boolean);
-    procedure doOnTakeFocus(const PageIndex: Integer;
+    procedure doOnTakeFocus(const PageID: Integer;
       const browser: ICefBrowser; next: Boolean);
 
-    procedure doOnBeforeContextMenu(const PageIndex: Integer;
+    procedure doOnBeforeContextMenu(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; const model: ICefMenuModel);
-    procedure doOnContextMenuCommand(const PageIndex: Integer;
+    procedure doOnContextMenuCommand(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; commandId: Integer;
       eventFlags: TCefEventFlags; var CancelEventBuiltIn: Boolean);
-    procedure doOnContextMenuDismissed(const PageIndex: Integer;
+    procedure doOnContextMenuDismissed(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame);
 
-    procedure doOnJsdialog(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnJsdialog(const PageID: Integer; const browser: ICefBrowser;
       const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
       const messageText, defaultPromptText: ustring;
       const callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean);
-    procedure doOnBeforeUnloadDialog(const PageIndex: Integer;
+    procedure doOnBeforeUnloadDialog(const PageID: Integer;
       const browser: ICefBrowser; const messageText: ustring; isReload: Boolean;
       const callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean);
-    procedure doOnDialogClosed(const PageIndex: Integer;
+    procedure doOnDialogClosed(const PageID: Integer;
       const browser: ICefBrowser);
 
-    procedure doOnPluginCrashed(const PageIndex: Integer;
+    procedure doOnPluginCrashed(const PageID: Integer;
       const browser: ICefBrowser; const pluginPath: ustring);
-    procedure doOnBeforePluginLoad(const PageIndex: Integer;
+    procedure doOnBeforePluginLoad(const PageID: Integer;
       const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo; var CancelLoad: Boolean);
 
     { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
       Const Kind: TBrowserDownloadUpdatedKind); }
-    procedure doOnBeforeDownload(const PageIndex: Integer;
+    procedure doOnBeforeDownload(const PageID: Integer;
       const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
       var CancelBuiltinPro: Boolean);
-    procedure doOnDownloadUpdated(const PageIndex: Integer;
+    procedure doOnDownloadUpdated(const PageID: Integer;
       const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const callback: ICefDownloadItemCallback);
-    procedure doOnGetAuthCredentials(const PageIndex: Integer;
+    procedure doOnGetAuthCredentials(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
       const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean);
-    procedure doOnConsoleMessage(const PageIndex: Integer;
+    procedure doOnConsoleMessage(const PageID: Integer;
       const browser: ICefBrowser; const message, source: ustring; line: Integer;
       var CancelEventBuiltIn: Boolean);
-    procedure doOnProtocolExecution(const PageIndex: Integer;
+    procedure doOnProtocolExecution(const PageID: Integer;
       browser: ICefBrowser; const url: ustring; var allowOsExecution: Boolean);
-    procedure doOnFileDialog(const PageIndex: Integer;
+    procedure doOnFileDialog(const PageID: Integer;
       const browser: ICefBrowser; mode: TCefFileDialogMode;
       const title, defaultFileName: ustring; acceptTypes: TStrings;
       const callback: ICefFileDialogCallback; out Result: Boolean);
 
-    procedure doOnRequestGeolocationPermission(const PageIndex: Integer;
+    procedure doOnRequestGeolocationPermission(const PageID: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer; const callback: ICefGeolocationCallback;
       out Result: Boolean);
-    procedure doOnCancelGeolocationPermission(const PageIndex: Integer;
+    procedure doOnCancelGeolocationPermission(const PageID: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer);
 
-    procedure doOnQuotaRequest(const PageIndex: Integer;
+    procedure doOnQuotaRequest(const PageID: Integer;
       const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback; out Result: Boolean);
 
-    procedure doOnDragEnter(const PageIndex: Integer;
+    procedure doOnDragEnter(const PageID: Integer;
       const browser: ICefBrowser; const dragData: ICefDragData;
       mask: TCefDragOperations; out Result: Boolean);
-    procedure doOnStartDragging(const PageIndex: Integer;
+    procedure doOnStartDragging(const PageID: Integer;
       const browser: ICefBrowser; const dragData: ICefDragData;
       allowedOps: TCefDragOperations; x, y: Integer; out Result: Boolean);
-    procedure doOnUpdateDragCursor(const PageIndex: Integer;
+    procedure doOnUpdateDragCursor(const PageID: Integer;
       const browser: ICefBrowser; operation: TCefDragOperation);
-    procedure doOnCertificateError(const PageIndex: Integer;
+    procedure doOnCertificateError(const PageID: Integer;
       certError: TCefErrorCode; const requestUrl: ustring;
       const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
 
-    procedure doOnCursorChange(const PageIndex: Integer;
+    procedure doOnCursorChange(const PageID: Integer;
       const browser: ICefBrowser; cursor: TCefCursorHandle;
       cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
   end;
@@ -342,123 +342,123 @@ type
     procedure doOnPageClose(const ClosePageIDArr: Array of Integer;
       Const ShowPageID: Integer); virtual;
 
-    procedure doOnLoadStart(const PageIndex: Integer;
+    procedure doOnLoadStart(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame); virtual;
-    procedure doOnLoadEnd(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnLoadEnd(const PageID: Integer; const browser: ICefBrowser;
       const frame: ICefFrame; httpStatusCode: Integer); virtual;
-    procedure doOnLoadError(const PageIndex: Integer;
+    procedure doOnLoadError(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
       const errorText, failedUrl: ustring); virtual;
-    procedure doOnBeforeBrowse(const PageIndex: Integer;
+    procedure doOnBeforeBrowse(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; isRedirect: Boolean;
       var Cancel: Boolean); virtual;
 
-    procedure doOnPreKeyEvent(const PageIndex: Integer;
+    procedure doOnPreKeyEvent(const PageID: Integer;
       const browser: ICefBrowser; const event: PCefKeyEvent;
       osEvent: TCefEventHandle; var isKeyboardShortcut: Boolean;
       var Cancel: Boolean); virtual;
-    procedure doOnKeyEvent(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnKeyEvent(const PageID: Integer; const browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle;
       var Cancel: Boolean); virtual;
 
-    procedure doOnBeforeResourceLoad(const PageIndex: Integer;
+    procedure doOnBeforeResourceLoad(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; var CancelLoad: Boolean); virtual;
-    procedure doOnGetResourceHandler(const PageIndex: Integer;
+    procedure doOnGetResourceHandler(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest;
       var ResourceHandler: ICefResourceHandler); virtual;
-    procedure doOnResourceRedirect(const PageIndex: Integer;
+    procedure doOnResourceRedirect(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; const oldUrl: ustring;
       var newUrl: ustring); virtual;
 
-    procedure doOnGotFocus(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnGotFocus(const PageID: Integer; const browser: ICefBrowser;
       var CancelEventBuiltIn: Boolean); virtual;
-    procedure doOnSetFocus(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnSetFocus(const PageID: Integer; const browser: ICefBrowser;
       source: TCefFocusSource; var CancelFocus: Boolean); virtual;
-    procedure doOnTakeFocus(const PageIndex: Integer;
+    procedure doOnTakeFocus(const PageID: Integer;
       const browser: ICefBrowser; next: Boolean); virtual;
 
-    procedure doOnBeforeContextMenu(const PageIndex: Integer;
+    procedure doOnBeforeContextMenu(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; const model: ICefMenuModel); virtual;
-    procedure doOnContextMenuCommand(const PageIndex: Integer;
+    procedure doOnContextMenuCommand(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame;
       const params: ICefContextMenuParams; commandId: Integer;
       eventFlags: TCefEventFlags; var CancelEventBuiltIn: Boolean); virtual;
-    procedure doOnContextMenuDismissed(const PageIndex: Integer;
+    procedure doOnContextMenuDismissed(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame); virtual;
 
-    procedure doOnJsdialog(const PageIndex: Integer; const browser: ICefBrowser;
+    procedure doOnJsdialog(const PageID: Integer; const browser: ICefBrowser;
       const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
       const messageText, defaultPromptText: ustring;
       const callback: ICefJsDialogCallback;
       var CancelEventBuiltIn: Boolean); virtual;
-    procedure doOnBeforeUnloadDialog(const PageIndex: Integer;
+    procedure doOnBeforeUnloadDialog(const PageID: Integer;
       const browser: ICefBrowser; const messageText: ustring; isReload: Boolean;
       const callback: ICefJsDialogCallback;
       var CancelEventBuiltIn: Boolean); virtual;
-    procedure doOnDialogClosed(const PageIndex: Integer;
+    procedure doOnDialogClosed(const PageID: Integer;
       const browser: ICefBrowser); virtual;
 
-    procedure doOnPluginCrashed(const PageIndex: Integer;
+    procedure doOnPluginCrashed(const PageID: Integer;
       const browser: ICefBrowser; const pluginPath: ustring); virtual;
-    procedure doOnBeforePluginLoad(const PageIndex: Integer;
+    procedure doOnBeforePluginLoad(const PageID: Integer;
       const browser: ICefBrowser; const url, policyUrl: ustring;
       const info: ICefWebPluginInfo; var CancelLoad: Boolean); virtual;
 
     { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
       Const Kind: TBrowserDownloadUpdatedKind); virtual; }
-    procedure doOnBeforeDownload(const PageIndex: Integer;
+    procedure doOnBeforeDownload(const PageID: Integer;
       const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
       var CancelBuiltinPro: Boolean); virtual;
-    procedure doOnDownloadUpdated(const PageIndex: Integer;
+    procedure doOnDownloadUpdated(const PageID: Integer;
       const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
       const callback: ICefDownloadItemCallback); virtual;
-    procedure doOnGetAuthCredentials(const PageIndex: Integer;
+    procedure doOnGetAuthCredentials(const PageID: Integer;
       const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
       const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback;
       var CancelEventBuiltIn: Boolean); virtual;
-    procedure doOnConsoleMessage(const PageIndex: Integer;
+    procedure doOnConsoleMessage(const PageID: Integer;
       const browser: ICefBrowser; const message, source: ustring; line: Integer;
       var CancelEventBuiltIn: Boolean); virtual;
-    procedure doOnProtocolExecution(const PageIndex: Integer;
+    procedure doOnProtocolExecution(const PageID: Integer;
       browser: ICefBrowser; const url: ustring;
       var allowOsExecution: Boolean); virtual;
-    procedure doOnFileDialog(const PageIndex: Integer;
+    procedure doOnFileDialog(const PageID: Integer;
       const browser: ICefBrowser; mode: TCefFileDialogMode;
       const title, defaultFileName: ustring; acceptTypes: TStrings;
       const callback: ICefFileDialogCallback; out Result: Boolean); virtual;
 
-    procedure doOnRequestGeolocationPermission(const PageIndex: Integer;
+    procedure doOnRequestGeolocationPermission(const PageID: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer; const callback: ICefGeolocationCallback;
       out Result: Boolean); virtual;
-    procedure doOnCancelGeolocationPermission(const PageIndex: Integer;
+    procedure doOnCancelGeolocationPermission(const PageID: Integer;
       const browser: ICefBrowser; const requestingUrl: ustring;
       requestId: Integer); virtual;
 
-    procedure doOnQuotaRequest(const PageIndex: Integer;
+    procedure doOnQuotaRequest(const PageID: Integer;
       const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
       const callback: ICefQuotaCallback; out Result: Boolean); virtual;
-    procedure doOnCertificateError(const PageIndex: Integer;
+    procedure doOnCertificateError(const PageID: Integer;
       certError: TCefErrorCode; const requestUrl: ustring;
       const callback: ICefAllowCertificateErrorCallback;
       out Result: Boolean); virtual;
 
-    procedure doOnDragEnter(const PageIndex: Integer;
+    procedure doOnDragEnter(const PageID: Integer;
       const browser: ICefBrowser; const dragData: ICefDragData;
       mask: TCefDragOperations; out Result: Boolean); virtual;
-    procedure doOnStartDragging(const PageIndex: Integer;
+    procedure doOnStartDragging(const PageID: Integer;
       const browser: ICefBrowser; const dragData: ICefDragData;
       allowedOps: TCefDragOperations; x, y: Integer;
       out Result: Boolean); virtual;
-    procedure doOnUpdateDragCursor(const PageIndex: Integer;
+    procedure doOnUpdateDragCursor(const PageID: Integer;
       const browser: ICefBrowser; operation: TCefDragOperation); virtual;
-    procedure doOnCursorChange(const PageIndex: Integer;
+    procedure doOnCursorChange(const PageID: Integer;
       const browser: ICefBrowser; cursor: TCefCursorHandle;
       cursorType: TCefCursorType;
       const customCursorInfo: PCefCursorInfo); virtual;
@@ -553,26 +553,26 @@ begin
     FOnPageStateChange(PageID, Kind, Value, PageActived);
 end;
 
-procedure TDcefBrowserEvents.doOnPluginCrashed(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnPluginCrashed(const PageID: Integer;
   const browser: ICefBrowser; const pluginPath: ustring);
 begin
   if Assigned(FOnPluginCrashed) then
-    FOnPluginCrashed(PageIndex, browser, pluginPath);
+    FOnPluginCrashed(PageID, browser, pluginPath);
 end;
 
-procedure TDcefBrowserEvents.doOnDialogClosed(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnDialogClosed(const PageID: Integer;
   const browser: ICefBrowser);
 begin
   if Assigned(FOnDialogClosed) then
-    FOnDialogClosed(PageIndex, browser);
+    FOnDialogClosed(PageID, browser);
 end;
 
-procedure TDcefBrowserEvents.doOnDownloadUpdated(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnDownloadUpdated(const PageID: Integer;
   const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
   const callback: ICefDownloadItemCallback);
 begin
   if Assigned(FOnDownloadUpdated) then
-    FOnDownloadUpdated(PageIndex, browser, downloadItem, callback);
+    FOnDownloadUpdated(PageID, browser, downloadItem, callback);
 end;
 
 {
@@ -584,21 +584,21 @@ end;
   end;
 }
 
-procedure TDcefBrowserEvents.doOnDragEnter(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnDragEnter(const PageID: Integer;
   const browser: ICefBrowser; const dragData: ICefDragData;
   mask: TCefDragOperations; out Result: Boolean);
 begin
   if Assigned(FOnDragEnter) then
-    FOnDragEnter(PageIndex, browser, dragData, mask, Result);
+    FOnDragEnter(PageID, browser, dragData, mask, Result);
 end;
 
-procedure TDcefBrowserEvents.doOnFileDialog(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnFileDialog(const PageID: Integer;
   const browser: ICefBrowser; mode: TCefFileDialogMode;
   const title, defaultFileName: ustring; acceptTypes: TStrings;
   const callback: ICefFileDialogCallback; out Result: Boolean);
 begin
   if Assigned(FOnFileDialog) then
-    FOnFileDialog(PageIndex, browser, mode, title, defaultFileName, acceptTypes,
+    FOnFileDialog(PageID, browser, mode, title, defaultFileName, acceptTypes,
       callback, Result);
 end;
 
@@ -609,106 +609,106 @@ begin
     FOnPageAdd(PageID, AddAtLast);
 end;
 
-procedure TDcefBrowserEvents.doOnBeforeBrowse(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnBeforeBrowse(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame;
   const request: ICefRequest; isRedirect: Boolean; var Cancel: Boolean);
 begin
   if Assigned(FOnBeforeBrowse) then
-    FOnBeforeBrowse(PageIndex, browser, frame, request, isRedirect, Cancel);
+    FOnBeforeBrowse(PageID, browser, frame, request, isRedirect, Cancel);
 end;
 
-procedure TDcefBrowserEvents.doOnBeforeContextMenu(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnBeforeContextMenu(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame;
   const params: ICefContextMenuParams; const model: ICefMenuModel);
 begin
   if Assigned(FOnBeforeContextMenu) then
-    FOnBeforeContextMenu(PageIndex, browser, frame, params, model);
+    FOnBeforeContextMenu(PageID, browser, frame, params, model);
 end;
 
-procedure TDcefBrowserEvents.doOnBeforeDownload(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnBeforeDownload(const PageID: Integer;
   const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
   const suggestedName: ustring; const callback: ICefBeforeDownloadCallback;
   var CancelBuiltinPro: Boolean);
 begin
   if Assigned(FOnBeforeDownload) then
-    FOnBeforeDownload(PageIndex, browser, downloadItem, suggestedName, callback,
+    FOnBeforeDownload(PageID, browser, downloadItem, suggestedName, callback,
       CancelBuiltinPro);
 end;
 
-procedure TDcefBrowserEvents.doOnBeforePluginLoad(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnBeforePluginLoad(const PageID: Integer;
   const browser: ICefBrowser; const url, policyUrl: ustring;
   const info: ICefWebPluginInfo; var CancelLoad: Boolean);
 begin
   if Assigned(FOnBeforePluginLoad) then
-    FOnBeforePluginLoad(PageIndex, browser, url, policyUrl, info, CancelLoad);
+    FOnBeforePluginLoad(PageID, browser, url, policyUrl, info, CancelLoad);
 end;
 
-procedure TDcefBrowserEvents.doOnBeforeResourceLoad(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnBeforeResourceLoad(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame;
   const request: ICefRequest; var CancelLoad: Boolean);
 begin
   if Assigned(FOnBeforeResourceLoad) then
-    FOnBeforeResourceLoad(PageIndex, browser, frame, request, CancelLoad);
+    FOnBeforeResourceLoad(PageID, browser, frame, request, CancelLoad);
 end;
 
-procedure TDcefBrowserEvents.doOnBeforeUnloadDialog(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnBeforeUnloadDialog(const PageID: Integer;
   const browser: ICefBrowser; const messageText: ustring; isReload: Boolean;
   const callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnBeforeUnloadDialog) then
-    FOnBeforeUnloadDialog(PageIndex, browser, messageText, isReload, callback,
+    FOnBeforeUnloadDialog(PageID, browser, messageText, isReload, callback,
       CancelEventBuiltIn);
 end;
 
-procedure TDcefBrowserEvents.doOnCancelGeolocationPermission(const PageIndex
+procedure TDcefBrowserEvents.doOnCancelGeolocationPermission(const PageID
   : Integer; const browser: ICefBrowser; const requestingUrl: ustring;
   requestId: Integer);
 begin
   if Assigned(FOnCancelGeolocationPermission) then
-    FOnCancelGeolocationPermission(PageIndex, browser, requestingUrl,
+    FOnCancelGeolocationPermission(PageID, browser, requestingUrl,
       requestId);
 end;
 
-procedure TDcefBrowserEvents.doOnCertificateError(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnCertificateError(const PageID: Integer;
   certError: TCefErrorCode; const requestUrl: ustring;
   const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
 begin
   if Assigned(FOnCertificateError) then
-    FOnCertificateError(PageIndex, certError, requestUrl, callback, Result);
+    FOnCertificateError(PageID, certError, requestUrl, callback, Result);
 end;
 
-procedure TDcefBrowserEvents.doOnConsoleMessage(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnConsoleMessage(const PageID: Integer;
   const browser: ICefBrowser; const message, source: ustring; line: Integer;
   var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnConsoleMessage) then
-    FOnConsoleMessage(PageIndex, browser, message, source, line,
+    FOnConsoleMessage(PageID, browser, message, source, line,
       CancelEventBuiltIn);
 end;
 
-procedure TDcefBrowserEvents.doOnContextMenuCommand(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnContextMenuCommand(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame;
   const params: ICefContextMenuParams; commandId: Integer;
   eventFlags: TCefEventFlags; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnContextMenuCommand) then
-    FOnContextMenuCommand(PageIndex, browser, frame, params, commandId,
+    FOnContextMenuCommand(PageID, browser, frame, params, commandId,
       eventFlags, CancelEventBuiltIn);
 end;
 
-procedure TDcefBrowserEvents.doOnContextMenuDismissed(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnContextMenuDismissed(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame);
 begin
   if Assigned(FOnContextMenuDismissed) then
-    FOnContextMenuDismissed(PageIndex, browser, frame);
+    FOnContextMenuDismissed(PageID, browser, frame);
 end;
 
-procedure TDcefBrowserEvents.doOnCursorChange(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnCursorChange(const PageID: Integer;
   const browser: ICefBrowser; cursor: TCefCursorHandle;
   cursorType: TCefCursorType; const customCursorInfo: PCefCursorInfo);
 begin
   if Assigned(FOnCursorChange) then
-    FOnCursorChange(PageIndex, browser, cursor, cursorType, customCursorInfo);
+    FOnCursorChange(PageID, browser, cursor, cursorType, customCursorInfo);
 end;
 
 procedure TDcefBrowserEvents.doOnPageChanged(Sender: TObject);
@@ -739,142 +739,142 @@ begin
       canGoForward);
 end;
 
-procedure TDcefBrowserEvents.doOnGetAuthCredentials(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnGetAuthCredentials(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame; isProxy: Boolean;
   const host: ustring; port: Integer; const realm, scheme: ustring;
   const callback: ICefAuthCallback; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnGetAuthCredentials) then
-    FOnGetAuthCredentials(PageIndex, browser, frame, isProxy, host, port, realm,
+    FOnGetAuthCredentials(PageID, browser, frame, isProxy, host, port, realm,
       scheme, callback, CancelEventBuiltIn);
 end;
 
-procedure TDcefBrowserEvents.doOnGetResourceHandler(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnGetResourceHandler(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame;
   const request: ICefRequest; var ResourceHandler: ICefResourceHandler);
 begin
   if Assigned(FOnGetResourceHandler) then
-    FOnGetResourceHandler(PageIndex, browser, frame, request, ResourceHandler);
+    FOnGetResourceHandler(PageID, browser, frame, request, ResourceHandler);
 end;
 
-procedure TDcefBrowserEvents.doOnGotFocus(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnGotFocus(const PageID: Integer;
   const browser: ICefBrowser; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnGotFocus) then
-    FOnGotFocus(PageIndex, browser, CancelEventBuiltIn);
+    FOnGotFocus(PageID, browser, CancelEventBuiltIn);
 end;
 
-procedure TDcefBrowserEvents.doOnJsdialog(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnJsdialog(const PageID: Integer;
   const browser: ICefBrowser; const originUrl, acceptLang: ustring;
   dialogType: TCefJsDialogType; const messageText, defaultPromptText: ustring;
   const callback: ICefJsDialogCallback; var CancelEventBuiltIn: Boolean);
 begin
   if Assigned(FOnJsdialog) then
-    FOnJsdialog(PageIndex, browser, originUrl, acceptLang, dialogType,
+    FOnJsdialog(PageID, browser, originUrl, acceptLang, dialogType,
       messageText, defaultPromptText, callback, CancelEventBuiltIn);
 end;
 
-procedure TDcefBrowserEvents.doOnKeyEvent(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnKeyEvent(const PageID: Integer;
   const browser: ICefBrowser; const event: PCefKeyEvent;
   osEvent: TCefEventHandle; var Cancel: Boolean);
 begin
   if Assigned(FOnKeyEvent) then
-    FOnKeyEvent(PageIndex, browser, event, osEvent, Cancel);
+    FOnKeyEvent(PageID, browser, event, osEvent, Cancel);
 end;
 
-procedure TDcefBrowserEvents.doOnLoadEnd(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnLoadEnd(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame; httpStatusCode: Integer);
 begin
   if Assigned(FOnLoadEnd) then
-    FOnLoadEnd(PageIndex, browser, frame, httpStatusCode);
+    FOnLoadEnd(PageID, browser, frame, httpStatusCode);
 end;
 
-procedure TDcefBrowserEvents.doOnLoadError(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnLoadError(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame; errorCode: Integer;
   const errorText, failedUrl: ustring);
 begin
   if Assigned(FOnLoadError) then
-    FOnLoadError(PageIndex, browser, frame, errorCode, errorText, failedUrl);
+    FOnLoadError(PageID, browser, frame, errorCode, errorText, failedUrl);
 end;
 
-procedure TDcefBrowserEvents.doOnLoadStart(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnLoadStart(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame);
 begin
   if Assigned(FOnLoadStart) then
-    FOnLoadStart(PageIndex, browser, frame);
+    FOnLoadStart(PageID, browser, frame);
 end;
 
-procedure TDcefBrowserEvents.doOnPreKeyEvent(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnPreKeyEvent(const PageID: Integer;
   const browser: ICefBrowser; const event: PCefKeyEvent;
   osEvent: TCefEventHandle; var isKeyboardShortcut: Boolean;
   var Cancel: Boolean);
 begin
   if Assigned(FOnPreKeyEvent) then
-    FOnPreKeyEvent(PageIndex, browser, event, osEvent,
+    FOnPreKeyEvent(PageID, browser, event, osEvent,
       isKeyboardShortcut, Cancel);
 end;
 
-procedure TDcefBrowserEvents.doOnProtocolExecution(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnProtocolExecution(const PageID: Integer;
   browser: ICefBrowser; const url: ustring; var allowOsExecution: Boolean);
 begin
   if Assigned(FOnProtocolExecution) then
-    FOnProtocolExecution(PageIndex, browser, url, allowOsExecution);
+    FOnProtocolExecution(PageID, browser, url, allowOsExecution);
 end;
 
-procedure TDcefBrowserEvents.doOnQuotaRequest(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnQuotaRequest(const PageID: Integer;
   const browser: ICefBrowser; const originUrl: ustring; newSize: Int64;
   const callback: ICefQuotaCallback; out Result: Boolean);
 begin
   if Assigned(FOnQuotaRequest) then
-    FOnQuotaRequest(PageIndex, browser, originUrl, newSize, callback, Result);
+    FOnQuotaRequest(PageID, browser, originUrl, newSize, callback, Result);
 end;
 
-procedure TDcefBrowserEvents.doOnRequestGeolocationPermission(const PageIndex
+procedure TDcefBrowserEvents.doOnRequestGeolocationPermission(const PageID
   : Integer; const browser: ICefBrowser; const requestingUrl: ustring;
   requestId: Integer; const callback: ICefGeolocationCallback;
   out Result: Boolean);
 begin
   if Assigned(FOnRequestGeolocationPermission) then
-    FOnRequestGeolocationPermission(PageIndex, browser, requestingUrl,
+    FOnRequestGeolocationPermission(PageID, browser, requestingUrl,
       requestId, callback, Result);
 end;
 
-procedure TDcefBrowserEvents.doOnResourceRedirect(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnResourceRedirect(const PageID: Integer;
   const browser: ICefBrowser; const frame: ICefFrame; const oldUrl: ustring;
   var newUrl: ustring);
 begin
   if Assigned(FOnResourceRedirect) then
-    FOnResourceRedirect(PageIndex, browser, frame, oldUrl, newUrl);
+    FOnResourceRedirect(PageID, browser, frame, oldUrl, newUrl);
 end;
 
-procedure TDcefBrowserEvents.doOnSetFocus(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnSetFocus(const PageID: Integer;
   const browser: ICefBrowser; source: TCefFocusSource;
   var CancelFocus: Boolean);
 begin
   if Assigned(FOnSetFocus) then
-    FOnSetFocus(PageIndex, browser, source, CancelFocus);
+    FOnSetFocus(PageID, browser, source, CancelFocus);
 end;
 
-procedure TDcefBrowserEvents.doOnStartDragging(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnStartDragging(const PageID: Integer;
   const browser: ICefBrowser; const dragData: ICefDragData;
   allowedOps: TCefDragOperations; x, y: Integer; out Result: Boolean);
 begin
   if Assigned(FOnStartDragging) then
-    FOnStartDragging(PageIndex, browser, dragData, allowedOps, x, y, Result);
+    FOnStartDragging(PageID, browser, dragData, allowedOps, x, y, Result);
 end;
 
-procedure TDcefBrowserEvents.doOnTakeFocus(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnTakeFocus(const PageID: Integer;
   const browser: ICefBrowser; next: Boolean);
 begin
   if Assigned(FOnTakeFocus) then
-    FOnTakeFocus(PageIndex, browser, next);
+    FOnTakeFocus(PageID, browser, next);
 end;
 
-procedure TDcefBrowserEvents.doOnUpdateDragCursor(const PageIndex: Integer;
+procedure TDcefBrowserEvents.doOnUpdateDragCursor(const PageID: Integer;
   const browser: ICefBrowser; operation: TCefDragOperation);
 begin
   if Assigned(FOnUpdateDragCursor) then
-    FOnUpdateDragCursor(PageIndex, browser, operation);
+    FOnUpdateDragCursor(PageID, browser, operation);
 end;
 
 end.
