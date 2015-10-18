@@ -1,0 +1,76 @@
+(*
+  Delphi Multi-tab Chromium Browser Frame
+
+  Unit owner : BccSafe
+  QQ: 1262807955
+  Email: bccsafe5988@gmail.com
+  Web site   : http://www.bccsafe.com
+  Repository : https://github.com/bccsafe/DcefBrowser
+*)
+
+package DcefBrowser;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  vcl;
+
+contains
+  DcefBrowserReg in 'DcefBrowserReg.pas',
+  DcefB.BaseObject in '..\Source\DcefB.BaseObject.pas',
+  DcefB.CefEvents in '..\Source\DcefB.CefEvents.pas',
+  DcefB.Core.BrowserView in '..\Source\DcefB.Core.BrowserView.pas',
+  DcefB.Core.DcefBrowser in '..\Source\DcefB.Core.DcefBrowser.pas',
+  DcefB.Core.DefaultRenderHandler
+    in '..\Source\DcefB.Core.DefaultRenderHandler.pas',
+  DcefB.Core.JsExtention in '..\Source\DcefB.Core.JsExtention.pas',
+  DcefB.Dcef3.CefErr in '..\Source\DcefB.Dcef3.CefErr.pas',
+  DcefB.Dcef3.CefFilescheme in '..\Source\DcefB.Dcef3.CefFilescheme.pas',
+  DcefB.Dcef3.CefLib in '..\Source\DcefB.Dcef3.CefLib.pas',
+  DcefB.Events in '..\Source\DcefB.Events.pas',
+  DcefB.Handler.Dialog in '..\Source\DcefB.Handler.Dialog.pas',
+  DcefB.Handler.Display in '..\Source\DcefB.Handler.Display.pas',
+  DcefB.Handler.Download in '..\Source\DcefB.Handler.Download.pas',
+  DcefB.Handler.Drag in '..\Source\DcefB.Handler.Drag.pas',
+  DcefB.Handler.Focus in '..\Source\DcefB.Handler.Focus.pas',
+  DcefB.Handler.Geolocation in '..\Source\DcefB.Handler.Geolocation.pas',
+  DcefB.Handler.JsDialog in '..\Source\DcefB.Handler.JsDialog.pas',
+  DcefB.Handler.Keyboard in '..\Source\DcefB.Handler.Keyboard.pas',
+  DcefB.Handler.LifeSpan in '..\Source\DcefB.Handler.LifeSpan.pas',
+  DcefB.Handler.Load in '..\Source\DcefB.Handler.Load.pas',
+  DcefB.Handler.Main in '..\Source\DcefB.Handler.Main.pas',
+  DcefB.Handler.Menu in '..\Source\DcefB.Handler.Menu.pas',
+  DcefB.Handler.Render in '..\Source\DcefB.Handler.Render.pas',
+  DcefB.Handler.Request in '..\Source\DcefB.Handler.Request.pas',
+  DcefB.Locker in '..\Source\DcefB.Locker.pas',
+  DcefB.res in '..\Source\DcefB.res.pas',
+  DcefB.Settings in '..\Source\DcefB.Settings.pas',
+  DcefB.Utils in '..\Source\DcefB.Utils.pas';
+
+end.

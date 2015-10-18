@@ -1,0 +1,1393 @@
+(*
+  Delphi Multi-tab Chromium Browser Frame
+
+  Unit owner : BccSafe
+  QQ: 1262807955
+  Email: bccsafe5988@gmail.com
+  Web site   : http://www.bccsafe.com
+  Repository : https://github.com/bccsafe/DcefBrowser
+*)
+
+unit DcefB.Core.BrowserView;
+
+interface
+
+uses
+  Winapi.Windows, System.Classes, Vcl.Controls, Vcl.ComCtrls, Vcl.Forms,
+  Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, System.SysUtils,
+  Winapi.Messages, System.Math, Generics.Collections,
+
+  DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
+  DcefB.Events, DcefB.Handler.Focus,
+  DcefB.Core.DefaultRenderHandler, DcefB.Dcef3.CefErr,
+  DcefB.Handler.Main, DcefB.res;
+
+type
+  TBrowserView = class(TWinControl)
+  private
+    FEvents: IDcefBEvents;
+    FCltHandleDic: TDictionary<ICefBrowser, ICefClient>;
+    FBrowserList: TList<ICefBrowser>;
+    FClosedURL: TStringList;
+
+    FDcefBOptions: TDcefBOptions;
+
+    FActiveBrowser: ICefBrowser;
+    FActiveBrowserId: Integer;
+
+    FLoadingState: Integer;
+    FLastTitle: string;
+    FLastAddress: string;
+    FIsActivating: Boolean;
+
+    procedure OnSize(WParam: WParam; LParam: LParam);
+    procedure OnLoadingStateChange(aBrowser: ICefBrowser; LParam: LParam);
+    function OnWindowCheck(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    function OnCreateWindow(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    procedure OnNewBrowser(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnLoadStart(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnLoadEnd(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnLoadError(aBrowser: ICefBrowser; LParam: LParam);
+    function OnFileDialog(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    procedure OnSetActive(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnGotFocus(aBrowser: ICefBrowser; LParam: LParam);
+    function OnSetFocus(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    procedure OnTakeFocus(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnBeforeContextMenu(aBrowser: ICefBrowser; LParam: LParam);
+    function OnContextMenuCommand(aBrowser: ICefBrowser;
+      LParam: LParam): LRESULT;
+    procedure OnContextMenuDismissed(aBrowser: ICefBrowser; LParam: LParam);
+    function OnKeyEvent(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    function OnPreKeyEvent(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    procedure OnAddressChange(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnTitleChange(aBrowser: ICefBrowser; LParam: LParam);
+    function OnTooltip(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    procedure OnStatusMessage(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnConsoleMessage(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnBeforeDownload(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnDownloadUpdated(aBrowser: ICefBrowser; LParam: LParam);
+    function OnRequestGeolocationPermission(aBrowser: ICefBrowser;
+      LParam: LParam): LRESULT;
+    procedure OnCancelGeolocationPermission(aBrowser: ICefBrowser;
+      LParam: LParam);
+    function OnJsdialog(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    function OnBeforeUnloadDialog(aBrowser: ICefBrowser;
+      LParam: LParam): LRESULT;
+    procedure OnResetDialogState(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnDialogClosed(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnDoClose(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnBeforeClose(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnRunModal(aBrowser: ICefBrowser; LParam: LParam);
+    function OnDragEnter(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+    procedure OnDevTools(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnRefreshIgnoreCache(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnSearchText(aBrowser: ICefBrowser; LParam: LParam);
+
+    procedure HideCurrentBrowserWindow;
+    function GetEmpty: Boolean;
+    procedure RemoveClientHandle(const aBrowser: ICefBrowser;
+      const NeedLock: Boolean = True);
+    procedure ClearInterface;
+    procedure CreateCefWindow(aUrl: string);
+
+    function GetCanGoBack: Boolean;
+    function GetCanGoForward: Boolean;
+    function GetIsLoading: Boolean;
+    procedure SetActiveBrowserAndID(const aBrowser: ICefBrowser);
+    procedure SetIsActivating(const Value: Boolean);
+    function GetIsActivating: Boolean;
+    function GetUrl: string;
+    function GetClosedUrlCount: Integer;
+    function GetBrowserCount: Integer;
+    function GetZoomLevel: string;
+  protected
+    procedure WndProc(var Message: TMessage); override;
+  public
+    constructor Create(AOwner: TComponent; aEvents: IDcefBEvents;
+      aDcefBOptions: TDcefBOptions); reintroduce;
+    destructor Destroy; override;
+
+    procedure AddPage(const aUrl: string;
+      const aDefaultUrl: string = SBlankPageUrl);
+    procedure Load(aUrl: string);
+    function ShowBrowser(const aBrowser: ICefBrowser): Boolean; overload;
+    function ShowBrowser(const aBrowserId: Integer): Boolean; overload;
+    function CloseBrowser(const aCloseBrowserId: Integer;
+      const aShowBrowserId: Integer): Boolean; overload;
+    function CloseBrowser(const aCloseBrowser: ICefBrowser;
+      const aShowBrowser: ICefBrowser): Boolean; overload;
+    function CloseAllOtherBrowser(const aBrowserId: Integer): Boolean; overload;
+    function CloseAllOtherBrowser(const aBrowser: ICefBrowser)
+      : Boolean; overload;
+    procedure CloseAllBrowser(const aIsTrigClosePageEvent: Boolean);
+    procedure CopyBrowser(aBrowserId: Integer); overload;
+    procedure CopyBrowser(aBrowser: ICefBrowser); overload;
+
+    procedure DownloadFile(aFileUrl: string);
+    procedure GoBack;
+    procedure GoForward;
+    procedure Reload;
+    procedure ReloadIgnoreCache;
+    procedure StopLoad;
+    procedure Print;
+    procedure ExecuteJavaScript(Const code: string);
+    procedure GetSourceInNewPage;
+    procedure AddZoomLevel;
+    procedure ReduceZoomLevel;
+    procedure ResetZoomLevel;
+    procedure ReOpenClosedPage;
+    procedure RunInRenderProcess(AProc: TRenderProcessCallbackA;
+      aData: Pointer);
+
+    // incomplete
+    procedure DevTools;
+    procedure SearchText;
+    function GetSource(var SourceText: string;
+      Const TimeOut: Integer = 1000): Boolean;
+    function GetText(var aText: string; Const TimeOut: Integer = 1000): Boolean;
+    // --------
+
+    property ActiveBrowser: ICefBrowser read FActiveBrowser;
+    property ActiveBrowserId: Integer read FActiveBrowserId;
+    property IsLoading: Boolean read GetIsLoading;
+    property CanGoBack: Boolean read GetCanGoBack;
+    property CanGoForward: Boolean read GetCanGoForward;
+    property IsActivating: Boolean read GetIsActivating write SetIsActivating;
+    property Empty: Boolean read GetEmpty;
+    property Url: string read GetUrl;
+    property ClosedUrlCount: Integer read GetClosedUrlCount;
+    property BrowserCount: Integer read GetBrowserCount;
+    property ZoomLevel: string read GetZoomLevel;
+  end;
+
+implementation
+
+{ TBrowserView }
+
+procedure TBrowserView.AddPage(const aUrl, aDefaultUrl: string);
+begin
+  CreateCefWindow(IfThen(SameText(aUrl, ''), aDefaultUrl, aUrl));
+end;
+
+procedure TBrowserView.AddZoomLevel;
+begin
+  if (ActiveBrowser <> nil) and (ActiveBrowser.host.ZoomLevel < 9) then
+    ActiveBrowser.host.ZoomLevel := ActiveBrowser.host.ZoomLevel + 1;
+end;
+
+procedure TBrowserView.ClearInterface;
+var
+  Index: Integer;
+  aBrowser: ICefBrowser;
+  ClientArr: TArray<ICefClient>;
+begin
+  BrowserListLocker.Enter;
+  CltHandleDicLocker.Enter;
+  try
+    for Index := 0 to FBrowserList.Count - 1 do
+    begin
+      aBrowser := FBrowserList.Items[Index];
+      aBrowser.StopLoad;
+      DestroyWindow(aBrowser.host.WindowHandle);
+    end;
+
+    ClientArr := FCltHandleDic.Values.ToArray;
+    for Index := Low(ClientArr) to High(ClientArr) do
+      (ClientArr[Index] as ICefClientHandler).Disconnect;
+    SetLength(ClientArr, 0);
+
+    FCltHandleDic.Clear;
+    FBrowserList.Clear;
+  finally
+    BrowserListLocker.Exit;
+    CltHandleDicLocker.Exit;
+  end;
+end;
+
+function TBrowserView.CloseBrowser(const aCloseBrowserId, aShowBrowserId
+  : Integer): Boolean;
+var
+  aBrowser, aCloseBrowser, aShowBrowser: ICefBrowser;
+  Index: Integer;
+begin
+  BrowserListLocker.Enter;
+  try
+    for Index := 0 to FBrowserList.Count - 1 do
+    begin
+      aBrowser := FBrowserList.Items[Index];
+      if aBrowser.Identifier = aCloseBrowserId then
+        aCloseBrowser := aBrowser;
+      if aBrowser.Identifier = aShowBrowserId then
+        aShowBrowser := aBrowser;
+      if Assigned(aCloseBrowser) and Assigned(aShowBrowser) then
+        Break;
+    end;
+  finally
+    BrowserListLocker.Exit;
+  end;
+
+  Result := aCloseBrowser <> nil;
+  if Result then
+    Result := CloseBrowser(aCloseBrowser, aShowBrowser);
+end;
+
+procedure TBrowserView.CloseAllBrowser(const aIsTrigClosePageEvent: Boolean);
+var
+  ClosePageArr: Array of Integer;
+  Index: Integer;
+  aCloseBrowser: ICefBrowser;
+begin
+  BrowserListLocker.Enter;
+  try
+    SetLength(ClosePageArr, FBrowserList.Count);
+    for Index := FBrowserList.Count - 1 downto 0 do
+    begin
+      aCloseBrowser := FBrowserList[Index];
+      ClosePageArr[Index] := aCloseBrowser.Identifier;
+      DestroyWindow(aCloseBrowser.host.WindowHandle);
+    end;
+    if aIsTrigClosePageEvent then
+      FEvents.doOnCloseBrowser(ClosePageArr, -1);
+    SetLength(ClosePageArr, 0);
+
+    ClosedUrlListLocker.Enter;
+    try
+      for Index := FBrowserList.Count - 1 downto 0 do
+      begin
+        aCloseBrowser := FBrowserList[Index];
+        FClosedURL.Add(aCloseBrowser.MainFrame.Url);
+        if Not aCloseBrowser.IsPopup then
+          RemoveClientHandle(aCloseBrowser);
+        FBrowserList.Remove(aCloseBrowser);
+      end;
+    finally
+      ClosedUrlListLocker.Exit;
+    end;
+
+    if (FBrowserList.Count = 0) and FDcefBOptions.CloseWPagesClosed then
+      SendMessage(Application.Handle, WM_CLOSE, 0, 0);
+  finally
+    BrowserListLocker.Exit;
+  end;
+end;
+
+function TBrowserView.CloseAllOtherBrowser(const aBrowserId: Integer): Boolean;
+var
+  aBrowser: ICefBrowser;
+  Index: Integer;
+begin
+  BrowserListLocker.Enter;
+  try
+    for Index := 0 to FBrowserList.Count - 1 do
+    begin
+      aBrowser := FBrowserList.Items[Index];
+      if aBrowser.Identifier = aBrowserId then
+        Break;
+    end;
+  finally
+    BrowserListLocker.Exit;
+  end;
+
+  Result := aBrowser <> nil;
+  if Result then
+    Result := CloseAllOtherBrowser(aBrowser);
+end;
+
+function TBrowserView.CloseAllOtherBrowser(const aBrowser: ICefBrowser)
+  : Boolean;
+var
+  ClosePageArr: Array of Integer;
+  Index: Integer;
+  aCloseBrowser: ICefBrowser;
+begin
+  Result := Assigned(aBrowser);
+  if Result then
+  begin
+    BrowserListLocker.Enter;
+    try
+      SetLength(ClosePageArr, FBrowserList.Count - 1);
+      for Index := FBrowserList.Count - 1 downto 0 do
+      begin
+        aCloseBrowser := FBrowserList[Index];
+        if aCloseBrowser <> aBrowser then
+        begin
+          aCloseBrowser.StopLoad;
+          ClosePageArr[Index] := aCloseBrowser.Identifier;
+          DestroyWindow(aCloseBrowser.host.WindowHandle);
+        end;
+      end;
+      FEvents.doOnCloseBrowser(ClosePageArr, aBrowser.Identifier);
+      SetLength(ClosePageArr, 0);
+
+      ClosedUrlListLocker.Enter;
+      try
+        for Index := FBrowserList.Count - 1 downto 0 do
+        begin
+          aCloseBrowser := FBrowserList[Index];
+          FClosedURL.Add(aCloseBrowser.MainFrame.Url);
+          if aCloseBrowser <> aBrowser then
+          begin
+            if Not aCloseBrowser.IsPopup then
+              RemoveClientHandle(aCloseBrowser);
+            FBrowserList.Remove(aCloseBrowser);
+          end;
+        end;
+      finally
+        ClosedUrlListLocker.Exit;
+      end;
+    finally
+      BrowserListLocker.Exit;
+    end;
+
+    ShowBrowser(aBrowser);
+  end;
+end;
+
+function TBrowserView.CloseBrowser(const aCloseBrowser,
+  aShowBrowser: ICefBrowser): Boolean;
+var
+  ClosePageArr: Array of Integer;
+  aShowBrowserId: Integer;
+begin
+  Result := Assigned(aCloseBrowser);
+  if Result then
+  begin
+    aCloseBrowser.StopLoad;
+    SetLength(ClosePageArr, 1);
+    ClosePageArr[0] := aCloseBrowser.Identifier;
+    if Assigned(aShowBrowser) then
+      aShowBrowserId := aShowBrowser.Identifier
+    else
+      aShowBrowserId := -1;
+    Result := DestroyWindow(aCloseBrowser.host.WindowHandle);
+    FEvents.doOnCloseBrowser(ClosePageArr, aShowBrowserId);
+    SetLength(ClosePageArr, 0);
+
+    ClosedUrlListLocker.Enter;
+    try
+      FClosedURL.Add(aCloseBrowser.MainFrame.Url);
+    finally
+      ClosedUrlListLocker.Exit;
+    end;
+
+    if Not aCloseBrowser.IsPopup then
+      RemoveClientHandle(aCloseBrowser);
+
+    BrowserListLocker.Enter;
+    try
+      FBrowserList.Remove(aCloseBrowser);
+      if (FBrowserList.Count = 0) and FDcefBOptions.CloseWPagesClosed then
+        SendMessage(Application.Handle, WM_CLOSE, 0, 0);
+    finally
+      BrowserListLocker.Exit;
+    end;
+
+    if Assigned(aShowBrowser) then
+      ShowBrowser(aShowBrowser);
+  end;
+end;
+
+procedure TBrowserView.CopyBrowser(aBrowserId: Integer);
+var
+  aBrowser: ICefBrowser;
+  Index: Integer;
+begin
+  BrowserListLocker.Enter;
+  try
+    for Index := 0 to FBrowserList.Count - 1 do
+      if FBrowserList.Items[Index].Identifier = aBrowserId then
+      begin
+        aBrowser := FBrowserList.Items[Index];
+        Break;
+      end;
+  finally
+    BrowserListLocker.Exit;
+  end;
+  CopyBrowser(aBrowser);
+end;
+
+procedure TBrowserView.CopyBrowser(aBrowser: ICefBrowser);
+begin
+  if aBrowser <> nil then
+    CreateCefWindow(aBrowser.MainFrame.Url);
+end;
+
+constructor TBrowserView.Create(AOwner: TComponent; aEvents: IDcefBEvents;
+  aDcefBOptions: TDcefBOptions);
+begin
+  inherited Create(AOwner);
+  FEvents := aEvents;
+
+  FDcefBOptions := aDcefBOptions;
+
+  FActiveBrowserId := -1;
+  FActiveBrowser := nil;
+  FLastTitle := SLoadingText;
+  FLastAddress := '';
+  FIsActivating := True;
+  FLoadingState := 0 or State_IsLoading;
+
+  FCltHandleDic := TDictionary<ICefBrowser, ICefClient>.Create;
+  FBrowserList := TList<ICefBrowser>.Create;
+  FClosedURL := TStringList.Create;
+end;
+
+procedure TBrowserView.CreateCefWindow(aUrl: string);
+var
+  info: TCefWindowInfo;
+  Settings: TCefBrowserSettings;
+  Rect: TRect;
+  aClientHandler: ICefClient;
+  aBrowser: ICefBrowser;
+begin
+  HideCurrentBrowserWindow;
+
+  aClientHandler := TDcefBHandler.Create(False, FEvents);
+  FillChar(info, SizeOf(info), 0);
+  Rect := ClientRect;
+  info.Style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or
+    WS_TABSTOP;
+  info.parent_window := Handle;
+  info.x := Left;
+  info.y := Top;
+  info.Width := Rect.Right - Rect.Left;
+  info.Height := Rect.bottom - Rect.Top;
+  FillChar(Settings, SizeOf(TCefBrowserSettings), 0);
+  Settings.size := SizeOf(TCefBrowserSettings);
+  FEvents.GetSettings(Settings);
+{$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
+  CefBrowserHostCreate(@info, aClientHandler, FDefaultUrl, @Settings, nil);
+{$ELSE}
+  CefLoadLibDefault;
+  aBrowser := CefBrowserHostCreateSync(@info, aClientHandler, aUrl,
+    @Settings, nil);
+{$ENDIF}
+  if Assigned(aBrowser) then
+  begin
+    CltHandleDicLocker.Enter;
+    try
+      FCltHandleDic.Add(aBrowser, aClientHandler);
+    finally
+      CltHandleDicLocker.Exit;
+    end;
+  end;
+end;
+
+destructor TBrowserView.Destroy;
+begin
+  FEvents := nil;
+  FActiveBrowser := nil;
+  ClearInterface;
+  FCltHandleDic.Free;
+  FBrowserList.Free;
+  FClosedURL.Free;
+  inherited;
+end;
+
+procedure TBrowserView.DevTools;
+begin
+
+end;
+
+procedure TBrowserView.DownloadFile(aFileUrl: string);
+begin
+  if ActiveBrowser <> nil then
+    ActiveBrowser.host.StartDownload(aFileUrl);
+end;
+
+procedure TBrowserView.ExecuteJavaScript(const code: string);
+begin
+  if ActiveBrowser <> nil then
+    ActiveBrowser.MainFrame.ExecuteJavaScript(code, 'about:blank', 0);
+end;
+
+function TBrowserView.GetBrowserCount: Integer;
+begin
+  BrowserListLocker.Enter;
+  try
+    Result := FBrowserList.Count;
+  finally
+    BrowserListLocker.Exit;
+  end;
+end;
+
+function TBrowserView.GetCanGoBack: Boolean;
+begin
+  Result := FLoadingState and State_CanGoBack = State_CanGoBack;
+end;
+
+function TBrowserView.GetCanGoForward: Boolean;
+begin
+  Result := FLoadingState and State_CanGoForward = State_CanGoForward;
+end;
+
+function TBrowserView.GetClosedUrlCount: Integer;
+begin
+  ClosedUrlListLocker.Enter;
+  try
+    Result := FClosedURL.Count;
+  finally
+    ClosedUrlListLocker.Exit;
+  end;
+end;
+
+function TBrowserView.GetEmpty: Boolean;
+begin
+  Result := FActiveBrowser = nil;
+  if Not Result then
+  begin
+    BrowserListLocker.Enter;
+    try
+      Result := FBrowserList.Count <= 0;
+    finally
+      BrowserListLocker.Exit;
+    end;
+  end;
+end;
+
+function TBrowserView.GetIsActivating: Boolean;
+begin
+  Result := FIsActivating;
+end;
+
+function TBrowserView.GetIsLoading: Boolean;
+begin
+  Result := FLoadingState and State_IsLoading = State_IsLoading;
+end;
+
+function TBrowserView.GetSource(var SourceText: string;
+  const TimeOut: Integer): Boolean;
+begin
+  Result := False;
+end;
+
+procedure TBrowserView.GetSourceInNewPage;
+begin
+  if ActiveBrowser <> nil then
+    CreateCefWindow('view-source:' + Url);
+end;
+
+function TBrowserView.GetText(var aText: string;
+  const TimeOut: Integer): Boolean;
+begin
+  Result := False;
+end;
+
+function TBrowserView.GetUrl: string;
+begin
+  if ActiveBrowser <> nil then
+    Result := ActiveBrowser.MainFrame.Url
+  else
+    Result := '';
+end;
+
+function TBrowserView.GetZoomLevel: string;
+const
+  DoubleCases: Array [0 .. 15] of Double = (-6, -5, -4, -3, -2, -1, 0, 1, 2, 3,
+    4, 5, 6, 7, 8, 9);
+  ResultCases: Array [0 .. 15] of string = ('25%', '33%', '50%', '67%', '75%',
+    '90%', '100%', '110%', '125%', '150%', '175%', '200%', '250%', '300%',
+    '400%', '500%');
+var
+  ZoomIndex: Integer;
+
+  function DoubleIndex(Const aDouble: Double; Const aCases: Array of Double;
+    Var Index: Integer): Boolean;
+  var
+    LoopIndex: Integer;
+  begin
+    Result := False;
+    for LoopIndex := 0 to Pred(Length(aCases)) do
+      if aDouble = aCases[LoopIndex] then
+      begin
+        Index := LoopIndex;
+        Result := True;
+        Exit;
+      end;
+    Index := 0;
+  end;
+
+begin
+  if ActiveBrowser <> nil then
+    if DoubleIndex(ActiveBrowser.host.ZoomLevel, DoubleCases, ZoomIndex) then
+      Result := ResultCases[ZoomIndex]
+    else
+      Result := FloatToStr(ActiveBrowser.host.ZoomLevel);
+end;
+
+procedure TBrowserView.GoBack;
+begin
+  if ActiveBrowser <> nil then
+    ActiveBrowser.GoBack;
+end;
+
+procedure TBrowserView.GoForward;
+begin
+  if ActiveBrowser <> nil then
+    ActiveBrowser.GoForward;
+end;
+
+procedure TBrowserView.HideCurrentBrowserWindow;
+begin
+  if (FActiveBrowser <> nil) and
+    (FActiveBrowser.host.WindowHandle <> INVALID_HANDLE_VALUE) then
+    ShowWindow(FActiveBrowser.host.WindowHandle, SW_HIDE);
+end;
+
+procedure TBrowserView.Load(aUrl: string);
+begin
+  if Empty then
+    CreateCefWindow(aUrl)
+  else if Assigned(FActiveBrowser) then
+    FActiveBrowser.MainFrame.LoadUrl(aUrl);
+end;
+
+procedure TBrowserView.OnAddressChange(aBrowser: ICefBrowser; LParam: LParam);
+var
+  PArgs: PAddressChangeArgs;
+begin
+  PArgs := PAddressChangeArgs(LParam);
+  FLastAddress := PArgs.Url^;
+  FEvents.doOnStateChange(aBrowser, BrowserDataChange_Address, FLastAddress);
+end;
+
+procedure TBrowserView.OnBeforeClose(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  //
+end;
+
+procedure TBrowserView.OnBeforeContextMenu(aBrowser: ICefBrowser;
+  LParam: LParam);
+var
+  PArgs: PBeforeContextMenuArgs;
+begin
+  PArgs := PBeforeContextMenuArgs(LParam);
+  FEvents.doOnBeforeContextMenu(aBrowser, PArgs.frame^, PArgs.params^,
+    PArgs.model^);
+end;
+
+procedure TBrowserView.OnBeforeDownload(aBrowser: ICefBrowser; LParam: LParam);
+var
+  PArgs: PBeforeDownloadArgs;
+
+  function RightPos(const SubStr, Str: string): Integer;
+  var
+    i, J, k, LenSub, LenS: Integer;
+  begin
+    Result := 0;
+    LenSub := Length(SubStr);
+    LenS := Length(Str);
+    k := 0;
+    if (LenSub = 0) or (LenS = 0) or (LenSub > LenS) then
+      Exit;
+    for i := LenS downto 1 do
+    begin
+      if Str[i] = SubStr[LenSub] then
+      begin
+        k := i - 1;
+        for J := LenSub - 1 downto 1 do
+        begin
+          if Str[k] = SubStr[J] then
+            Dec(k)
+          else
+            Break;
+        end;
+      end;
+      if i - k = LenSub then
+      begin
+        Result := k + 1;
+        Exit;
+      end;
+    end;
+  end;
+
+  function DealExistsFile(FilePath: string): string;
+  var
+    i: Integer;
+    Temps, Path, FileExt: string;
+  begin
+    if FileExists(FilePath) then
+    begin
+      Path := ExtractFilePath(FilePath);
+      Temps := ExtractFileName(FilePath);
+      FileExt := Temps;
+      Delete(FileExt, 1, RightPos('.', FileExt));
+      for i := 1 to 99 do
+      begin
+        Result := Path + copy(Temps, 0, RightPos('.', Temps) - 1) + '(' +
+          inttostr(i) + ').' + FileExt;
+        if Not FileExists(Result) then
+          Break;
+      end;
+    end
+    else
+      Result := FilePath;
+  end;
+
+begin
+  PArgs := PBeforeDownloadArgs(LParam);
+  FEvents.doOnBeforeDownload(aBrowser, PArgs.downloadItem^,
+    PArgs.suggestedName^, PArgs.callback^, PArgs.CancelDefaultEvent);
+  if Not PArgs.CancelDefaultEvent then
+  begin
+    if Not DirectoryExists(FDcefBOptions.DownLoadPath) then
+      CreateDir(FDcefBOptions.DownLoadPath);
+    PArgs.callback^.Cont(DealExistsFile(FDcefBOptions.DownLoadPath +
+      PArgs.suggestedName^), Not FDcefBOptions.AutoDown);
+  end;
+end;
+
+function TBrowserView.OnBeforeUnloadDialog(aBrowser: ICefBrowser;
+  LParam: LParam): LRESULT;
+var
+  PArgs: PBeforeUnloadDialogArgs;
+begin
+  PArgs := PBeforeUnloadDialogArgs(LParam);
+  FEvents.doOnBeforeUnloadDialog(aBrowser, PArgs.messageText^, PArgs.isReload,
+    PArgs.callback^, PArgs.Result^, PArgs.CancelDefaultEvent);
+  if Not PArgs.CancelDefaultEvent then
+    PArgs.callback^.Cont(MessageBox(0, PChar(PArgs.messageText^ + #13#10 +
+      SUnloadDialogText), PChar(SUnloadDialogTitle), MB_OKCANCEL) = idOk, '');
+  Result := S_OK;
+end;
+
+procedure TBrowserView.OnCancelGeolocationPermission(aBrowser: ICefBrowser;
+  LParam: LParam);
+var
+  PArgs: PCancelGeolocationPermissionArgs;
+begin
+  PArgs := PCancelGeolocationPermissionArgs(LParam);
+  FEvents.doOnCancelGeolocationPermission(aBrowser, PArgs.requestingUrl^,
+    PArgs.requestId);
+end;
+
+procedure TBrowserView.OnConsoleMessage(aBrowser: ICefBrowser; LParam: LParam);
+var
+  PArgs: PConsoleMessageArgs;
+begin
+  PArgs := PConsoleMessageArgs(LParam);
+  FEvents.doOnConsoleMessage(aBrowser, PArgs.Message^, PArgs.source^,
+    PArgs.line, PArgs.Result^);
+end;
+
+function TBrowserView.OnContextMenuCommand(aBrowser: ICefBrowser;
+  LParam: LParam): LRESULT;
+var
+  PArgs: PContextMenuCommandArgs;
+begin
+  PArgs := PContextMenuCommandArgs(LParam);
+  FEvents.doOnContextMenuCommand(aBrowser, PArgs.frame^, PArgs.params^,
+    PArgs.commandId, PArgs.eventFlags^, PArgs.Result^);
+  Result := S_OK;
+end;
+
+procedure TBrowserView.OnContextMenuDismissed(aBrowser: ICefBrowser;
+  LParam: LParam);
+begin
+  FEvents.doOnContextMenuDismissed(aBrowser, ICefFrame(Pointer(LParam)^));
+end;
+
+function TBrowserView.OnCreateWindow(aBrowser: ICefBrowser;
+  LParam: LParam): LRESULT;
+var
+  PArgs: PBeforePopupArgs;
+begin
+  HideCurrentBrowserWindow;
+
+  PArgs := PBeforePopupArgs(LParam);
+  PArgs.windowInfo.x := PArgs.popupFeatures.x;
+  PArgs.windowInfo.y := PArgs.popupFeatures.y;
+  PArgs.windowInfo.Width := PArgs.popupFeatures.Width;
+  PArgs.windowInfo.Height := PArgs.popupFeatures.Height;
+  PArgs.windowInfo.Style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or
+    WS_CLIPSIBLINGS or WS_TABSTOP;
+  PArgs.windowInfo.parent_window := Self.Handle;
+  Result := S_OK;
+end;
+
+procedure TBrowserView.OnDevTools(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  { if TCustomDcefBrowser(FDcefBrowser).Options.DevToolsEnable   then }
+  DevTools;
+end;
+
+procedure TBrowserView.OnDialogClosed(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  FEvents.doOnDialogClosed(aBrowser);
+end;
+
+procedure TBrowserView.OnDoClose(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  Boolean(Pointer(LParam)^) := CloseBrowser(aBrowser, nil);
+end;
+
+procedure TBrowserView.OnDownloadUpdated(aBrowser: ICefBrowser; LParam: LParam);
+var
+  PArgs: PDownloadUpdatedArgs;
+begin
+  PArgs := PDownloadUpdatedArgs(LParam);
+  FEvents.doOnDownloadUpdated(aBrowser, PArgs.downloadItem^, PArgs.callback^);
+end;
+
+function TBrowserView.OnDragEnter(aBrowser: ICefBrowser;
+  LParam: LParam): LRESULT;
+var
+  PArgs: PDragEnterArgs;
+begin
+  PArgs := PDragEnterArgs(LParam);
+  FEvents.doOnDragEnter(aBrowser, PArgs.dragData^, PArgs.mask^, PArgs.Result^);
+  Result := S_OK;
+end;
+
+function TBrowserView.OnFileDialog(aBrowser: ICefBrowser;
+  LParam: LParam): LRESULT;
+var
+  PArgs: PFileDialogArgs;
+begin
+  PArgs := PFileDialogArgs(LParam);
+  FEvents.doOnFileDialog(aBrowser, TCefFileDialogMode(PArgs.mode^),
+    PArgs.title^, PArgs.defaultFileName^, TStrings(PArgs.acceptTypes^),
+    PArgs.callback^, PArgs.Result^);
+  Result := S_OK;
+end;
+
+procedure TBrowserView.OnGotFocus(aBrowser: ICefBrowser; LParam: LParam);
+var
+  CancelDefaultEvent: Boolean;
+begin
+  CancelDefaultEvent := False;
+  FEvents.doOnGotFocus(aBrowser, CancelDefaultEvent);
+  if Not CancelDefaultEvent then
+  begin
+    if GetIsActivating then
+      SetIsActivating(False)
+    else
+      SendMessage(Self.Handle, WM_SetActive, 0, 0);
+  end;
+end;
+
+function TBrowserView.OnJsdialog(aBrowser: ICefBrowser; LParam: LParam)
+  : LRESULT;
+var
+  PArgs: PJsdialogArgs;
+  messageText, originUrl, UserInput: string;
+  dialogType: TCefJsDialogType;
+begin
+  PArgs := PJsdialogArgs(LParam);
+  FEvents.doOnJsdialog(aBrowser, PArgs.originUrl^, PArgs.acceptLang^,
+    PArgs.dialogType^, PArgs.messageText^, PArgs.defaultPromptText^,
+    PArgs.callback^, PArgs.suppressMessage^, PArgs.Result^,
+    PArgs.CancelDefaultEvent);
+
+  if Not PArgs.CancelDefaultEvent then
+  begin
+    messageText := PArgs.messageText^;
+    originUrl := PArgs.originUrl^;
+    dialogType := PArgs.dialogType^;
+
+    case dialogType of
+      JSDIALOGTYPE_ALERT:
+        begin
+          PArgs.suppressMessage^ := True;
+          PArgs.Result^ := False;
+          ShowMessage(messageText);
+        end;
+      JSDIALOGTYPE_CONFIRM:
+        begin
+          PArgs.suppressMessage^ := False;
+          PArgs.Result^ := True;
+          PArgs.callback^.Cont(MessageBox(Self.Handle,
+            PChar(originUrl + SDialogTitleSuffix), PChar(messageText), MB_YESNO)
+            = IDYES, '');
+        end;
+      JSDIALOGTYPE_PROMPT:
+        begin
+          PArgs.suppressMessage^ := False;
+          PArgs.Result^ := True;
+          UserInput := PArgs.defaultPromptText^;
+          PArgs.callback^.Cont(InputQuery(PChar(originUrl + SDialogTitleSuffix),
+            PChar(messageText), UserInput), UserInput);
+        end;
+    end;
+  end;
+
+  Result := S_OK;
+end;
+
+function TBrowserView.OnKeyEvent(aBrowser: ICefBrowser; LParam: LParam)
+  : LRESULT;
+var
+  PArgs: PKeyEventArgs;
+begin
+  PArgs := PKeyEventArgs(LParam);
+  FEvents.doOnKeyEvent(aBrowser, PArgs.event, PArgs.osEvent, PArgs.Result^);
+  Result := S_OK;
+end;
+
+procedure TBrowserView.OnLoadEnd(aBrowser: ICefBrowser; LParam: LParam);
+var
+  PArgs: PLoadEndArgs;
+begin
+  SendMessage(Self.Handle, WM_Size, 0, 0);
+  PArgs := PLoadEndArgs(LParam);
+  FEvents.doOnLoadEnd(aBrowser, PArgs.frame^, PArgs.httpStatusCode);
+end;
+
+procedure TBrowserView.OnLoadError(aBrowser: ICefBrowser; LParam: LParam);
+var
+  PArgs: PLoadErrorArgs;
+begin
+  PArgs := PLoadErrorArgs(LParam);
+
+  FEvents.doOnLoadError(aBrowser, PArgs.frame^, PArgs.errorCode,
+    PArgs.errorText^, PArgs.failedUrl^, PArgs.CancelDefaultEvent);
+
+  if Not PArgs.CancelDefaultEvent and (PArgs.errorCode <> NET_ERROR_ABORTED)
+  then // NET_ERROR_ABORTED: user cancel download
+    aBrowser.MainFrame.LoadString('<html><body><h2>Failed to load URL ' +
+      PArgs.failedUrl^ + ' with error ' + PArgs.errorText^ + ' (' +
+      inttostr(PArgs.errorCode) + ').</h2></body></html>', PArgs.failedUrl^);
+
+end;
+
+procedure TBrowserView.OnLoadingStateChange(aBrowser: ICefBrowser;
+  LParam: LParam);
+begin
+  FLoadingState := LParam;
+  FEvents.doOnLoadingStateChange(aBrowser, IsLoading, CanGoBack, CanGoForward);
+end;
+
+procedure TBrowserView.OnLoadStart(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  SendMessage(Self.Handle, WM_Size, 0, 0);
+  FEvents.doOnLoadStart(aBrowser, ICefFrame(Pointer(LParam)^));
+end;
+
+procedure TBrowserView.OnNewBrowser(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  SetActiveBrowserAndID(aBrowser);
+  BrowserListLocker.Enter;
+  try
+    FBrowserList.Add(aBrowser);
+  finally
+    BrowserListLocker.Exit;
+  end;
+  FEvents.doOnAddBrowser(aBrowser);
+end;
+
+function TBrowserView.OnPreKeyEvent(aBrowser: ICefBrowser;
+  LParam: LParam): LRESULT;
+var
+  PArgs: PPreKeyEventArgs;
+begin
+  PArgs := PPreKeyEventArgs(LParam);
+  FEvents.doOnPreKeyEvent(aBrowser, PArgs.event, PArgs.osEvent,
+    PArgs.isKeyboardShortcut, PArgs.Result^, PArgs.CancelDefaultEvent);
+  if (Not PArgs.CancelDefaultEvent) and
+    (aBrowser.Identifier = ActiveBrowser.Identifier) then
+  begin
+    if (PArgs.event.windows_key_code = 123) and
+      (PArgs.event.Kind = KEYEVENT_KEYUP) { and
+      TCustomDcefBrowser(FDcefBrowser).Options.DevToolsEnable } then
+      DevTools; // F12
+
+    if (PArgs.event.windows_key_code = 116) and
+      (PArgs.event.Kind = KEYEVENT_KEYUP) then
+      ReloadIgnoreCache; // F5
+
+    if (PArgs.event.windows_key_code = 70) and
+      (EVENTFLAG_CONTROL_DOWN in PArgs.event.modifiers) then
+      SearchText; // Ctrl+F
+
+    if (PArgs.event.windows_key_code = 115) and // Alt + F4
+      (EVENTFLAG_ALT_DOWN in PArgs.event.modifiers) then
+      PArgs.Result^ := True;
+  end;
+  Result := S_OK;
+end;
+
+procedure TBrowserView.OnRefreshIgnoreCache(aBrowser: ICefBrowser;
+  LParam: LParam);
+begin
+  ReloadIgnoreCache;
+end;
+
+function TBrowserView.OnRequestGeolocationPermission(aBrowser: ICefBrowser;
+  LParam: LParam): LRESULT;
+var
+  PArgs: PRequestGeolocationPermissionArgs;
+begin
+  PArgs := PRequestGeolocationPermissionArgs(LParam);
+  FEvents.doOnRequestGeolocationPermission(aBrowser, PArgs.requestingUrl^,
+    PArgs.requestId, PArgs.callback^, PArgs.Result^);
+  Result := S_OK;
+end;
+
+procedure TBrowserView.OnResetDialogState(aBrowser: ICefBrowser;
+  LParam: LParam);
+begin
+  FEvents.doOnResetDialogState(aBrowser);
+end;
+
+procedure TBrowserView.OnRunModal(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  // Boolean(Pointer(LParam)^) := False;
+end;
+
+procedure TBrowserView.OnSearchText(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  SearchText;
+end;
+
+procedure TBrowserView.OnSetActive(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  Self.SetFocus;
+end;
+
+function TBrowserView.OnSetFocus(aBrowser: ICefBrowser; LParam: LParam)
+  : LRESULT;
+var
+  PArgs: PSetFocusArgs;
+begin
+  PArgs := PSetFocusArgs(LParam);
+  FEvents.doOnSetFocus(aBrowser, PArgs.source^, PArgs.Result^,
+    PArgs.CancelDefaultEvent);
+  Result := S_OK;
+end;
+
+procedure TBrowserView.OnSize(WParam: WParam; LParam: LParam);
+var
+  WinHandle: HWND;
+  Rect: TRect;
+  hdwp: THandle;
+begin
+  if (not(csDesigning in ComponentState)) and (FActiveBrowser <> nil) then
+  begin
+    WinHandle := FActiveBrowser.host.WindowHandle;
+    if WinHandle <> INVALID_HANDLE_VALUE then
+    begin
+      Rect := GetClientRect;
+      FActiveBrowser.host.NotifyMoveOrResizeStarted;
+      hdwp := BeginDeferWindowPos(1);
+      try
+        hdwp := DeferWindowPos(hdwp, FActiveBrowser.host.WindowHandle, 0,
+          Rect.Left, Rect.Top, Rect.Right - Rect.Left, Rect.bottom - Rect.Top,
+          SWP_NOZORDER);
+      finally
+        EndDeferWindowPos(hdwp);
+      end;
+    end;
+  end;
+end;
+
+procedure TBrowserView.OnStatusMessage(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  FEvents.doOnStateChange(aBrowser, BrowserDataChange_StatusMessage,
+    string(Pointer(LParam)^));
+end;
+
+procedure TBrowserView.OnTakeFocus(aBrowser: ICefBrowser; LParam: LParam);
+var
+  PArgs: PTakeFocusArgs;
+begin
+  PArgs := PTakeFocusArgs(LParam);
+  FEvents.doOnTakeFocus(aBrowser, PArgs.next);
+end;
+
+procedure TBrowserView.OnTitleChange(aBrowser: ICefBrowser; LParam: LParam);
+begin
+  FLastTitle := string(Pointer(LParam)^);
+  FEvents.doOnStateChange(aBrowser, BrowserDataChange_Title, FLastTitle);
+end;
+
+function TBrowserView.OnTooltip(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
+var
+  PArgs: PTooltipArgs;
+begin
+  PArgs := PTooltipArgs(LParam);
+  FEvents.doOnTooltip(aBrowser, PArgs.text^, PArgs.Result^);
+  Result := S_OK;
+end;
+
+function TBrowserView.OnWindowCheck(aBrowser: ICefBrowser;
+  LParam: LParam): LRESULT;
+var
+  PArgs: PBeforePopupArgs;
+begin
+  PArgs := PBeforePopupArgs(LParam);
+  if PArgs.popupFeatures.x = 1 then
+  begin
+    // make compile happy
+  end;
+  // only test
+  Result := S_OK;
+end;
+
+procedure TBrowserView.Print;
+begin
+  if ActiveBrowser <> nil then
+    ActiveBrowser.host.Print;
+end;
+
+procedure TBrowserView.ReduceZoomLevel;
+begin
+  if (ActiveBrowser <> nil) and (ActiveBrowser.host.ZoomLevel > -6) then
+    ActiveBrowser.host.ZoomLevel := ActiveBrowser.host.ZoomLevel - 1;
+end;
+
+procedure TBrowserView.Reload;
+begin
+  if ActiveBrowser <> nil then
+  begin
+    ActiveBrowser.Reload;
+    SetActiveBrowserAndID(ActiveBrowser);
+  end;
+end;
+
+procedure TBrowserView.ReloadIgnoreCache;
+begin
+  if ActiveBrowser <> nil then
+  begin
+    ActiveBrowser.ReloadIgnoreCache;
+    SetActiveBrowserAndID(ActiveBrowser);
+  end;
+end;
+
+procedure TBrowserView.RemoveClientHandle(const aBrowser: ICefBrowser;
+  const NeedLock: Boolean);
+var
+  aClient: ICefClient;
+begin
+  if NeedLock then
+    CltHandleDicLocker.Enter;
+  try
+    FCltHandleDic.TryGetValue(aBrowser, aClient);
+    if aClient <> nil then
+      (aClient as ICefClientHandler).Disconnect;
+    aClient := nil;
+    FCltHandleDic.Remove(aBrowser);
+  finally
+    if NeedLock then
+      CltHandleDicLocker.Exit;
+  end;
+end;
+
+procedure TBrowserView.ReOpenClosedPage;
+begin
+  ClosedUrlListLocker.Enter;
+  try
+    if FClosedURL.Count > 0 then
+    begin
+      CreateCefWindow(FClosedURL[0]);
+      FClosedURL.Delete(0);
+    end;
+  finally
+    ClosedUrlListLocker.Exit;
+  end;
+end;
+
+procedure TBrowserView.ResetZoomLevel;
+begin
+  if ActiveBrowser <> nil then
+    ActiveBrowser.host.ZoomLevel := 0;
+end;
+
+procedure TBrowserView.RunInRenderProcess(AProc: TRenderProcessCallbackA;
+  aData: Pointer);
+var
+  AMsg: ICefProcessMessage;
+  ATemp: Pointer;
+begin
+  if CefSingleProcess then
+  begin
+    if ActiveBrowser <> nil then
+    begin
+      AMsg := TCefProcessMessageRef.New('@dcefbrowser_runinrender');
+      AMsg.ArgumentList.SetSize(3);
+      // 这里使用字符串而不是整数，是因为JavaScript里没有64位整数
+      AMsg.ArgumentList.SetString(0, IntToHex(IntPtr(ActiveBrowser),
+        SizeOf(Pointer)));
+      TRenderProcessCallbackA(ATemp) := AProc;
+      AMsg.ArgumentList.SetString(1, IntToHex(IntPtr(Pointer(ATemp)),
+        SizeOf(Pointer)));
+      AMsg.ArgumentList.SetString(2, IntToHex(IntPtr(aData), SizeOf(Pointer)));
+      ActiveBrowser.SendProcessMessage(PID_RENDERER, AMsg);
+    end;
+  end
+  else
+    raise Exception.Create(SRunOnlyInSinglePro);
+end;
+
+procedure TBrowserView.SearchText;
+begin
+
+end;
+
+procedure TBrowserView.SetActiveBrowserAndID(const aBrowser: ICefBrowser);
+begin
+  FActiveBrowser := aBrowser;
+  FActiveBrowserId := aBrowser.Identifier;
+  aBrowser.host.SetFocus(True);
+end;
+
+procedure TBrowserView.SetIsActivating(const Value: Boolean);
+begin
+  FIsActivating := Value;
+end;
+
+function TBrowserView.ShowBrowser(const aBrowser: ICefBrowser): Boolean;
+begin
+  Result := False;
+  HideCurrentBrowserWindow;
+
+  if (aBrowser <> nil) and (aBrowser.host.WindowHandle <> INVALID_HANDLE_VALUE)
+  then
+  begin
+    ShowWindow(aBrowser.host.WindowHandle, SW_SHOWMAXIMIZED);
+
+    SetActiveBrowserAndID(aBrowser);
+    Result := True;
+  end;
+end;
+
+function TBrowserView.ShowBrowser(const aBrowserId: Integer): Boolean;
+var
+  aBrowser: ICefBrowser;
+  Index: Integer;
+begin
+  BrowserListLocker.Enter;
+  try
+    for Index := 0 to FBrowserList.Count - 1 do
+      if FBrowserList.Items[Index].Identifier = aBrowserId then
+      begin
+        aBrowser := FBrowserList.Items[Index];
+        Break;
+      end;
+  finally
+    BrowserListLocker.Exit;
+  end;
+
+  Result := aBrowser <> nil;
+  if Result then
+    Result := ShowBrowser(aBrowser);
+end;
+
+procedure TBrowserView.StopLoad;
+begin
+  if ActiveBrowser <> nil then
+  begin
+    ActiveBrowser.StopLoad;
+    SetActiveBrowserAndID(ActiveBrowser);
+  end;
+end;
+
+procedure TBrowserView.WndProc(var Message: TMessage);
+  function GetCefBrowser: ICefBrowser;
+  begin
+    Result := ICefBrowser(Pointer(Message.WParam)^);
+  end;
+
+begin
+  case Message.Msg of
+    { WM_SETFOCUS:
+      begin
+      if (FActiveBrowser <> nil) and (FActiveBrowser.host.WindowHandle <> 0)
+      then
+      PostMessage(FActiveBrowser.host.WindowHandle, WM_SETFOCUS,
+      Message.WParam, 0);
+      inherited WndProc(Message);
+      end; }
+    WM_ERASEBKGND:
+      if (csDesigning in ComponentState) or (FActiveBrowser = nil) then
+        inherited WndProc(Message);
+    CM_WANTSPECIALKEY:
+      if not(TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN]) then
+        Message.Result := 1
+      else
+        inherited WndProc(Message);
+    WM_GETDLGCODE:
+      Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS;
+    WM_Size:
+      OnSize(Message.WParam, Message.LParam);
+    // ---------------- Custom Message
+    WM_LoadingStateChange:
+      OnLoadingStateChange(GetCefBrowser, Message.LParam);
+    WM_WindowCheck:
+      Message.Result := OnWindowCheck(GetCefBrowser, Message.LParam);
+    WM_CreateWindow:
+      Message.Result := OnCreateWindow(GetCefBrowser, Message.LParam);
+    WM_NewBrowser:
+      OnNewBrowser(GetCefBrowser, Message.LParam);
+    WM_LoadStart:
+      OnLoadStart(GetCefBrowser, Message.LParam);
+    WM_LoadEnd:
+      OnLoadEnd(GetCefBrowser, Message.LParam);
+    WM_LoadError:
+      OnLoadError(GetCefBrowser, Message.LParam);
+    WM_FileDialog:
+      Message.Result := OnFileDialog(GetCefBrowser, Message.LParam);
+    WM_SetActive:
+      OnSetActive(GetCefBrowser, Message.LParam);
+  {  WM_GotFocus:
+      OnGotFocus(GetCefBrowser, Message.LParam);    }
+    WM_SetFocus:
+      Message.Result := OnSetFocus(GetCefBrowser, Message.LParam);
+    WM_TakeFocus:
+      OnTakeFocus(GetCefBrowser, Message.LParam);
+    WM_BeforeContextMenu:
+      OnBeforeContextMenu(GetCefBrowser, Message.LParam);
+    WM_ContextMenuCommand:
+      Message.Result := OnContextMenuCommand(GetCefBrowser, Message.LParam);
+    WM_ContextMenuDismissed:
+      OnContextMenuDismissed(GetCefBrowser, Message.LParam);
+    WM_KeyEvent:
+      Message.Result := OnKeyEvent(GetCefBrowser, Message.LParam);
+    WM_PreKeyEvent:
+      Message.Result := OnPreKeyEvent(GetCefBrowser, Message.LParam);
+    WM_AddressChange:
+      OnAddressChange(GetCefBrowser, Message.LParam);
+    WM_TitleChange:
+      OnTitleChange(GetCefBrowser, Message.LParam);
+    WM_Tooltip:
+      Message.Result := OnTooltip(GetCefBrowser, Message.LParam);
+    WM_StatusMessage:
+      OnStatusMessage(GetCefBrowser, Message.LParam);
+    WM_ConsoleMessage:
+      OnConsoleMessage(GetCefBrowser, Message.LParam);
+    WM_BeforeDownload:
+      OnBeforeDownload(GetCefBrowser, Message.LParam);
+    WM_DownloadUpdated:
+      OnDownloadUpdated(GetCefBrowser, Message.LParam);
+    WM_RequestGeolocationPermission:
+      Message.Result := OnRequestGeolocationPermission(GetCefBrowser,
+        Message.LParam);
+    WM_CancelGeolocationPermission:
+      OnCancelGeolocationPermission(GetCefBrowser, Message.LParam);
+    WM_Jsdialog:
+      Message.Result := OnJsdialog(GetCefBrowser, Message.LParam);
+    WM_BeforeUnloadDialog:
+      Message.Result := OnBeforeUnloadDialog(GetCefBrowser, Message.LParam);
+    WM_ResetDialogState:
+      OnResetDialogState(GetCefBrowser, Message.LParam);
+    WM_DialogClosed:
+      OnDialogClosed(GetCefBrowser, Message.LParam);
+    WM_DoClose:
+      OnDoClose(GetCefBrowser, Message.LParam);
+    WM_BeforeClose:
+      OnBeforeClose(GetCefBrowser, Message.LParam);
+    WM_RunModal:
+      OnRunModal(GetCefBrowser, Message.LParam);
+    WM_DragEnter:
+      Message.Result := OnDragEnter(GetCefBrowser, Message.LParam);
+    WM_DevTools:
+      OnDevTools(GetCefBrowser, Message.LParam);
+    WM_RefreshIgnoreCache:
+      OnRefreshIgnoreCache(GetCefBrowser, Message.LParam);
+    WM_SearchText:
+      OnSearchText(GetCefBrowser, Message.LParam);
+  else
+    inherited WndProc(Message);
+  end;
+end;
+
+end.
