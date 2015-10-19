@@ -15,7 +15,7 @@ interface
 uses
   Winapi.Windows, System.Classes, Vcl.Controls, Vcl.ComCtrls, Vcl.Forms,
   Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, System.SysUtils,
-  Winapi.Messages, System.Math, Generics.Collections,  
+  Winapi.Messages, System.Math, Generics.Collections,
 
   DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
   DcefB.Events, DcefB.Handler.Focus, DcefB.CefBrowserWrapper,
@@ -100,6 +100,7 @@ type
     function GetBrowserCount: Integer;
     function GetZoomLevel: string;
     function GetWrapperBrowsers(aBrowserId: Integer): TCefBrowserWrapper;
+    function GetTitle: string;
   protected
     procedure WndProc(var Message: TMessage); override;
   public
@@ -151,6 +152,7 @@ type
     property IsActivating: Boolean read GetIsActivating write SetIsActivating;
     property Empty: Boolean read GetEmpty;
     property Url: string read GetUrl;
+    property Title: string read GetTitle;
     property ClosedUrlCount: Integer read GetClosedUrlCount;
     property BrowserCount: Integer read GetBrowserCount;
     property ZoomLevel: string read GetZoomLevel;
@@ -209,7 +211,7 @@ function TBrowserView.CloseBrowser(const aCloseBrowserId, aShowBrowserId
 var
   aCloseBrowserWrapper, aShowBrowserWrapper: TCefBrowserWrapper;
   ClosePageArr: Array of Integer;
-begin       
+begin
   Result := False;
   BrowserDicLocker.Enter;
   try
@@ -244,7 +246,7 @@ begin
     end;
   finally
     BrowserDicLocker.Exit;
-  end;  
+  end;
 end;
 
 procedure TBrowserView.CloseAllBrowser(const aIsTrigClosePageEvent: Boolean);
@@ -322,17 +324,17 @@ begin
 end;
 
 procedure TBrowserView.CopyBrowser(aBrowserId: Integer);
-var 
+var
   aCefBrowserWrapper: TCefBrowserWrapper;
 begin
   BrowserDicLocker.Enter;
   try
     FBrowserDic.TryGetValue(aBrowserId, aCefBrowserWrapper);
     if Assigned(aCefBrowserWrapper) then
-      CopyBrowser(aCefBrowserWrapper.Browser); 
+      CopyBrowser(aCefBrowserWrapper.Browser);
   finally
     BrowserDicLocker.Exit;
-  end; 
+  end;
 end;
 
 procedure TBrowserView.CopyBrowser(aBrowser: ICefBrowser);
@@ -500,6 +502,22 @@ function TBrowserView.GetText(var aText: string;
   const TimeOut: Integer): Boolean;
 begin
   Result := False;
+end;
+
+function TBrowserView.GetTitle: string;
+var
+  aCefBrowserWrapper: TCefBrowserWrapper;
+begin
+  BrowserDicLocker.Enter;
+  try
+    FBrowserDic.TryGetValue(ActiveBrowserId, aCefBrowserWrapper);
+    if Assigned(aCefBrowserWrapper) then
+      Result := aCefBrowserWrapper.LastTitle
+    else
+      Result := '';
+  finally
+    BrowserDicLocker.Exit;
+  end;
 end;
 
 function TBrowserView.GetUrl: string;
@@ -796,7 +814,7 @@ var
 begin
   PArgs := PFileDialogArgs(LParam);
   FEvents.doOnFileDialog(aBrowser, TCefFileDialogMode(PArgs.mode^),
-    PArgs.title^, PArgs.defaultFileName^, TStrings(PArgs.acceptTypes^),
+    PArgs.Title^, PArgs.defaultFileName^, TStrings(PArgs.acceptTypes^),
     PArgs.callback^, PArgs.Result^);
   Result := S_OK;
 end;
@@ -1217,7 +1235,7 @@ begin
 end;
 
 function TBrowserView.ShowBrowser(const aBrowserId: Integer): Boolean;
-var 
+var
   aCefBrowserWrapper: TCefBrowserWrapper;
 begin
   Result := False;
@@ -1228,7 +1246,7 @@ begin
       Result := ShowBrowser(aCefBrowserWrapper.Browser);
   finally
     BrowserDicLocker.Exit;
-  end; 
+  end;
 end;
 
 procedure TBrowserView.StopLoad;
