@@ -20,7 +20,7 @@ uses
   DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
   DcefB.Events, DcefB.Handler.Focus, DcefB.CefBrowserWrapper,
   DcefB.Core.DefaultRenderHandler, DcefB.Dcef3.CefErr,
-  DcefB.Handler.Main, DcefB.res;
+  DcefB.Handler.Main, DcefB.res, DcefB.Utils;
 
 type
   TBrowserView = class(TWinControl)
@@ -830,7 +830,7 @@ begin
     if GetIsActivating then
       SetIsActivating(False)
     else
-      SendMessage(Self.Handle, WM_SetActive, WParam(@aBrowser), 0);
+      TDcefBUtils.SendMsg(aBrowser, WM_SetActive, 0);
   end;
 end;
 
@@ -1220,6 +1220,8 @@ begin
 end;
 
 function TBrowserView.ShowBrowser(const aBrowser: ICefBrowser): Boolean;
+var
+  aCefBrowserWrapper: TCefBrowserWrapper;
 begin
   Result := False;
   HideCurrentBrowserWindow;
@@ -1230,6 +1232,14 @@ begin
     ShowWindow(aBrowser.host.WindowHandle, SW_SHOWMAXIMIZED);
 
     SetActiveBrowserAndID(aBrowser);
+    aCefBrowserWrapper := BrowserWrappers[aBrowser.Identifier];
+    if Assigned(aCefBrowserWrapper) then
+    begin
+      TDcefBUtils.SendMsg(aBrowser, WM_AddressChange,
+        LParam(@aCefBrowserWrapper.LastAddress));
+      TDcefBUtils.SendMsg(aBrowser, WM_TitleChange,
+        LParam(@aCefBrowserWrapper.LastTitle));
+    end;
     Result := True;
   end;
 end;
