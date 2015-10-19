@@ -144,8 +144,6 @@ type
       const URL, policyUrl: ustring; const info: ICefWebPluginInfo;
       var CancelLoad: Boolean);
 
-    { procedure doOnDownloadUpdated(Const DcefItemIndex: Integer;
-      Const Kind: TBrowserDownloadUpdatedKind); }
     procedure doOnBeforeDownload(const Browser: ICefBrowser;
       const downloadItem: ICefDownloadItem; const suggestedName: ustring;
       const callback: ICefBeforeDownloadCallback;

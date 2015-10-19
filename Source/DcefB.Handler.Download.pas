@@ -52,19 +52,19 @@ procedure TDcefBDownloadHandler.OnBeforeDownload(const browser: ICefBrowser;
   const downloadItem: ICefDownloadItem; const suggestedName: ustring;
   const callback: ICefBeforeDownloadCallback);
 var
-  // PArgs: PBeforeDownloadArgs;
+  PArgs: PBeforeDownloadArgs;
   CancelDefaultEvent: Boolean;
 begin
   inherited;
-  { New(PArgs);
-    PArgs.downloadItem := @downloadItem;
-    PArgs.suggestedName := @suggestedName;
-    PArgs.callback := @callback;
-    PArgs.CancelDefaultEvent := False;
-    TDcefBUtils.SendMsg(browser, WM_BeforeDownload, LParam(PArgs));
-    Dispose(PArgs); }
-  FEvents.doOnBeforeDownload(browser, downloadItem, suggestedName, callback,
-    CancelDefaultEvent);
+  New(PArgs);
+  PArgs.downloadItem := @downloadItem;
+  PArgs.suggestedName := @suggestedName;
+  PArgs.callback := @callback;
+  PArgs.CancelDefaultEvent := False;
+  TDcefBUtils.SendMsg(browser, WM_BeforeDownload, LParam(PArgs));
+  Dispose(PArgs);
+  { FEvents.doOnBeforeDownload(browser, downloadItem, suggestedName, callback,
+    CancelDefaultEvent); }
 end;
 
 procedure TDcefBDownloadHandler.OnDownloadUpdated(const browser: ICefBrowser;

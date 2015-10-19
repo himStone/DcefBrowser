@@ -65,6 +65,7 @@ begin
   PArgs.callback := @callback;
   PArgs.Result := @Result;
   PArgs.CancelDefaultEvent := False;
+  TDcefBUtils.SendMsg(browser, WM_BeforeUnloadDialog, LParam(PArgs));
   Dispose(PArgs);
 end;
 
@@ -93,6 +94,7 @@ begin
   PArgs.suppressMessage := @suppressMessage;
   PArgs.Result := @Result;
   PArgs.CancelDefaultEvent := False;
+  TDcefBUtils.SendMsg(browser, WM_Jsdialog, LParam(PArgs));
   Dispose(PArgs);
 end;
 

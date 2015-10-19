@@ -792,8 +792,6 @@ function TBrowserView.OnCreateWindow(aBrowser: ICefBrowser;
 var
   PArgs: PBeforePopupArgs;
 begin
-  HideCurrentBrowserWindow;
-
   PArgs := PBeforePopupArgs(LParam);
   PArgs.windowInfo.x := PArgs.popupFeatures.x;
   PArgs.windowInfo.y := PArgs.popupFeatures.y;
@@ -862,7 +860,7 @@ begin
     if GetIsActivating then
       SetIsActivating(False)
     else
-      SendMessage(Self.Handle, WM_SetActive, 0, 0);
+      SendMessage(Self.Handle, WM_SetActive, WParam(@aBrowser), 0);
   end;
 end;
 
@@ -878,7 +876,6 @@ begin
     PArgs.dialogType^, PArgs.messageText^, PArgs.defaultPromptText^,
     PArgs.callback^, PArgs.suppressMessage^, PArgs.Result^,
     PArgs.CancelDefaultEvent);
-
   if Not PArgs.CancelDefaultEvent then
   begin
     messageText := PArgs.messageText^;
@@ -896,9 +893,8 @@ begin
         begin
           PArgs.suppressMessage^ := False;
           PArgs.Result^ := True;
-          PArgs.callback^.Cont(MessageBox(Self.Handle,
-            PChar(originUrl + SDialogTitleSuffix), PChar(messageText), MB_YESNO)
-            = IDYES, '');
+          PArgs.callback^.Cont(MessageBox(Self.Handle, PChar(messageText),
+            PChar(originUrl + SDialogTitleSuffix), MB_YESNO) = IDYES, '');
         end;
       JSDIALOGTYPE_PROMPT:
         begin
@@ -965,7 +961,7 @@ end;
 
 procedure TBrowserView.OnNewBrowser(aBrowser: ICefBrowser; LParam: LParam);
 begin
-  SetActiveBrowserAndID(aBrowser);
+  ShowBrowser(aBrowser);
   BrowserListLocker.Enter;
   try
     FBrowserList.Add(aBrowser);
@@ -1328,8 +1324,8 @@ begin
       Message.Result := OnFileDialog(GetCefBrowser, Message.LParam);
     WM_SetActive:
       OnSetActive(GetCefBrowser, Message.LParam);
-  {  WM_GotFocus:
-      OnGotFocus(GetCefBrowser, Message.LParam);    }
+    WM_GotFocus:
+      OnGotFocus(GetCefBrowser, Message.LParam);
     WM_SetFocus:
       Message.Result := OnSetFocus(GetCefBrowser, Message.LParam);
     WM_TakeFocus:
