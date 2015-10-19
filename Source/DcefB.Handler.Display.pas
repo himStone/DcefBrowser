@@ -54,15 +54,15 @@ end;
 
 procedure TDcefBDisplayHandler.OnAddressChange(const browser: ICefBrowser;
   const frame: ICefFrame; const url: ustring);
-var
-  PArgs: PAddressChangeArgs;
+{ var
+  PArgs: PAddressChangeArgs; }
 begin
   inherited;
-  New(PArgs);
-  PArgs.frame := @frame;
-  PArgs.url := @url;
-  TDcefBUtils.SendMsg(browser, WM_AddressChange, LParam(PArgs));
-  Dispose(PArgs);
+  { New(PArgs);
+    PArgs.frame := @frame;
+    PArgs.url := @url; }
+  TDcefBUtils.SendMsg(browser, WM_AddressChange, LParam(@url));
+  // Dispose(PArgs);
 end;
 
 function TDcefBDisplayHandler.OnConsoleMessage(const browser: ICefBrowser;

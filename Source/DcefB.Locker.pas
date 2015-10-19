@@ -29,7 +29,7 @@ type
 
 var
   CltHandleDicLocker: TDcefBLocker;
-  BrowserListLocker: TDcefBLocker;
+  BrowserDicLocker: TDcefBLocker;
   ClosedUrlListLocker: TDcefBLocker;
 
 implementation
@@ -88,13 +88,13 @@ Initialization
 
 CpuCount := GetCPUCount;
 CltHandleDicLocker := TDcefBLocker.Create;
-BrowserListLocker := TDcefBLocker.Create;
+BrowserDicLocker := TDcefBLocker.Create;
 ClosedUrlListLocker := TDcefBLocker.Create;
 
 Finalization
 
 CltHandleDicLocker.Free;
-BrowserListLocker.Free;
+BrowserDicLocker.Free;
 ClosedUrlListLocker.Free;
 
 end.

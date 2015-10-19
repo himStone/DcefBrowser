@@ -18,7 +18,7 @@ uses
 
   DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
   DcefB.Events, DcefB.Core.BrowserView, DcefB.Core.DefaultRenderHandler,
-  DcefB.Handler.Main, DcefB.res;
+  DcefB.Handler.Main, DcefB.res, DcefB.CefBrowserWrapper;
 
 type
   TCustomDcefBrowser = class(TWinControl, IDcefBEvents)
@@ -202,6 +202,7 @@ type
     function GetIsLoading: Boolean;
     function GetClosedUrlCount: Integer;
     function GetBrowserCount: Integer;
+    function GetWrapperBrowsers(aBrowserId: Integer): TCefBrowserWrapper;
   protected
     // swish changed:
     FLastWndProc: TWndMethod;
@@ -220,12 +221,8 @@ type
     function ShowBrowser(const aBrowser: ICefBrowser): Boolean; overload;
     function ShowBrowser(const aBrowserId: Integer): Boolean; overload;
     function CloseBrowser(const aCloseBrowserId: Integer;
-      const aShowBrowserId: Integer): Boolean; overload;
-    function CloseBrowser(const aCloseBrowser: ICefBrowser;
-      const aShowBrowser: ICefBrowser): Boolean; overload;
+      const aShowBrowserId: Integer): Boolean;
     function CloseAllOtherBrowser(const aBrowserId: Integer): Boolean; overload;
-    function CloseAllOtherBrowser(const aBrowser: ICefBrowser)
-      : Boolean; overload;
     procedure CloseAllBrowser(const aIsTrigClosePageEvent: Boolean);
     procedure CopyBrowser(aBrowserId: Integer); overload;
     procedure CopyBrowser(aBrowser: ICefBrowser); overload;
@@ -258,6 +255,8 @@ type
     class procedure CreateDefaultRenderProcess;
     class procedure RegisterClasses(const aObjList: array of TClass);
 
+    property BrowserWrappers[aBrowserId: Integer]: TCefBrowserWrapper
+      read GetWrapperBrowsers;
     property ActiveBrowser: ICefBrowser read GetActiveBrowser;
     property ActiveBrowserId: Integer read GetActiveBrowserID;
     property BrowserCount: Integer read GetBrowserCount;
@@ -498,18 +497,6 @@ procedure TCustomDcefBrowser.CloseAllBrowser(const aIsTrigClosePageEvent
   : Boolean);
 begin
   FBrowserView.CloseAllBrowser(aIsTrigClosePageEvent);
-end;
-
-function TCustomDcefBrowser.CloseAllOtherBrowser(const aBrowser
-  : ICefBrowser): Boolean;
-begin
-  Result := FBrowserView.CloseAllOtherBrowser(aBrowser);
-end;
-
-function TCustomDcefBrowser.CloseBrowser(const aCloseBrowser,
-  aShowBrowser: ICefBrowser): Boolean;
-begin
-  Result := FBrowserView.CloseBrowser(aCloseBrowser, aShowBrowser);
 end;
 
 function TCustomDcefBrowser.CloseBrowser(const aCloseBrowserId,
@@ -1115,6 +1102,12 @@ function TCustomDcefBrowser.GetText(var aText: string;
   const TimeOut: Integer): Boolean;
 begin
   Result := FBrowserView.GetText(aText, TimeOut);
+end;
+
+function TCustomDcefBrowser.GetWrapperBrowsers(aBrowserId: Integer)
+  : TCefBrowserWrapper;
+begin
+  Result := FBrowserView.BrowserWrappers[aBrowserId];
 end;
 
 function TCustomDcefBrowser.GetZoomLevel: string;

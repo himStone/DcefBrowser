@@ -19,7 +19,6 @@ uses
 type
   Pustring = ^ustring;
   PICefFrame = ^ICefFrame;
-
   PICefFileDialogCallback = ^ICefFileDialogCallback;
   PCefFocusSource = ^TCefFocusSource;
   PICefContextMenuParams = ^ICefContextMenuParams;
@@ -33,7 +32,6 @@ type
   PCefJsDialogType = ^TCefJsDialogType;
   PICefDragData = ^ICefDragData;
   PCefDragOperations = ^TCefDragOperations;
-
   PBeforePopupArgs = ^TBeforePopupArgs;
   PFileDialogArgs = ^TFileDialogArgs;
   PLoadEndArgs = ^TLoadEndArgs;
@@ -44,7 +42,7 @@ type
   PContextMenuCommandArgs = ^TContextMenuCommandArgs;
   PKeyEventArgs = ^TKeyEventArgs;
   PPreKeyEventArgs = ^TPreKeyEventArgs;
-  PAddressChangeArgs = ^TAddressChangeArgs;
+  //PAddressChangeArgs = ^TAddressChangeArgs;
   PConsoleMessageArgs = ^TConsoleMessageArgs;
   PTooltipArgs = ^TTooltipArgs;
   PBeforeDownloadArgs = ^TBeforeDownloadArgs;
@@ -124,11 +122,13 @@ type
     CancelDefaultEvent: Boolean;
   end;
 
-  TAddressChangeArgs = record
+  {TAddressChangeArgs = record
     frame: PICefFrame;
-    url: Pustring end;
+    url: Pustring;
+  end;      }
 
-    TConsoleMessageArgs = record message: Pustring;
+  TConsoleMessageArgs = record
+    message: Pustring;
     source: Pustring;
     line: Integer;
     Result: PBoolean;

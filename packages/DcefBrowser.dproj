@@ -123,6 +123,7 @@
         <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="DcefBrowserReg.pas"/>
         <DCCReference Include="..\Source\DcefB.BaseObject.pas"/>
+        <DCCReference Include="..\Source\DcefB.CefBrowserWrapper.pas"/>
         <DCCReference Include="..\Source\DcefB.CefEvents.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.BrowserView.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.DcefBrowser.pas"/>
