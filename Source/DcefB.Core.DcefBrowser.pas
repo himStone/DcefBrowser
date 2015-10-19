@@ -203,6 +203,8 @@ type
     function GetClosedUrlCount: Integer;
     function GetBrowserCount: Integer;
     function GetWrapperBrowsers(aBrowserId: Integer): TCefBrowserWrapper;
+    function GetTitle: string;
+    function GetUrl: string;
   protected
     // swish changed:
     FLastWndProc: TWndMethod;
@@ -274,6 +276,8 @@ type
     property CanGoBack: Boolean read GetCanGoBack;
     property CanGoForward: Boolean read GetCanGoForward;
     property ZoomLevel: string read GetZoomLevel;
+    property Url: string read GetUrl;
+    property Title: string read GetTitle;
 
     property OnLoadingStateChange: TOnLoadingStateChange
       read FOnLoadingStateChange write FOnLoadingStateChange;
@@ -1102,6 +1106,16 @@ function TCustomDcefBrowser.GetText(var aText: string;
   const TimeOut: Integer): Boolean;
 begin
   Result := FBrowserView.GetText(aText, TimeOut);
+end;
+
+function TCustomDcefBrowser.GetTitle: string;
+begin
+  Result := FBrowserView.Title;
+end;
+
+function TCustomDcefBrowser.GetUrl: string;
+begin
+  Result := FBrowserView.Url;
 end;
 
 function TCustomDcefBrowser.GetWrapperBrowsers(aBrowserId: Integer)
