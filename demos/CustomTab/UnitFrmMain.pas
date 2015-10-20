@@ -137,7 +137,6 @@ begin
   NewTab := TTabsheet.Create(MyCustomTabs);
   NewTab.Caption := '';
   NewTab.Tag := browser.Identifier;
-  // NewTab.Parent := MyCustomTabs;
   NewTab.PageControl := MyCustomTabs;
 
   MyCustomTabs.ActivePageIndex := NewTab.PageIndex;
