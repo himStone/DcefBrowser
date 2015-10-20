@@ -125,9 +125,11 @@
         <DCCReference Include="..\Source\DcefB.BaseObject.pas"/>
         <DCCReference Include="..\Source\DcefB.CefBrowserWrapper.pas"/>
         <DCCReference Include="..\Source\DcefB.CefEvents.pas"/>
+        <DCCReference Include="..\Source\DcefB.Core.BrowserHandler.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.BrowserView.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.DcefBrowser.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.DefaultRenderHandler.pas"/>
+        <DCCReference Include="..\Source\DcefB.Core.DevToolsView.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.JsExtention.pas"/>
         <DCCReference Include="..\Source\DcefB.Dcef3.CefErr.pas"/>
         <DCCReference Include="..\Source\DcefB.Dcef3.CefFilescheme.pas"/>
@@ -143,7 +145,6 @@
         <DCCReference Include="..\Source\DcefB.Handler.Keyboard.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.LifeSpan.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Load.pas"/>
-        <DCCReference Include="..\Source\DcefB.Handler.Main.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Menu.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Render.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Request.pas"/>
