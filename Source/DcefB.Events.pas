@@ -19,6 +19,9 @@ type
   TBrowserDataChangeKind = (BrowserDataChange_StatusMessage,
     BrowserDataChange_Address, BrowserDataChange_Title);
 
+  TOnDefaultTabChanged = TNotifyEvent;
+  TOnDefaultTabChanging = procedure(Sender: TObject; var Allow: Boolean) of object;
+
   TOnLoadingStateChange = procedure(const browser: ICefBrowser;
     isLoading, canGoBack, canGoForward: Boolean) of object;
   TOnStateChange = procedure(const browser: ICefBrowser;
