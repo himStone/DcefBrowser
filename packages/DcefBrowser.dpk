@@ -50,7 +50,6 @@ contains
   DcefB.Core.BrowserView in '..\Source\DcefB.Core.BrowserView.pas',
   DcefB.Core.DcefBrowser in '..\Source\DcefB.Core.DcefBrowser.pas',
   DcefB.Core.DefaultRenderHandler in '..\Source\DcefB.Core.DefaultRenderHandler.pas',
-  DcefB.Core.DevToolsView in '..\Source\DcefB.Core.DevToolsView.pas',
   DcefB.Core.JsExtention in '..\Source\DcefB.Core.JsExtention.pas',
   DcefB.Dcef3.CefErr in '..\Source\DcefB.Dcef3.CefErr.pas',
   DcefB.Dcef3.CefFilescheme in '..\Source\DcefB.Dcef3.CefFilescheme.pas',
