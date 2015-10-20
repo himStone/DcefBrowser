@@ -36,9 +36,7 @@ Usage allowed under the restrictions of the Lesser GNU General Public License or
 Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the specific language governing rights and limitations under the License.
 
 Embarcadero Technologies, Inc is not permitted to use or redistribute this source code without explicit permission.
-
-[Get More Infomation](http://www.bccsafe.com/dcefbrowser/2015/04/08/DcefBrowser%20Package%20Dcef3%20/)
-
+ 
 # Links:
 
 [Dcef3](https://github.com/hgourvest/dcef3)
@@ -47,4 +45,4 @@ Embarcadero Technologies, Inc is not permitted to use or redistribute this sourc
 
 [chromiumembedded](https://bitbucket.org/chromiumembedded/cef)
 
-
+[Get More Infomation](http://www.bccsafe.com/dcefbrowser/2015/04/08/DcefBrowser%20Package%20Dcef3%20/)
