@@ -31,7 +31,7 @@ uses
 
   DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
   DcefB.Events, DcefB.Core.BrowserView, DcefB.Core.DefaultRenderHandler,
-  DcefB.Handler.Main, DcefB.res, DcefB.CefBrowserWrapper;
+  DcefB.Core.BrowserHandler, DcefB.res, DcefB.CefBrowserWrapper;
 
 type
   TCustomDcefBrowser = class(TWinControl, IDcefBEvents)
@@ -591,7 +591,7 @@ end;
 
 procedure TCustomDcefBrowser.DevTools;
 begin
-  FBrowserView.DevTools;
+ // FBrowserView.DevTools;
 end;
 
 class procedure TCustomDcefBrowser.RegisterClasses(const aObjList

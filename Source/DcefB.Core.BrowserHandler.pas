@@ -21,7 +21,7 @@
   *
 *)
 
-unit DcefB.Handler.Main;
+unit DcefB.Core.BrowserHandler;
 
 interface
 

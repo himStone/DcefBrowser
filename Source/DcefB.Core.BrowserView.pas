@@ -33,7 +33,7 @@ uses
   DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
   DcefB.Events, DcefB.Handler.Focus, DcefB.CefBrowserWrapper,
   DcefB.Core.DefaultRenderHandler, DcefB.Dcef3.CefErr,
-  DcefB.Handler.Main, DcefB.res, DcefB.Utils;
+  DcefB.Core.BrowserHandler, DcefB.res, DcefB.Utils;
 
 type
   TBrowserView = class(TWinControl)
@@ -150,7 +150,6 @@ type
       aData: Pointer);
 
     // incomplete
-    procedure DevTools;
     procedure SearchText;
     function GetSource(var SourceText: string;
       Const TimeOut: Integer = 1000): Boolean;
@@ -426,11 +425,6 @@ begin
   FBrowserDic.Free;
   FClosedURL.Free;
   inherited;
-end;
-
-procedure TBrowserView.DevTools;
-begin
-
 end;
 
 procedure TBrowserView.DownloadFile(aFileUrl: string);
@@ -789,7 +783,7 @@ end;
 procedure TBrowserView.OnDevTools(aBrowser: ICefBrowser; LParam: LParam);
 begin
   { if TCustomDcefBrowser(FDcefBrowser).Options.DevToolsEnable   then }
-  DevTools;
+  //DevTools;
 end;
 
 procedure TBrowserView.OnDialogClosed(aBrowser: ICefBrowser; LParam: LParam);
@@ -977,7 +971,7 @@ begin
     if (PArgs.event.windows_key_code = 123) and
       (PArgs.event.Kind = KEYEVENT_KEYUP) { and
       TCustomDcefBrowser(FDcefBrowser).Options.DevToolsEnable } then
-      DevTools; // F12
+      //DevTools; // F12
 
     if (PArgs.event.windows_key_code = 116) and
       (PArgs.event.Kind = KEYEVENT_KEYUP) then
