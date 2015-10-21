@@ -129,11 +129,13 @@
         <DCCReference Include="..\Source\DcefB.Core.BrowserView.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.DcefBrowser.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.DefaultRenderHandler.pas"/>
+        <DCCReference Include="..\Source\DcefB.Core.DevToolsView.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.JsExtention.pas"/>
         <DCCReference Include="..\Source\DcefB.Dcef3.CefErr.pas"/>
         <DCCReference Include="..\Source\DcefB.Dcef3.CefFilescheme.pas"/>
         <DCCReference Include="..\Source\DcefB.Dcef3.CefLib.pas"/>
         <DCCReference Include="..\Source\DcefB.Events.pas"/>
+        <DCCReference Include="..\Source\DcefB.Handler.Basic.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Dialog.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Display.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Download.pas"/>

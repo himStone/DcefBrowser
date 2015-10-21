@@ -163,6 +163,8 @@ type
 
   IDcefBEvents = interface
     procedure GetSettings(var Settings: TCefBrowserSettings);
+    procedure ShowDevTools(const aBrowser: ICefBrowser = nil);
+    procedure CloseDevTools(const aBrowser: ICefBrowser = nil);
 
     procedure doOnLoadingStateChange(const browser: ICefBrowser;
       isLoading, canGoBack, canGoForward: Boolean);

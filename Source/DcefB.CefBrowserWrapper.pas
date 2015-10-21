@@ -26,8 +26,8 @@ unit DcefB.CefBrowserWrapper;
 interface
 
 uses
-  System.Classes, Generics.Collections,
-  DcefB.Dcef3.CefLib, DcefB.res;
+  Winapi.Windows, System.Classes, Generics.Collections,
+  DcefB.Dcef3.CefLib, DcefB.res, DcefB.Handler.Basic;
 
 type
   TCefBrowserWrapper = class
@@ -49,6 +49,11 @@ type
   TBrowserWrapperDic = class(TDictionary<Integer, TCefBrowserWrapper>)
   public
     function Add(aBrowser: ICefBrowser): Integer;
+    procedure Clear;
+  end;
+
+  TClientDic = class(TDictionary<Integer, ICefClient>)
+    procedure Clear;
   end;
 
 implementation
@@ -76,6 +81,36 @@ var
 begin
   aCefBrowserWrapper := TCefBrowserWrapper.Create(aBrowser);
   inherited Add(aBrowser.Identifier, aCefBrowserWrapper);
+end;
+
+procedure TBrowserWrapperDic.Clear;
+var
+  Index: Integer;
+  BrowserWrapperArr: TArray<TCefBrowserWrapper>;
+begin
+  BrowserWrapperArr := inherited Values.ToArray;
+  for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
+  begin
+    BrowserWrapperArr[Index].Browser.StopLoad;
+    DestroyWindow(BrowserWrapperArr[Index].Browser.host.WindowHandle);
+    BrowserWrapperArr[Index].Free;
+  end;
+  SetLength(BrowserWrapperArr, 0);
+  inherited;
+end;
+
+{ TClientDic }
+
+procedure TClientDic.Clear;
+var
+  Index: Integer;
+  ClientArr: TArray<ICefClient>;
+begin
+  ClientArr := inherited Values.ToArray;
+  for Index := Low(ClientArr) to High(ClientArr) do
+    (ClientArr[Index] as ICefClientHandler).Disconnect;
+  SetLength(ClientArr, 0);
+  inherited Clear;
 end;
 
 end.

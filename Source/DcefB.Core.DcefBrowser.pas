@@ -31,12 +31,14 @@ uses
 
   DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
   DcefB.Events, DcefB.Core.BrowserView, DcefB.Core.DefaultRenderHandler,
-  DcefB.Core.BrowserHandler, DcefB.res, DcefB.CefBrowserWrapper;
+  DcefB.Core.BrowserHandler, DcefB.res, DcefB.CefBrowserWrapper,
+  DcefB.Core.DevToolsView;
 
 type
   TCustomDcefBrowser = class(TWinControl, IDcefBEvents)
   private
     FBrowserView: TBrowserView;
+    FDevToolsView: TDevToolsView;
     FDefaultTabControl: TPageControl;
 
     FDcefBOptions: TDcefBOptions;
@@ -233,6 +235,7 @@ type
     function GetWrapperBrowsers(aBrowserID: Integer): TCefBrowserWrapper;
     function GetTitle: string;
     function GetUrl: string;
+    procedure CreateDevToolsView;
   protected
     // swish changed:
     FLastWndProc: TWndMethod;
@@ -274,9 +277,10 @@ type
     procedure RunInRenderProcess(AProc: TRenderProcessCallbackA;
       aData: Pointer);
     procedure CreateDefaultTabsControl(const aHeight: Integer = 22);
+    procedure ShowDevTools(const aBrowser: ICefBrowser = nil);
+    procedure CloseDevTools(const aBrowser: ICefBrowser = nil);
 
     // incomplete
-    procedure DevTools;
     procedure SearchText;
     function GetSource(var SourceText: string;
       Const TimeOut: Integer = 1000): Boolean;
@@ -501,6 +505,24 @@ begin
   Result := FBrowserView.ShowBrowser(aBrowserID);
 end;
 
+procedure TCustomDcefBrowser.ShowDevTools(const aBrowser: ICefBrowser = nil);
+var
+  aShowBrowser: ICefBrowser;
+begin
+  if aBrowser = nil then
+    aShowBrowser := ActiveBrowser
+  else
+    aShowBrowser := aBrowser;
+
+  if aShowBrowser <> nil then
+  begin
+    if Not Assigned(FDevToolsView) then
+      CreateDevToolsView;
+
+    FDevToolsView.ShowDevTools(aShowBrowser);
+  end;
+end;
+
 function TCustomDcefBrowser.ShowBrowser(const aBrowser: ICefBrowser): Boolean;
 begin
   Result := FBrowserView.ShowBrowser(aBrowser);
@@ -543,6 +565,19 @@ function TCustomDcefBrowser.CloseBrowser(const aCloseBrowserId,
   aShowBrowserId: Integer): Boolean;
 begin
   Result := FBrowserView.CloseBrowser(aCloseBrowserId, aShowBrowserId);
+end;
+
+procedure TCustomDcefBrowser.CloseDevTools(const aBrowser: ICefBrowser = nil);
+var
+  aCloseBrowser: ICefBrowser;
+begin
+  if aBrowser = nil then
+    aCloseBrowser := ActiveBrowser
+  else
+    aCloseBrowser := aBrowser;
+
+  if (aCloseBrowser <> nil) and Assigned(FDevToolsView) then
+    FDevToolsView.CloseDevTools(aCloseBrowser);
 end;
 
 procedure TCustomDcefBrowser.CopyBrowser(aBrowserID: Integer);
@@ -589,9 +624,12 @@ begin
   end;
 end;
 
-procedure TCustomDcefBrowser.DevTools;
+procedure TCustomDcefBrowser.CreateDevToolsView;
 begin
- // FBrowserView.DevTools;
+  FDevToolsView := TDevToolsView.Create(Self);
+  { FDevToolsView.Parent := Self;
+    FDevToolsView.Align := alBottom;
+    FDevToolsView.Height := 10; }
 end;
 
 class procedure TCustomDcefBrowser.RegisterClasses(const aObjList
@@ -626,6 +664,7 @@ end;
 
 destructor TCustomDcefBrowser.Destroy;
 begin
+  FDevToolsView.Free;
   FBrowserView.Free;
   FDcefBOptions.Free;
   FChromiumOptions.Free;

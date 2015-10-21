@@ -32,14 +32,14 @@ uses
 
   DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
   DcefB.Events, DcefB.Handler.Focus, DcefB.CefBrowserWrapper,
-  DcefB.Core.DefaultRenderHandler, DcefB.Dcef3.CefErr,
+  DcefB.Core.DefaultRenderHandler, DcefB.Dcef3.CefErr, DcefB.Handler.Basic,
   DcefB.Core.BrowserHandler, DcefB.res, DcefB.Utils;
 
 type
   TBrowserView = class(TWinControl)
   private
     FEvents: IDcefBEvents;
-    FCltHandleDic: TDictionary<Integer, ICefClient>;
+    FCltHandleDic: TClientDic;
     FBrowserDic: TBrowserWrapperDic;
     FClosedURL: TStringList;
     FDcefBOptions: TDcefBOptions;
@@ -188,30 +188,12 @@ begin
 end;
 
 procedure TBrowserView.ClearInterface;
-var
-  Index: Integer;
-  ClientArr: TArray<ICefClient>;
-  BrowserWrapperArr: TArray<TCefBrowserWrapper>;
 begin
   BrowserDicLocker.Enter;
   CltHandleDicLocker.Enter;
   try
-    BrowserWrapperArr := FBrowserDic.Values.ToArray;
-    for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
-    begin
-      BrowserWrapperArr[Index].Browser.StopLoad;
-      DestroyWindow(BrowserWrapperArr[Index].Browser.host.WindowHandle);
-      BrowserWrapperArr[Index].Free;
-    end;
-    SetLength(BrowserWrapperArr, 0);
-
-    ClientArr := FCltHandleDic.Values.ToArray;
-    for Index := Low(ClientArr) to High(ClientArr) do
-      (ClientArr[Index] as ICefClientHandler).Disconnect;
-    SetLength(ClientArr, 0);
-
-    FCltHandleDic.Clear;
     FBrowserDic.Clear;
+    FCltHandleDic.Clear;
   finally
     BrowserDicLocker.Exit;
     CltHandleDicLocker.Exit;
@@ -370,7 +352,7 @@ begin
   FIsActivating := True;
   FLoadingState := 0 or State_IsLoading;
 
-  FCltHandleDic := TDictionary<Integer, ICefClient>.Create;
+  FCltHandleDic := TClientDic.Create;
   FBrowserDic := TBrowserWrapperDic.Create;
   FClosedURL := TStringList.Create;
 end;
@@ -782,8 +764,8 @@ end;
 
 procedure TBrowserView.OnDevTools(aBrowser: ICefBrowser; LParam: LParam);
 begin
-  { if TCustomDcefBrowser(FDcefBrowser).Options.DevToolsEnable   then }
-  //DevTools;
+  if FDcefBOptions.DevToolsEnable then
+    FEvents.ShowDevTools(aBrowser);
 end;
 
 procedure TBrowserView.OnDialogClosed(aBrowser: ICefBrowser; LParam: LParam);
@@ -969,9 +951,8 @@ begin
     (aBrowser.Identifier = ActiveBrowser.Identifier) then
   begin
     if (PArgs.event.windows_key_code = 123) and
-      (PArgs.event.Kind = KEYEVENT_KEYUP) { and
-      TCustomDcefBrowser(FDcefBrowser).Options.DevToolsEnable } then
-      //DevTools; // F12
+      (PArgs.event.Kind = KEYEVENT_KEYUP) and FDcefBOptions.DevToolsEnable then
+      FEvents.ShowDevTools(aBrowser); // F12
 
     if (PArgs.event.windows_key_code = 116) and
       (PArgs.event.Kind = KEYEVENT_KEYUP) then
