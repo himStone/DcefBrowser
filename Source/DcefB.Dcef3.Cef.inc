@@ -1,18 +1,25 @@
 (*
- *                       Delphi Chromium Embedded
- *
- * Usage allowed under the restrictions of the Lesser GNU General Public License
- * or alternatively the restrictions of the Mozilla Public License 1.1
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
- * the specific language governing rights and limitations under the License.
- *
- * Unit owner : Henri Gourvest <hgourvest@gmail.com>
- * Web site   : http://www.progdigy.com
- * Repository : http://code.google.com/p/delphichromiumembedded/
- * Group      : http://groups.google.com/group/delphichromiumembedded
- *)
+  *                  Delphi Multi-tab Chromium Browser Frame
+  *
+  * Usage allowed under the restrictions of the Lesser GNU General Public License
+  * or alternatively the restrictions of the Mozilla Public License 1.1
+  *
+  * Software distributed under the License is distributed on an "AS IS" basis,
+  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
+  * the specific language governing rights and limitations under the License.
+  *
+  * Unit owner : BccSafe <bccsafe5988@gmail.com>
+  * QQ: 1262807955
+  * Web site   : http://www.bccsafe.com
+  * Repository : https://github.com/bccsafe/DcefBrowser
+  *
+  * The code of DcefBrowser is based on DCEF3 by: Henri Gourvest <hgourvest@gmail.com>
+  * code: https://github.com/hgourvest/dcef3
+  *
+  * Embarcadero Technologies, Inc is not permitted to use or redistribute
+  * this source code without explicit permission.
+  *
+*)
 
  {.$define CEF_STRING_TYPE_UTF8}
 {$define CEF_STRING_TYPE_UTF16}
@@ -25,227 +32,81 @@
   {$DEFINE CEF_MULTI_THREADED_MESSAGE_LOOP}
   {$DEFINE SUPPORTS_INLINE}
 {$ENDIF}
+{$IF RTLVersion>=24}
+{$LEGACYIFEND ON}
+{$IFEND}
 
-{$IFDEF VER130}
+{$IF RTLVersion>=13}
   {$DEFINE DELPHI5_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER140}
-  {$DEFINE DELPHI5_UP}
+{$IF RTLVersion>=14}
   {$DEFINE DELPHI6_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER150}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
+{$IF RTLVersion>=15}
   {$DEFINE DELPHI7_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER160}
-  // DELPHI 8 for Dotnet
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
+{$IF RTLVersion>=16}
   {$DEFINE DELPHI8_UP}
-{$ENDIF}
+{$IFEND}
 
 // Delphi 2005
-{$IFDEF VER170}
+{$IF RTLVersion>=17}
   {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
   {$DEFINE DELPHI9_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER180}
-  // Delphi 2007
-  {$IFDEF VER185}
-    {$DEFINE SUPPORTS_INLINE}
-    {$DEFINE DELPHI5_UP}
-    {$DEFINE DELPHI6_UP}
-    {$DEFINE DELPHI7_UP}
-    {$DEFINE DELPHI8_UP}
-    {$DEFINE DELPHI9_UP}
-    {$DEFINE DELPHI10_UP}
-    {$DEFINE DELPHI11_UP}
-  // Delphi 2006
-  {$ELSE}
-    {$DEFINE SUPPORTS_INLINE}
-    {$DEFINE DELPHI5_UP}
-    {$DEFINE DELPHI6_UP}
-    {$DEFINE DELPHI7_UP}
-    {$DEFINE DELPHI8_UP}
-    {$DEFINE DELPHI9_UP}
-    {$DEFINE DELPHI10_UP}
-  {$ENDIF}
-{$ENDIF}
-
-// Delphi 2009
-{$IFDEF VER200}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
+{$IF RTLVersion>=18}
   {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-{$ENDIF}
+{$IFEND}
 
-//Delphi 2010
-{$IFDEF VER210}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
+{$IF RTLVersion>=18.5}
   {$DEFINE DELPHI11_UP}
+{$IFEND}
+
+{$IF RTLVersion>=20}
   {$DEFINE DELPHI12_UP}
+{$IFEND}
+
+{$IF RTLVersion>=21}
   {$DEFINE DELPHI14_UP}
-{$ENDIF}
+{$IFEND}
 
-// Delphi XE
-{$IFDEF VER220}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-  {$DEFINE DELPHI14_UP}
+{$IF RTLVersion>=22}
   {$DEFINE DELPHI15_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER230}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-  {$DEFINE DELPHI14_UP}
-  {$DEFINE DELPHI15_UP}
+{$IF RTLVersion>=23}
   {$DEFINE DELPHI16_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER240}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-  {$DEFINE DELPHI14_UP}
-  {$DEFINE DELPHI15_UP}
-  {$DEFINE DELPHI16_UP}
+{$IF RTLVersion>=24}
   {$DEFINE DELPHI17_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER250}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-  {$DEFINE DELPHI14_UP}
-  {$DEFINE DELPHI15_UP}
-  {$DEFINE DELPHI16_UP}
-  {$DEFINE DELPHI17_UP}
+{$IF RTLVersion>=25}
   {$DEFINE DELPHI18_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER260}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-  {$DEFINE DELPHI14_UP}
-  {$DEFINE DELPHI15_UP}
-  {$DEFINE DELPHI16_UP}
-  {$DEFINE DELPHI17_UP}
-  {$DEFINE DELPHI18_UP}
+{$IF RTLVersion>=26}
   {$DEFINE DELPHI19_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER270}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-  {$DEFINE DELPHI14_UP}
-  {$DEFINE DELPHI15_UP}
-  {$DEFINE DELPHI16_UP}
-  {$DEFINE DELPHI17_UP}
-  {$DEFINE DELPHI18_UP}
-  {$DEFINE DELPHI19_UP}
+{$IF RTLVersion>=27}
   {$DEFINE DELPHI20_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER280}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-  {$DEFINE DELPHI14_UP}
-  {$DEFINE DELPHI15_UP}
-  {$DEFINE DELPHI16_UP}
-  {$DEFINE DELPHI17_UP}
-  {$DEFINE DELPHI18_UP}
-  {$DEFINE DELPHI19_UP}
-  {$DEFINE DELPHI20_UP}
+{$IF RTLVersion>=28}
   {$DEFINE DELPHI21_UP}
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF VER290}
-  {$DEFINE SUPPORTS_INLINE}
-  {$DEFINE DELPHI5_UP}
-  {$DEFINE DELPHI6_UP}
-  {$DEFINE DELPHI7_UP}
-  {$DEFINE DELPHI8_UP}
-  {$DEFINE DELPHI9_UP}
-  {$DEFINE DELPHI10_UP}
-  {$DEFINE DELPHI11_UP}
-  {$DEFINE DELPHI12_UP}
-  {$DEFINE DELPHI14_UP}
-  {$DEFINE DELPHI15_UP}
-  {$DEFINE DELPHI16_UP}
-  {$DEFINE DELPHI17_UP}
-  {$DEFINE DELPHI18_UP}
-  {$DEFINE DELPHI19_UP}
-  {$DEFINE DELPHI20_UP}
-  {$DEFINE DELPHI21_UP}
+{$IF RTLVersion>=29}
   {$DEFINE DELPHI22_UP}
-{$ENDIF}
+{$IFEND}
+
+{$IF RTLVersion>=300}
+  {$DEFINE DELPHI23_UP}
+{$IFEND}
+
