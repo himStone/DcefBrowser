@@ -34,14 +34,9 @@ uses
   DcefB.Handler.Focus, DcefB.Handler.Geolocation, DcefB.Handler.JsDialog,
   DcefB.Handler.Keyboard, DcefB.Handler.LifeSpan, DcefB.Handler.Load,
   DcefB.Handler.Menu, DcefB.Handler.Request, DcefB.Handler.Drag,
-  DcefB.Handler.Render;
+  DcefB.Handler.Render, DcefB.Handler.Basic;
 
 type
-  ICefClientHandler = interface
-    ['{E76F6888-D9C3-4FCE-9C23-E89659820A36}']
-    procedure Disconnect;
-  end;
-
   TDcefBHandler = class(TCefClientOwn, ICefClientHandler)
   private
     FDcefBEvents: IDcefBEvents;
