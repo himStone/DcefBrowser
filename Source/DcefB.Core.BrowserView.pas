@@ -38,7 +38,7 @@ uses
 type
   TBrowserView = class(TWinControl)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
     FCltHandleDic: TClientDic;
     FBrowserDic: TBrowserWrapperDic;
     FClosedURL: TStringList;
@@ -120,7 +120,7 @@ type
       const aShowBrowserId: Integer;
       const aCloseBrowserType: TCloseBrowserType): Boolean;
   public
-    constructor Create(AOwner: TComponent; aEvents: IDcefBEvents;
+    constructor Create(AOwner: TComponent; aEvents: IDcefBrowser;
       aDcefBOptions: TDcefBOptions); reintroduce;
     destructor Destroy; override;
 
@@ -315,7 +315,7 @@ begin
     CreateCefWindow(aBrowser.MainFrame.Url);
 end;
 
-constructor TBrowserView.Create(AOwner: TComponent; aEvents: IDcefBEvents;
+constructor TBrowserView.Create(AOwner: TComponent; aEvents: IDcefBrowser;
   aDcefBOptions: TDcefBOptions);
 begin
   inherited Create(AOwner);

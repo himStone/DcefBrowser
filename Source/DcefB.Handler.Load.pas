@@ -32,7 +32,7 @@ uses
 type
   TDcefBLoadHandler = class(TCefLoadHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     procedure OnLoadingStateChange(const browser: ICefBrowser;
       isLoading, canGoBack, canGoForward: Boolean); override;
@@ -43,7 +43,7 @@ type
     procedure OnLoadError(const browser: ICefBrowser; const frame: ICefFrame;
       errorCode: Integer; const errorText, failedUrl: ustring); override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -51,10 +51,10 @@ implementation
 
 { TCustomLoadHandler }
 
-constructor TDcefBLoadHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBLoadHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBLoadHandler.Destroy;

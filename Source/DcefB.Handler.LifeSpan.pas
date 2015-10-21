@@ -32,7 +32,7 @@ uses
 type
   TDcefBLifeSpanHandler = class(TCefLifeSpanHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     function OnBeforePopup(const browser: ICefBrowser; const frame: ICefFrame;
       const targetUrl, targetFrameName: ustring;
@@ -44,7 +44,7 @@ type
     function RunModal(const browser: ICefBrowser): Boolean; override;
     function DoClose(const browser: ICefBrowser): Boolean; override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -52,10 +52,10 @@ implementation
 
 { TCustomLifeSpanHandler }
 
-constructor TDcefBLifeSpanHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBLifeSpanHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBLifeSpanHandler.Destroy;

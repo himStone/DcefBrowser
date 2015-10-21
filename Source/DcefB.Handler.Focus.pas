@@ -32,14 +32,14 @@ uses
 type
   TDcefBFocusHandler = class(TCefFocusHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     procedure OnTakeFocus(const browser: ICefBrowser; next: Boolean); override;
     function OnSetFocus(const browser: ICefBrowser; source: TCefFocusSource)
       : Boolean; override;
     procedure OnGotFocus(const browser: ICefBrowser); override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -47,10 +47,10 @@ implementation
 
 { TDcefBFocusHandler }
 
-constructor TDcefBFocusHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBFocusHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBFocusHandler.Destroy;

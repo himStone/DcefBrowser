@@ -32,7 +32,7 @@ uses
 type
   TDcefBDownloadHandler = class(TCefDownloadHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     procedure OnBeforeDownload(const browser: ICefBrowser;
       const downloadItem: ICefDownloadItem; const suggestedName: ustring;
@@ -41,7 +41,7 @@ type
       const downloadItem: ICefDownloadItem;
       const callback: ICefDownloadItemCallback); override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -49,10 +49,10 @@ implementation
 
 { TCustomDownloadHandler }
 
-constructor TDcefBDownloadHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBDownloadHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBDownloadHandler.Destroy;

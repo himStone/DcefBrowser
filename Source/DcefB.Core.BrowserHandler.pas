@@ -39,7 +39,7 @@ uses
 type
   TDcefBHandler = class(TCefClientOwn, ICefClientHandler)
   private
-    FDcefBEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
 
     FLoadHandler: ICefLoadHandler;
     FFocusHandler: ICefFocusHandler;
@@ -77,7 +77,7 @@ type
 
     procedure Disconnect;
   public
-    constructor Create(renderer: Boolean; aDcefBEvents: IDcefBEvents);
+    constructor Create(renderer: Boolean; aDcefBrowser: IDcefBrowser);
       reintroduce;
     destructor Destroy; override;
   end;
@@ -127,26 +127,26 @@ end;
 
 { TDcefBHandler }
 
-constructor TDcefBHandler.Create(renderer: Boolean; aDcefBEvents: IDcefBEvents);
+constructor TDcefBHandler.Create(renderer: Boolean; aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FDcefBEvents := aDcefBEvents;
-  FLoadHandler := TDcefBLoadHandler.Create(FDcefBEvents);
-  FFocusHandler := TDcefBFocusHandler.Create(FDcefBEvents);
-  FContextMenuHandler := TDcefBContextMenuHandler.Create(FDcefBEvents);
-  FDialogHandler := TDcefBDialogHandler.Create(FDcefBEvents);
-  FKeyboardHandler := TDcefBKeyboardHandler.Create(FDcefBEvents);
-  FDisplayHandler := TDcefBDisplayHandler.Create(FDcefBEvents);
-  FDownloadHandler := TDcefBDownloadHandler.Create(FDcefBEvents);
-  FGeolocationHandler := TDcefBGeolocationHandler.Create(FDcefBEvents);
-  FJsDialogHandler := TDcefBJsDialogHandler.Create(FDcefBEvents);
-  FLifeSpanHandler := TDcefBLifeSpanHandler.Create(FDcefBEvents);
-  FRequestHandler := TDcefBRequestHandler.Create(FDcefBEvents);
+  FEvents := aDcefBrowser;
+  FLoadHandler := TDcefBLoadHandler.Create(FEvents);
+  FFocusHandler := TDcefBFocusHandler.Create(FEvents);
+  FContextMenuHandler := TDcefBContextMenuHandler.Create(FEvents);
+  FDialogHandler := TDcefBDialogHandler.Create(FEvents);
+  FKeyboardHandler := TDcefBKeyboardHandler.Create(FEvents);
+  FDisplayHandler := TDcefBDisplayHandler.Create(FEvents);
+  FDownloadHandler := TDcefBDownloadHandler.Create(FEvents);
+  FGeolocationHandler := TDcefBGeolocationHandler.Create(FEvents);
+  FJsDialogHandler := TDcefBJsDialogHandler.Create(FEvents);
+  FLifeSpanHandler := TDcefBLifeSpanHandler.Create(FEvents);
+  FRequestHandler := TDcefBRequestHandler.Create(FEvents);
   if renderer then
-    FRenderHandler := TDcefBRenderHandler.Create(FDcefBEvents)
+    FRenderHandler := TDcefBRenderHandler.Create(FEvents)
   else
     FRenderHandler := nil;
-  FDragHandler := TDcefBDragHandler.Create(FDcefBEvents);
+  FDragHandler := TDcefBDragHandler.Create(FEvents);
 
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
   if CefInstances = 0 then
@@ -157,7 +157,7 @@ end;
 
 destructor TDcefBHandler.Destroy;
 begin
-  FDcefBEvents := nil;
+  FEvents := nil;
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
   InterlockedDecrement(CefInstances);
   if CefInstances = 0 then

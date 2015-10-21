@@ -170,7 +170,7 @@ type
   TOnRenderProcessTerminated = procedure(const browser: ICefBrowser;
     status: TCefTerminationStatus) of object;
 
-  IDcefBEvents = interface
+  IDcefBrowser = interface
     procedure GetSettings(var Settings: TCefBrowserSettings);
     procedure ShowDevTools(const aBrowser: ICefBrowser = nil);
     procedure CloseDevTools(const aBrowser: ICefBrowser = nil);

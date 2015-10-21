@@ -35,7 +35,7 @@ uses
   DcefB.Core.DevToolsView;
 
 type
-  TCustomDcefBrowser = class(TWinControl, IDcefBEvents)
+  TCustomDcefBrowser = class(TWinControl, IDcefBrowser)
   private
     FBrowserView: TBrowserView;
     FDevToolsView: TDevToolsView;

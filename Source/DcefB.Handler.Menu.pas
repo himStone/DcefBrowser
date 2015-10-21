@@ -32,7 +32,7 @@ uses
 type
   TDcefBContextMenuHandler = class(TCefContextMenuHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     procedure OnBeforeContextMenu(const browser: ICefBrowser;
       const frame: ICefFrame; const params: ICefContextMenuParams;
@@ -43,7 +43,7 @@ type
     procedure OnContextMenuDismissed(const browser: ICefBrowser;
       const frame: ICefFrame); override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -51,10 +51,10 @@ implementation
 
 { TDcefBContextMenuHandler }
 
-constructor TDcefBContextMenuHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBContextMenuHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBContextMenuHandler.Destroy;

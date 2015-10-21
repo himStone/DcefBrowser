@@ -32,7 +32,7 @@ uses
 type
   TDcefBRequestHandler = class(TCefRequestHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     function OnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
       const Request: ICefRequest; isRedirect: Boolean): Boolean; override;
@@ -64,7 +64,7 @@ type
     procedure OnRenderProcessTerminated(const browser: ICefBrowser;
       status: TCefTerminationStatus); override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -72,10 +72,10 @@ implementation
 
 { TCustomRequestHandler }
 
-constructor TDcefBRequestHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBRequestHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBRequestHandler.Destroy;

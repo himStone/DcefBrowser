@@ -32,7 +32,7 @@ uses
 type
   TDcefBDisplayHandler = class(TCefDisplayHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     procedure OnAddressChange(const browser: ICefBrowser;
       const frame: ICefFrame; const url: ustring); override;
@@ -45,7 +45,7 @@ type
     function OnConsoleMessage(const browser: ICefBrowser;
       const message, source: ustring; line: Integer): Boolean; override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -53,10 +53,10 @@ implementation
 
 { TCustomDisplayHandler }
 
-constructor TDcefBDisplayHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBDisplayHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBDisplayHandler.Destroy;

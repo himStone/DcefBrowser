@@ -32,7 +32,7 @@ uses
 type
   TDcefBRenderHandler = class(TCefRenderHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     function GetRootScreenRect(const browser: ICefBrowser; rect: PCefRect)
       : Boolean; override;
@@ -58,7 +58,7 @@ type
       operation: TCefDragOperation); override;
     procedure OnScrollOffsetChanged(const browser: ICefBrowser); override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -66,9 +66,9 @@ implementation
 
 { TDcefBRenderHandler }
 
-constructor TDcefBRenderHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBRenderHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBRenderHandler.Destroy;

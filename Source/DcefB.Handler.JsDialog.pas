@@ -32,7 +32,7 @@ uses
 type
   TDcefBJsDialogHandler = class(TCefJsDialogHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     function OnJsdialog(const browser: ICefBrowser;
       const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
@@ -45,7 +45,7 @@ type
     procedure OnResetDialogState(const browser: ICefBrowser); override;
     procedure OnDialogClosed(const browser: ICefBrowser); override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -53,10 +53,10 @@ implementation
 
 { TCustomJsDialogHandler }
 
-constructor TDcefBJsDialogHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBJsDialogHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBJsDialogHandler.Destroy;

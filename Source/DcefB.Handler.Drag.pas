@@ -32,13 +32,13 @@ uses
 type
   TDcefBDragHandler = class(TCefDragHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     function OnDragEnter(const browser: ICefBrowser;
       const dragData: ICefDragData; mask: TCefDragOperations): Boolean;
       override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -46,10 +46,10 @@ implementation
 
 { TDcefBDragHandler }
 
-constructor TDcefBDragHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBDragHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBDragHandler.Destroy;

@@ -32,14 +32,14 @@ uses
 type
   TDcefBDialogHandler = class(TCefDialogHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     function OnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
       const title: ustring; const defaultFileName: ustring;
       acceptTypes: TStrings; const callback: ICefFileDialogCallback)
       : Boolean; override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -47,10 +47,10 @@ implementation
 
 { TDcefBDialogHandler }
 
-constructor TDcefBDialogHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBDialogHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBDialogHandler.Destroy;

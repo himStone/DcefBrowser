@@ -32,7 +32,7 @@ uses
 type
   TDcefBKeyboardHandler = class(TCefKeyboardHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     function OnPreKeyEvent(const browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle;
@@ -40,7 +40,7 @@ type
     function OnKeyEvent(const browser: ICefBrowser; const event: PCefKeyEvent;
       osEvent: TCefEventHandle): Boolean; override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -48,10 +48,10 @@ implementation
 
 { TDcefBKeyboardHandler }
 
-constructor TDcefBKeyboardHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBKeyboardHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBKeyboardHandler.Destroy;

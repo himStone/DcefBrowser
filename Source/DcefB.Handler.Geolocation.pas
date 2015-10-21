@@ -32,7 +32,7 @@ uses
 type
   TDcefBGeolocationHandler = class(TCefGeolocationHandlerOwn)
   private
-    FEvents: IDcefBEvents;
+    FEvents: IDcefBrowser;
   protected
     function OnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer;
@@ -40,7 +40,7 @@ type
     procedure OnCancelGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer); override;
   public
-    constructor Create(aDcefBEvents: IDcefBEvents); reintroduce;
+    constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -48,10 +48,10 @@ implementation
 
 { TCustomGeolocationHandler }
 
-constructor TDcefBGeolocationHandler.Create(aDcefBEvents: IDcefBEvents);
+constructor TDcefBGeolocationHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
-  FEvents := aDcefBEvents;
+  FEvents := aDcefBrowser;
 end;
 
 destructor TDcefBGeolocationHandler.Destroy;
