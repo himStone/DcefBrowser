@@ -705,8 +705,9 @@ begin
   FEvents.doOnBeforeUnloadDialog(aBrowser, PArgs.messageText^, PArgs.isReload,
     PArgs.callback^, PArgs.Result^, PArgs.CancelDefaultEvent);
   if Not PArgs.CancelDefaultEvent then
-    PArgs.callback^.Cont(MessageBox(0, PChar(PArgs.messageText^ + #13#10 +
-      SUnloadDialogText), PChar(SUnloadDialogTitle), MB_OKCANCEL) = idOk, '');
+    PArgs.callback^.Cont(MessageBox(Self.Handle,
+      PChar(PArgs.messageText^ + #13#10 + SUnloadDialogText),
+      PChar(SUnloadDialogTitle), MB_OKCANCEL) = IDOK, '');
   Result := S_OK;
 end;
 
@@ -853,7 +854,7 @@ begin
           PArgs.suppressMessage^ := False;
           PArgs.Result^ := True;
           PArgs.callback^.Cont(MessageBox(Self.Handle, PChar(messageText),
-            PChar(originUrl + SDialogTitleSuffix), MB_YESNO) = IDYES, '');
+            PChar(originUrl + SDialogTitleSuffix), MB_OKCANCEL) = IDOK, '');
         end;
       JSDIALOGTYPE_PROMPT:
         begin
