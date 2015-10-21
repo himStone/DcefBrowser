@@ -9,7 +9,7 @@
   * the specific language governing rights and limitations under the License.
   *
   * Unit owner : BccSafe <bccsafe5988@gmail.com>
-  * QQ: 1262807955
+  * QQ         : 1262807955
   * Web site   : http://www.bccsafe.com
   * Repository : https://github.com/bccsafe/DcefBrowser
   *
