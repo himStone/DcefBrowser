@@ -32,6 +32,12 @@ type
   TBrowserDataChangeKind = (BrowserDataChange_StatusMessage,
     BrowserDataChange_Address, BrowserDataChange_Title);
 
+  TCloseBrowserType = (
+    // 默认，调用接口CloseBrowser
+    CLOSETYPE_DEFAULT,
+    // JS脚本
+    CLOSETYPE_JS);
+
   TOnDefaultTabChanged = TNotifyEvent;
   TOnDefaultTabChanging = procedure(Sender: TObject; var Allow: Boolean)
     of object;
@@ -43,6 +49,9 @@ type
   TOnAddBrowser = procedure(const browser: ICefBrowser) of object;
   TOnCloseBrowser = procedure(const CloseBrowserIdArr: Array of Integer;
     Const ShowBrowserId: Integer) of object;
+  TOnBeforeCloseBrowser = procedure(const CloseBrowserIdArr: Array of Integer;
+    const aCloseBrowserType: TCloseBrowserType; var ShowBrowserId: Integer)
+    of object;
 
   TOnLoadStart = procedure(const browser: ICefBrowser; const frame: ICefFrame)
     of object;
@@ -173,6 +182,8 @@ type
     procedure doOnAddBrowser(const browser: ICefBrowser);
     procedure doOnCloseBrowser(const CloseBrowserIdArr: Array of Integer;
       Const ShowBrowserId: Integer);
+    procedure doOnBeforeCloseBrowser(const CloseBrowserIdArr: Array of Integer;
+      const aCloseBrowserType: TCloseBrowserType; var ShowBrowserId: Integer);
 
     procedure doOnLoadStart(const browser: ICefBrowser; const frame: ICefFrame);
     procedure doOnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame;

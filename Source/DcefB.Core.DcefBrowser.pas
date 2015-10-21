@@ -57,6 +57,7 @@ type
     FOnStateChange: TOnStateChange;
     FOnAddBrowser: TOnAddBrowser;
     FOnCloseBrowser: TOnCloseBrowser;
+    FOnBeforeCloseBrowser: TOnBeforeCloseBrowser;
     FOnLoadStart: TOnLoadStart;
     FOnLoadEnd: TOnLoadEnd;
     FOnLoadError: TOnLoadError;
@@ -114,6 +115,8 @@ type
     procedure doOnAddBrowser(const browser: ICefBrowser);
     procedure doOnCloseBrowser(const CloseBrowserIdArr: Array of Integer;
       Const ShowBrowserId: Integer);
+    procedure doOnBeforeCloseBrowser(const CloseBrowserIdArr: Array of Integer;
+    const aCloseBrowserType: TCloseBrowserType; var ShowBrowserId: Integer);
 
     procedure doOnLoadStart(const browser: ICefBrowser; const frame: ICefFrame);
     procedure doOnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame;
@@ -324,6 +327,8 @@ type
     property OnAddBrowser: TOnAddBrowser read FOnAddBrowser write FOnAddBrowser;
     property OnCloseBrowser: TOnCloseBrowser read FOnCloseBrowser
       write FOnCloseBrowser;
+    property OnBeforeCloseBrowser: TOnBeforeCloseBrowser
+      read FOnBeforeCloseBrowser write FOnBeforeCloseBrowser;
     property OnLoadStart: TOnLoadStart read FOnLoadStart write FOnLoadStart;
     property OnLoadEnd: TOnLoadEnd read FOnLoadEnd write FOnLoadEnd;
     property OnLoadError: TOnLoadError read FOnLoadError write FOnLoadError;
@@ -411,6 +416,7 @@ type
     property OnStateChange;
     property OnAddBrowser;
     property OnCloseBrowser;
+    property OnBeforeCloseBrowser;
     property OnLoadStart;
     property OnLoadEnd;
     property OnLoadError;
@@ -840,6 +846,14 @@ procedure TCustomDcefBrowser.doOnBeforeBrowse(const browser: ICefBrowser;
 begin
   if Assigned(FOnBeforeBrowse) then
     FOnBeforeBrowse(browser, frame, request, isRedirect, Cancel);
+end;
+
+procedure TCustomDcefBrowser.doOnBeforeCloseBrowser(const CloseBrowserIdArr
+  : Array of Integer; const aCloseBrowserType: TCloseBrowserType;
+  var ShowBrowserId: Integer);
+begin
+  if Assigned(FOnBeforeCloseBrowser) then
+    FOnBeforeCloseBrowser(CloseBrowserIdArr, aCloseBrowserType, ShowBrowserId);
 end;
 
 procedure TCustomDcefBrowser.doOnBeforeContextMenu(const browser: ICefBrowser;
