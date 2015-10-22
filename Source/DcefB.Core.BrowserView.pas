@@ -267,10 +267,15 @@ begin
   ClosedUrlListLocker.Enter;
   try
     BrowserWrapperArr := FBrowserDic.Values.ToArray;
-    SetLength(ClosePageArr, High(BrowserWrapperArr));
     for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
+    begin
+      outputdebugstring(pchar(inttostr(BrowserWrapperArr[Index].Browser.Identifier)));
       if BrowserWrapperArr[Index].Browser.Identifier <> NeedShowBrowserId then
-        ClosePageArr[Index] := BrowserWrapperArr[Index].Browser.Identifier;
+      begin
+        SetLength(ClosePageArr, Length(ClosePageArr) + 1);
+        ClosePageArr[High(ClosePageArr)] := BrowserWrapperArr[Index].Browser.Identifier;
+      end;
+    end;
     FEvents.doOnBeforeCloseBrowser(ClosePageArr,
       TCloseBrowserType.CLOSETYPE_DEFAULT, NeedShowBrowserId);
 
