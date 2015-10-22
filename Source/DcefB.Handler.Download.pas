@@ -66,7 +66,7 @@ procedure TDcefBDownloadHandler.OnBeforeDownload(const browser: ICefBrowser;
   const callback: ICefBeforeDownloadCallback);
 var
   PArgs: PBeforeDownloadArgs;
-  CancelDefaultEvent: Boolean;
+  //CancelDefaultEvent: Boolean;
 begin
   inherited;
   New(PArgs);

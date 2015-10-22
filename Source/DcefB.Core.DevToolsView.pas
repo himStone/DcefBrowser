@@ -34,7 +34,6 @@ type
   TDevToolsView = class(TWinControl)
   private
     FBrowserDic: TDictionary<Integer, ICefBrowser>;
-    procedure test();
     procedure CreateDevTools(const browser: ICefBrowser;
       inspectElementAt: PCefPoint = nil);
   protected
@@ -79,7 +78,6 @@ procedure TDevToolsView.CreateDevTools(const browser: ICefBrowser;
 var
   info: TCefWindowInfo;
   setting: TCefBrowserSettings;
-  rect: TRect;
 begin
 
   FillChar(info, SizeOf(info), 0);
@@ -133,9 +131,6 @@ end;
 procedure TDevToolsView.ShowDevTools(const browser: ICefBrowser;
   inspectElementAt: PCefPoint);
 var
-  info: TCefWindowInfo;
-  setting: TCefBrowserSettings;
-  rect: TRect;
   MyBrowser: ICefBrowser;
 begin
   if browser = nil then
@@ -156,11 +151,6 @@ begin
   finally
     DevToolsBroListLocker.Exit;
   end;
-end;
-
-procedure TDevToolsView.test;
-begin
-
 end;
 
 procedure TDevToolsView.WndProc(var Message: TMessage);

@@ -49,7 +49,7 @@ type
       var bytesRead: Integer; const callback: ICefCallback): Boolean; override;
 
   public
-    constructor Create(const browser: ICefBrowser; const frame: ICefFrame;
+    constructor create(const browser: ICefBrowser; const frame: ICefFrame;
       const schemeName: ustring; const request: ICefRequest); override;
     destructor Destroy; override;
   end;

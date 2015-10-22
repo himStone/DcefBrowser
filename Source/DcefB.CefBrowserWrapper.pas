@@ -38,7 +38,7 @@ type
     FLastAddress: string;
   public
     constructor Create(aBrowser: ICefBrowser);
-    destructor Destroy;
+    destructor Destroy; override;
 
     property LoadingState: Integer read FLoadingState write FLoadingState;
     property LastTitle: string read FLastTitle write FLastTitle;
@@ -48,7 +48,7 @@ type
 
   TBrowserWrapperDic = class(TDictionary<Integer, TCefBrowserWrapper>)
   public
-    function Add(aBrowser: ICefBrowser): Integer;
+    procedure Add(aBrowser: ICefBrowser);
     procedure Clear;
   end;
 
@@ -75,7 +75,7 @@ end;
 
 { TBrowserWrapperDic }
 
-function TBrowserWrapperDic.Add(aBrowser: ICefBrowser): Integer;
+procedure TBrowserWrapperDic.Add(aBrowser: ICefBrowser);
 var
   aCefBrowserWrapper: TCefBrowserWrapper;
 begin
