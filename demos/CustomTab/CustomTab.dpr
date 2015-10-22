@@ -8,6 +8,7 @@ uses
 {$R *.res}
 
 begin
+  CefSingleProcess := False;
   if not CefLoadLibDefault then
     Exit;
 

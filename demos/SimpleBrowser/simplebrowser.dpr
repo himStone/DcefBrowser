@@ -8,7 +8,8 @@ uses
 {$R *.res}
 
 begin
-  if not CefLoadLibDefault then
+  CefSingleProcess := False;
+   if not CefLoadLibDefault then
     Exit;
 
   Application.Initialize;
