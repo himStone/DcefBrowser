@@ -213,7 +213,7 @@ end;
 procedure TBrowserView.CloseAllBrowser(const aIsTrigClosePageEvent: Boolean);
 var
   ClosePageArr: Array of Integer;
-  Index: Integer;
+  Index, Id: Integer;
   BrowserWrapperArr: TArray<TCefBrowserWrapper>;
   NeedShowBrowserId: Integer;
 begin
@@ -231,12 +231,14 @@ begin
 
     for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
     begin
+      Id := BrowserWrapperArr[Index].Browser.identifier;
       FClosedURL.Add(BrowserWrapperArr[Index].Browser.MainFrame.Url);
       BrowserWrapperArr[Index].Browser.StopLoad;
       DestroyWindow(BrowserWrapperArr[Index].Browser.host.WindowHandle);
       if Not BrowserWrapperArr[Index].Browser.IsPopup then
         RemoveClientHandle(BrowserWrapperArr[Index].Browser);
       BrowserWrapperArr[Index].Free;
+      FBrowserDic.Remove(Id);
     end;
     SetLength(BrowserWrapperArr, 0);
 
@@ -255,7 +257,7 @@ end;
 function TBrowserView.CloseAllOtherBrowser(const aBrowserId: Integer): Boolean;
 var
   ClosePageArr: Array of Integer;
-  Index: Integer;
+  Index, Id: Integer;
   BrowserWrapperArr: TArray<TCefBrowserWrapper>;
   NeedShowBrowserId: Integer;
 begin
@@ -273,8 +275,9 @@ begin
       TCloseBrowserType.CLOSETYPE_DEFAULT, NeedShowBrowserId);
 
     for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
-      if BrowserWrapperArr[Index].Browser.Identifier <> NeedShowBrowserId then
+      if BrowserWrapperArr[Index].Browser.Identifier <> aBrowserId then
       begin
+        id :=  BrowserWrapperArr[Index].Browser.identifier;
         FClosedURL.Add(BrowserWrapperArr[Index].Browser.MainFrame.Url);
         BrowserWrapperArr[Index].Browser.StopLoad;
         Result := DestroyWindow(BrowserWrapperArr[Index]
@@ -282,13 +285,12 @@ begin
         if Not BrowserWrapperArr[Index].Browser.IsPopup then
           RemoveClientHandle(BrowserWrapperArr[Index].Browser);
         BrowserWrapperArr[Index].Free;
+        FBrowserDic.Remove(id);
       end;
     SetLength(BrowserWrapperArr, 0);
 
     FEvents.doOnCloseBrowser(ClosePageArr, -1);
     SetLength(ClosePageArr, 0);
-
-    ShowBrowser(NeedShowBrowserId);
   finally
     BrowserDicLocker.Exit;
     ClosedUrlListLocker.Exit;
