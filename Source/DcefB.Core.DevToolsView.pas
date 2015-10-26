@@ -28,7 +28,8 @@ interface
 uses
   Winapi.Windows, System.Classes, Vcl.Controls, Winapi.Messages, Vcl.ExtCtrls,
   Generics.Collections, Vcl.Forms,
-  DcefB.Dcef3.CefLib, DcefB.res, DcefB.Locker;
+  DcefB.Cef3.Types, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
+  DcefB.Cef3.Helper, DcefB.res, DcefB.Locker;
 
 type
   TDevToolsView = class(TWinControl)
@@ -87,7 +88,7 @@ begin
   info.y := 0;
   info.Width := Screen.Width;
   info.Height := Screen.Height;
-  info.window_name := CefString('DevTools');
+  info.window_name := TCef3Helper.CefString('DevTools');
 
   FillChar(setting, SizeOf(setting), 0);
   setting.size := SizeOf(setting);

@@ -27,7 +27,7 @@ interface
 
 uses
   System.Classes,
-  DcefB.Dcef3.CefLib;
+  DcefB.Cef3.Types, DcefB.Cef3.Classes, DcefB.Cef3.Interfaces;
 
 type
   Pustring = ^ustring;

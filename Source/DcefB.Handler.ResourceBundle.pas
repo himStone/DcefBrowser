@@ -21,34 +21,37 @@
   *
 *)
 
-unit DcefB.Utils;
+unit DcefB.Handler.ResourceBundle;
 
 interface
 
 uses
-  WinApi.Windows, System.Classes, DcefB.Cef3.Interfaces;
+  System.Classes, System.SysUtils, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
+  DcefB.Cef3.Types, DcefB.BaseObject, DcefB.res;
 
 type
-  TDcefBUtils = record
-    class function GetCefParentWindow(aBrowser: ICefBrowser): HWND; static;
-    class function SendMsg(aBrowser: ICefBrowser; Msg: UINT; LParam: LParam)
-      : Boolean; static;
+  TDcefBResourceBundleHandler = class(TCefResourceBundleHandlerOwn)
+  protected
+    function GetDataResource(resourceId: Integer; out data: Pointer;
+      out dataSize: NativeUInt): Boolean; override;
+    function GetLocalizedString(messageId: Integer; out stringVal: ustring)
+      : Boolean; override;
   end;
 
 implementation
 
-{ TDcefBUtils }
+{ TDcefBResourceBundleHandler }
 
-class function TDcefBUtils.GetCefParentWindow(aBrowser: ICefBrowser): HWND;
+function TDcefBResourceBundleHandler.GetDataResource(resourceId: Integer;
+  out data: Pointer; out dataSize: NativeUInt): Boolean;
 begin
-  Result := GetParent(aBrowser.host.WindowHandle);
+  Result := False;
 end;
 
-class function TDcefBUtils.SendMsg(aBrowser: ICefBrowser; Msg: UINT;
-  LParam: LParam): Boolean;
+function TDcefBResourceBundleHandler.GetLocalizedString(messageId: Integer;
+  out stringVal: ustring): Boolean;
 begin
-  Result := SendMessage(GetCefParentWindow(aBrowser), Msg, WParam(@aBrowser),
-    LParam) <> S_FALSE;
+  Result := False;
 end;
 
 end.

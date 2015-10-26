@@ -27,7 +27,8 @@ interface
 
 uses
   WinApi.Windows, System.Classes,
-  DcefB.Dcef3.CefLib, DcefB.Events, DcefB.res, DcefB.Utils;
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.Cef3.Api,
+  DcefB.Events, DcefB.res, DcefB.Utils;
 
 type
   TDcefBRenderHandler = class(TCefRenderHandlerOwn)

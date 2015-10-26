@@ -29,8 +29,9 @@ uses
   Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, System.SysUtils,
   Winapi.Messages, System.Math, Generics.Collections,
 
-  DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
-  DcefB.Events, DcefB.Core.BrowserView, DcefB.Core.DefaultRenderHandler,
+  DcefB.Cef3.Types, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
+  DcefB.Cef3.Helper, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
+  DcefB.Events, DcefB.Core.BrowserView,
   DcefB.Core.BrowserHandler, DcefB.res, DcefB.CefBrowserWrapper,
   DcefB.Core.DevToolsView;
 
@@ -116,7 +117,7 @@ type
     procedure doOnCloseBrowser(const CloseBrowserIdArr: Array of Integer;
       Const ShowBrowserId: Integer);
     procedure doOnBeforeCloseBrowser(const CloseBrowserIdArr: Array of Integer;
-    const aCloseBrowserType: TCloseBrowserType; var ShowBrowserId: Integer);
+      const aCloseBrowserType: TCloseBrowserType; var ShowBrowserId: Integer);
 
     procedure doOnLoadStart(const browser: ICefBrowser; const frame: ICefFrame);
     procedure doOnLoadEnd(const browser: ICefBrowser; const frame: ICefFrame;
@@ -289,9 +290,6 @@ type
       Const TimeOut: Integer = 1000): Boolean;
     function GetText(var aText: string; Const TimeOut: Integer = 1000): Boolean;
     // --------
-
-    class procedure CreateDefaultRenderProcess;
-    class procedure RegisterClasses(const aObjList: array of TClass);
 
     property BrowserWrappers[aBrowserID: Integer]: TCefBrowserWrapper
       read GetWrapperBrowsers;
@@ -611,12 +609,6 @@ begin
   FBrowserView.Align := alClient;
 end;
 
-class procedure TCustomDcefBrowser.CreateDefaultRenderProcess;
-begin
-  if not Assigned(CefRenderProcessHandler) then
-    CefRenderProcessHandler := TDefaultRenderProcessHandler.Create;
-end;
-
 procedure TCustomDcefBrowser.CreateDefaultTabsControl(const aHeight: Integer);
 begin
   if Not Assigned(FDefaultTabControl) then
@@ -636,36 +628,6 @@ begin
   { FDevToolsView.Parent := Self;
     FDevToolsView.Align := alBottom;
     FDevToolsView.Height := 10; }
-end;
-
-class procedure TCustomDcefBrowser.RegisterClasses(const aObjList
-  : array of TClass);
-var
-  i, J, C: Integer;
-  AFound: Boolean;
-begin
-  CreateDefaultRenderProcess;
-
-  C := Length(TDefaultRenderProcessHandler.Classes);
-  SetLength(TDefaultRenderProcessHandler.Classes, C + Length(aObjList));
-  for i := 0 to High(aObjList) do
-  begin
-    AFound := False;
-    for J := 0 to C - 1 do
-    begin
-      if TDefaultRenderProcessHandler.Classes[J] = aObjList[i] then
-      begin
-        AFound := True;
-        Break;
-      end;
-    end;
-    if not AFound then
-    begin
-      TDefaultRenderProcessHandler.Classes[C] := aObjList[i];
-      Inc(C);
-    end;
-  end;
-  SetLength(TDefaultRenderProcessHandler.Classes, C);
 end;
 
 destructor TCustomDcefBrowser.Destroy;
@@ -1188,23 +1150,25 @@ begin
   Assert(Settings.size >= SizeOf(Settings));
   Settings.windowless_frame_rate := FChromiumOptions.WindowlessFrameRate;
 
-  Settings.standard_font_family :=
-    CefString(FChromiumFontOptions.StandardFontFamily);
-  Settings.fixed_font_family := CefString(FChromiumFontOptions.FixedFontFamily);
-  Settings.serif_font_family := CefString(FChromiumFontOptions.SerifFontFamily);
-  Settings.sans_serif_font_family :=
-    CefString(FChromiumFontOptions.SansSerifFontFamily);
-  Settings.cursive_font_family :=
-    CefString(FChromiumFontOptions.CursiveFontFamily);
-  Settings.fantasy_font_family :=
-    CefString(FChromiumFontOptions.FantasyFontFamily);
+  Settings.standard_font_family := TCef3Helper.CefString
+    (FChromiumFontOptions.StandardFontFamily);
+  Settings.fixed_font_family := TCef3Helper.CefString
+    (FChromiumFontOptions.FixedFontFamily);
+  Settings.serif_font_family := TCef3Helper.CefString
+    (FChromiumFontOptions.SerifFontFamily);
+  Settings.sans_serif_font_family := TCef3Helper.CefString
+    (FChromiumFontOptions.SansSerifFontFamily);
+  Settings.cursive_font_family := TCef3Helper.CefString
+    (FChromiumFontOptions.CursiveFontFamily);
+  Settings.fantasy_font_family := TCef3Helper.CefString
+    (FChromiumFontOptions.FantasyFontFamily);
   Settings.default_font_size := FChromiumFontOptions.DefaultFontSize;
   Settings.default_fixed_font_size := FChromiumFontOptions.DefaultFixedFontSize;
   Settings.minimum_font_size := FChromiumFontOptions.MinimumFontSize;
   Settings.minimum_logical_font_size :=
     FChromiumFontOptions.MinimumLogicalFontSize;
   Settings.remote_fonts := FChromiumFontOptions.RemoteFonts;
-  Settings.default_encoding := CefString(DefaultEncoding);
+  Settings.default_encoding := TCef3Helper.CefString(DefaultEncoding);
 
   Settings.javascript := FChromiumOptions.javascript;
   Settings.javascript_open_windows := FChromiumOptions.JavascriptOpenWindows;

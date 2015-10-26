@@ -30,16 +30,16 @@ uses
   Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, System.SysUtils,
   Winapi.Messages, System.Math, Generics.Collections,
 
-  DcefB.Dcef3.CefLib, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
-  DcefB.Events, DcefB.Handler.Focus, DcefB.CefBrowserWrapper,
-  DcefB.Core.DefaultRenderHandler, DcefB.Dcef3.CefErr, DcefB.Handler.Basic,
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.BaseObject,
+  DcefB.Locker, DcefB.Settings, DcefB.Events, DcefB.Handler.Focus, DcefB.CefBrowserWrapper,
+  DcefB.Dcef3.CefErr, DcefB.Handler.Basic,
   DcefB.Core.BrowserHandler, DcefB.res, DcefB.Utils;
 
 type
   TBrowserView = class(TWinControl)
   private
     FEvents: IDcefBrowser;
-    FCltHandleDic: TClientDic;
+    FHandler: ICefClient;
     FBrowserDic: TBrowserWrapperDic;
     FClosedURL: TStringList;
     FDcefBOptions: TDcefBOptions;
@@ -97,8 +97,6 @@ type
 
     procedure HideCurrentBrowserWindow;
     function GetEmpty: Boolean;
-    procedure RemoveClientHandle(const aBrowser: ICefBrowser;
-      const NeedLock: Boolean = True);
     procedure ClearInterface;
     procedure CreateCefWindow(aUrl: string);
 
@@ -177,6 +175,9 @@ type
 
 implementation
 
+uses
+  DcefB.Core.App;
+
 { TBrowserView }
 
 procedure TBrowserView.AddPage(const aUrl, aDefaultUrl: string);
@@ -193,14 +194,15 @@ end;
 procedure TBrowserView.ClearInterface;
 begin
   BrowserDicLocker.Enter;
-  CltHandleDicLocker.Enter;
   try
     FBrowserDic.Clear;
-    FCltHandleDic.Clear;
   finally
     BrowserDicLocker.Exit;
-    CltHandleDicLocker.Exit;
   end;
+
+  if FHandler <> nil then
+    (FHandler as ICefClientHandler).Disconnect;
+  FHandler := nil;
 end;
 
 function TBrowserView.CloseBrowser(const aCloseBrowserId, aShowBrowserId
@@ -231,12 +233,10 @@ begin
 
     for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
     begin
-      Id := BrowserWrapperArr[Index].Browser.identifier;
+      Id := BrowserWrapperArr[Index].Browser.Identifier;
       FClosedURL.Add(BrowserWrapperArr[Index].Browser.MainFrame.Url);
       BrowserWrapperArr[Index].Browser.StopLoad;
       DestroyWindow(BrowserWrapperArr[Index].Browser.host.WindowHandle);
-      if Not BrowserWrapperArr[Index].Browser.IsPopup then
-        RemoveClientHandle(BrowserWrapperArr[Index].Browser);
       BrowserWrapperArr[Index].Free;
       FBrowserDic.Remove(Id);
     end;
@@ -269,11 +269,11 @@ begin
     BrowserWrapperArr := FBrowserDic.Values.ToArray;
     for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
     begin
-      outputdebugstring(pchar(inttostr(BrowserWrapperArr[Index].Browser.Identifier)));
       if BrowserWrapperArr[Index].Browser.Identifier <> NeedShowBrowserId then
       begin
         SetLength(ClosePageArr, Length(ClosePageArr) + 1);
-        ClosePageArr[High(ClosePageArr)] := BrowserWrapperArr[Index].Browser.Identifier;
+        ClosePageArr[High(ClosePageArr)] := BrowserWrapperArr[Index]
+          .Browser.Identifier;
       end;
     end;
     FEvents.doOnBeforeCloseBrowser(ClosePageArr,
@@ -282,15 +282,13 @@ begin
     for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
       if BrowserWrapperArr[Index].Browser.Identifier <> aBrowserId then
       begin
-        id :=  BrowserWrapperArr[Index].Browser.identifier;
+        Id := BrowserWrapperArr[Index].Browser.Identifier;
         FClosedURL.Add(BrowserWrapperArr[Index].Browser.MainFrame.Url);
         BrowserWrapperArr[Index].Browser.StopLoad;
         Result := DestroyWindow(BrowserWrapperArr[Index]
           .Browser.host.WindowHandle);
-        if Not BrowserWrapperArr[Index].Browser.IsPopup then
-          RemoveClientHandle(BrowserWrapperArr[Index].Browser);
         BrowserWrapperArr[Index].Free;
-        FBrowserDic.Remove(id);
+        FBrowserDic.Remove(Id);
       end;
     SetLength(BrowserWrapperArr, 0);
 
@@ -337,7 +335,6 @@ begin
   FIsActivating := True;
   FLoadingState := 0 or State_IsLoading;
 
-  FCltHandleDic := TClientDic.Create;
   FBrowserDic := TBrowserWrapperDic.Create;
   FClosedURL := TStringList.Create;
 end;
@@ -347,12 +344,12 @@ var
   info: TCefWindowInfo;
   Settings: TCefBrowserSettings;
   Rect: TRect;
-  aClientHandler: ICefClient;
   aBrowser: ICefBrowser;
 begin
   HideCurrentBrowserWindow;
 
-  aClientHandler := TDcefBHandler.Create(False, FEvents);
+  if FHandler = nil then
+    FHandler := TDcefBHandler.Create(False, FEvents);
   FillChar(info, SizeOf(info), 0);
   Rect := ClientRect;
   info.Style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or
@@ -368,19 +365,11 @@ begin
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
   CefBrowserHostCreate(@info, aClientHandler, FDefaultUrl, @Settings, nil);
 {$ELSE}
-  CefLoadLibDefault;
-  aBrowser := CefBrowserHostCreateSync(@info, aClientHandler, aUrl,
-    @Settings, nil);
+  if DcefBApp.IsNeedInitInMainProcess then
+    raise exception.create(EXP_CEFNOTLOADINMAINPRO);
+  DcefBApp.Init;
+  aBrowser := DcefBApp.CefBrowserHostCreateSync(@info, FHandler, aUrl, @Settings, nil);
 {$ENDIF}
-  if Assigned(aBrowser) then
-  begin
-    CltHandleDicLocker.Enter;
-    try
-      FCltHandleDic.Add(aBrowser.Identifier, aClientHandler);
-    finally
-      CltHandleDicLocker.Exit;
-    end;
-  end;
 end;
 
 destructor TBrowserView.Destroy;
@@ -388,7 +377,6 @@ begin
   FEvents := nil;
   FActiveBrowser := nil;
   ClearInterface;
-  FCltHandleDic.Free;
   FBrowserDic.Free;
   FClosedURL.Free;
   inherited;
@@ -596,8 +584,6 @@ begin
       Result := DestroyWindow(aCloseBrowserWrapper.Browser.host.WindowHandle);
       FEvents.doOnCloseBrowser(ClosePageArr, NeedShowBrowserId);
       SetLength(ClosePageArr, 0);
-      if Not aCloseBrowserWrapper.Browser.IsPopup then
-        RemoveClientHandle(aCloseBrowserWrapper.Browser);
 
       aCloseBrowserWrapper.Free;
       FBrowserDic.Remove(aCloseBrowserId);
@@ -1158,25 +1144,6 @@ begin
   end;
 end;
 
-procedure TBrowserView.RemoveClientHandle(const aBrowser: ICefBrowser;
-  const NeedLock: Boolean);
-var
-  aClient: ICefClient;
-begin
-  if NeedLock then
-    CltHandleDicLocker.Enter;
-  try
-    FCltHandleDic.TryGetValue(aBrowser.Identifier, aClient);
-    if aClient <> nil then
-      (aClient as ICefClientHandler).Disconnect;
-    aClient := nil;
-    FCltHandleDic.Remove(aBrowser.Identifier);
-  finally
-    if NeedLock then
-      CltHandleDicLocker.Exit;
-  end;
-end;
-
 procedure TBrowserView.ReOpenClosedPage;
 begin
   ClosedUrlListLocker.Enter;
@@ -1203,7 +1170,7 @@ var
   AMsg: ICefProcessMessage;
   ATemp: Pointer;
 begin
-  if CefSingleProcess then
+  if DcefBApp.CefSingleProcess then
   begin
     if ActiveBrowser <> nil then
     begin

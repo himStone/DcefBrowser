@@ -93,6 +93,9 @@ Const
   SUnloadDialogText = '确定要离开此页吗？';
   SRunOnlyInSinglePro = '暂时只支持单进程模式';
 
+  EXP_CEFLIBNOTLOAD = 'TDcefBApp.LoadLib must be called first';
+  EXP_CEFNOTLOADINMAINPRO = 'TDcefBApp.LoadLib must be called first in the main process';
+
 implementation
 
 end.

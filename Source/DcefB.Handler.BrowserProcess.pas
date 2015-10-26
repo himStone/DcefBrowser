@@ -21,34 +21,46 @@
   *
 *)
 
-unit DcefB.Utils;
+unit DcefB.Handler.BrowserProcess;
 
 interface
 
 uses
-  WinApi.Windows, System.Classes, DcefB.Cef3.Interfaces;
+  System.Classes, System.SysUtils, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
+  DcefB.Cef3.Types, DcefB.Cef3.Api, DcefB.BaseObject, DcefB.res;
 
 type
-  TDcefBUtils = record
-    class function GetCefParentWindow(aBrowser: ICefBrowser): HWND; static;
-    class function SendMsg(aBrowser: ICefBrowser; Msg: UINT; LParam: LParam)
-      : Boolean; static;
+  TDcefBBrowserProcessHandler = class(TCefBrowserProcessHandlerOwn)
+  protected
+    procedure OnContextInitialized; override;
+    procedure OnBeforeChildProcessLaunch(const commandLine
+      : ICefCommandLine); override;
+    procedure OnRenderProcessThreadCreated(const extraInfo
+      : ICefListValue); override;
   end;
 
 implementation
 
-{ TDcefBUtils }
+{ TDcefBBrowserProcessHandler }
 
-class function TDcefBUtils.GetCefParentWindow(aBrowser: ICefBrowser): HWND;
+procedure TDcefBBrowserProcessHandler.OnBeforeChildProcessLaunch(
+  const commandLine: ICefCommandLine);
 begin
-  Result := GetParent(aBrowser.host.WindowHandle);
+  inherited;
+
 end;
 
-class function TDcefBUtils.SendMsg(aBrowser: ICefBrowser; Msg: UINT;
-  LParam: LParam): Boolean;
+procedure TDcefBBrowserProcessHandler.OnContextInitialized;
 begin
-  Result := SendMessage(GetCefParentWindow(aBrowser), Msg, WParam(@aBrowser),
-    LParam) <> S_FALSE;
+  inherited;
+
+end;
+
+procedure TDcefBBrowserProcessHandler.OnRenderProcessThreadCreated(
+  const extraInfo: ICefListValue);
+begin
+  inherited;
+
 end;
 
 end.

@@ -26,7 +26,7 @@ unit DcefB.Events;
 interface
 
 uses
-  System.Classes, DcefB.Dcef3.CefLib;
+  System.Classes, DcefB.Cef3.Interfaces, DcefB.Cef3.Types;
 
 type
   TBrowserDataChangeKind = (BrowserDataChange_StatusMessage,
@@ -41,6 +41,8 @@ type
   TOnDefaultTabChanged = TNotifyEvent;
   TOnDefaultTabChanging = procedure(Sender: TObject; var Allow: Boolean)
     of object;
+  TRenderProcessCallbackA = reference to procedure(aBrowser: ICefBrowser;
+    aContext: ICefv8Context; aData: Pointer);
 
   TOnLoadingStateChange = procedure(const browser: ICefBrowser;
     isLoading, canGoBack, canGoForward: Boolean) of object;
@@ -169,6 +171,12 @@ type
   TOnResetDialogState = procedure(const browser: ICefBrowser) of object;
   TOnRenderProcessTerminated = procedure(const browser: ICefBrowser;
     status: TCefTerminationStatus) of object;
+
+  // -------------------------------------------
+
+
+
+  // -------------------------------------------
 
   IDcefBrowser = interface
     procedure GetSettings(var Settings: TCefBrowserSettings);

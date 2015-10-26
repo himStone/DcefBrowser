@@ -27,7 +27,7 @@ interface
 
 uses
   Winapi.Windows, System.Classes, Generics.Collections,
-  DcefB.Dcef3.CefLib, DcefB.res, DcefB.Handler.Basic;
+  DcefB.Cef3.Interfaces, DcefB.res, DcefB.Handler.Basic;
 
 type
   TCefBrowserWrapper = class

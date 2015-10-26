@@ -26,7 +26,8 @@ unit DcefB.CefEvents;
 interface
 
 uses
-  Classes, DcefB.Dcef3.CefLib;
+  Classes, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types,
+  DcefB.Cef3.Api;
 
 type
   TOnProcessMessageReceived = procedure(Sender: TObject;

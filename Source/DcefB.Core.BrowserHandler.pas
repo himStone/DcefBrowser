@@ -28,7 +28,8 @@ interface
 uses
   Windows, Classes, SysUtils, Controls, Winapi.Messages,
 
-  DcefB.CefEvents, DcefB.Dcef3.CefLib, DcefB.res, DcefB.Events,
+  DcefB.CefEvents, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types,
+  DcefB.res, DcefB.Events,
   // Handler Unit
   DcefB.Handler.Display, DcefB.Handler.Dialog, DcefB.Handler.Download,
   DcefB.Handler.Focus, DcefB.Handler.Geolocation, DcefB.Handler.JsDialog,
@@ -87,6 +88,9 @@ var
 
 implementation
 
+uses
+  DcefB.Core.App;
+
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
 
 var
@@ -105,7 +109,7 @@ begin
   begin
     looping := True;
     try
-      CefDoMessageLoopWork;
+      DcefBApp.CefDoMessageLoopWork;
     finally
       looping := False;
     end;

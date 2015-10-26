@@ -27,7 +27,8 @@ interface
 
 uses
   Winapi.Windows, System.Classes,
-  DcefB.Dcef3.CefLib, DcefB.Events, DcefB.res, DcefB.Utils, DcefB.BaseObject;
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.Events,
+  DcefB.res, DcefB.Utils, DcefB.BaseObject;
 
 type
   TDcefBDownloadHandler = class(TCefDownloadHandlerOwn)
@@ -66,7 +67,7 @@ procedure TDcefBDownloadHandler.OnBeforeDownload(const browser: ICefBrowser;
   const callback: ICefBeforeDownloadCallback);
 var
   PArgs: PBeforeDownloadArgs;
-  //CancelDefaultEvent: Boolean;
+  // CancelDefaultEvent: Boolean;
 begin
   inherited;
   New(PArgs);
