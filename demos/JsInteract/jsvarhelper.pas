@@ -4,8 +4,10 @@ unit jsvarhelper;
 
 interface
 
-uses classes, sysutils, types, DcefB.Dcef3.CefLib, DcefB.Core.DcefBrowser,
-  syncobjs, variants;
+uses
+  classes, sysutils, types, syncobjs, variants,
+  DcefB.Core.App, DcefB.Cef3.Interfaces, DcefB.Cef3.classes,
+  DcefB.Core.DcefBrowser;
 
 type
 

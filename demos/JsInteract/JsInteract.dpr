@@ -2,16 +2,14 @@ program JsInteract;
 
 uses
   Vcl.Forms,
-  DcefB.Core.DcefBrowser,
-  DcefB.Dcef3.CefLib,
+  DcefB.Core.App,
   UnitFrmMain in 'UnitFrmMain.pas' {MainForm};
 
 {$R *.res}
 
 begin
-  // CefSingleProcess := False;
-  TDcefBrowser.CreateDefaultRenderProcess;
-  if not CefLoadLibDefault then
+  // DcefBApp.CefSingleProcess := False;
+  if not DcefBApp.Init then
     Exit;
 
   Application.Initialize;

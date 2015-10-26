@@ -6,7 +6,8 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.ComCtrls, Vcl.Menus, Vcl.StdCtrls, Vcl.ExtCtrls, System.Actions,
-  Vcl.ActnList, DcefB.Dcef3.CefLib, DcefB.Events, DcefB.Core.DcefBrowser;
+  Vcl.ActnList, DcefB.Events, DcefB.Core.DcefBrowser, DcefB.Cef3.Interfaces,
+  DcefB.Cef3.Types;
 
 type
   TMainForm = class(TForm)
@@ -36,7 +37,7 @@ type
     procedure ActCanGoForwardExecute(Sender: TObject);
     procedure MyCustomTabsChange(Sender: TObject);
     procedure N1Click(Sender: TObject);
-    function GetTabsheetByPageID(Const PageID: Integer): TTabsheet;
+    function GetTabsheetByBrowserID(Const aBrowserID: Integer): TTabsheet;
     procedure DcefBrowser1AddBrowser(const browser: ICefBrowser);
     procedure DcefBrowser1CloseBrowser(
       const CloseBrowserIdArr: array of Integer; const ShowBrowserId: Integer);
@@ -117,13 +118,13 @@ begin
     GetShowBrowserId(MyCustomTabs.ActivePageIndex));
 end;
 
-function TMainForm.GetTabsheetByPageID(Const PageID: Integer): TTabsheet;
+function TMainForm.GetTabsheetByBrowserID(Const aBrowserID: Integer): TTabsheet;
 var
   i: Integer;
 begin
   Result := nil;
   for i := 0 to MyCustomTabs.PageCount - 1 do
-    if MyCustomTabs.Pages[i].Tag = PageID then
+    if MyCustomTabs.Pages[i].Tag = aBrowserID then
     begin
       Result := MyCustomTabs.Pages[i];
       Break;
@@ -148,10 +149,10 @@ var
   Index: Integer;
   MyShowTabsheet, MyCloseTabsheet: TTabsheet;
 begin
-  MyShowTabsheet := GetTabsheetByPageID(ShowBrowserID);
+  MyShowTabsheet := GetTabsheetByBrowserID(ShowBrowserID);
   for Index := Low(CloseBrowserIdArr) to High(CloseBrowserIdArr) do
   begin
-    MyCloseTabsheet := GetTabsheetByPageID(Index);
+    MyCloseTabsheet := GetTabsheetByBrowserID(CloseBrowserIdArr[Index]);
     if MyCloseTabsheet <> nil then
       MyCloseTabsheet.Free;
   end;
@@ -177,7 +178,7 @@ begin
     end;
   if BrowserDataChange_Title = Kind then
   begin
-    MyTabsheet := GetTabsheetByPageID(browser.Identifier);
+    MyTabsheet := GetTabsheetByBrowserID(browser.Identifier);
     if MyTabsheet <> nil then
       MyTabsheet.Caption := Value;
   end;

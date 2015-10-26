@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
-  DcefB.Core.DcefBrowser, DcefB.Dcef3.CefLib, jsvarhelper;
+  DcefB.Core.DcefBrowser, DcefB.Core.App, jsvarhelper;
 
 type
   TMainForm = class(TForm)

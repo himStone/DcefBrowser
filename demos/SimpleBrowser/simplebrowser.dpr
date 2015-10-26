@@ -2,14 +2,14 @@ program simplebrowser;
 
 uses
   Vcl.Forms,
-  DcefB.Dcef3.CefLib,
+  DcefB.Core.App,
   Unit1 in 'Unit1.pas' {Form1};
 
 {$R *.res}
 
 begin
-  CefSingleProcess := False;
-   if not CefLoadLibDefault then
+  DcefBApp.CefSingleProcess := False;
+   if not DcefBApp.Init then
     Exit;
 
   Application.Initialize;

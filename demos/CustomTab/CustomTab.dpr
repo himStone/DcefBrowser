@@ -2,14 +2,14 @@ program CustomTab;
 
 uses
   Vcl.Forms,
-  DcefB.Dcef3.CefLib,
+  DcefB.Core.App,
   UnitFrmMain in 'UnitFrmMain.pas' {MainForm};
 
 {$R *.res}
 
 begin
-  CefSingleProcess := False;
-  if not CefLoadLibDefault then
+  DcefBApp.CefSingleProcess := False;
+  if not DcefBApp.Init then
     Exit;
 
   Application.Initialize;
