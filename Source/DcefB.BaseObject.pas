@@ -26,7 +26,7 @@ unit DcefB.BaseObject;
 interface
 
 uses
-  System.Classes,
+  System.Classes, Rtti, TypInfo, Variants,
   DcefB.Cef3.Types, DcefB.Cef3.Classes, DcefB.Cef3.Interfaces;
 
 type
@@ -200,6 +200,13 @@ type
     dragData: PICefDragData;
     mask: PCefDragOperations;
     Result: PBoolean;
+  end;
+
+  TRegExtentionPar = record
+    name: ustring;
+    code: ustring;
+    Handler: ICefv8Handler;
+    value: TValue;
   end;
 
 implementation

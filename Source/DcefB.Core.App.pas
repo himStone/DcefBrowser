@@ -47,7 +47,7 @@ uses
 {$IFNDEF FPC}
 {$ENDIF},
   DcefB.Cef3.Interfaces, DcefB.Cef3.Types, DcefB.Cef3.Api, DcefB.Cef3.Classes,
-  DcefB.res, DcefB.Cef3.Helper, DcefB.Handler.ResourceBundle,
+  DcefB.res, DcefB.Cef3.Helper, DcefB.Handler.ResourceBundle, DcefB.BaseObject,
   DcefB.Handler.BrowserProcess, DcefB.Handler.RenderProcess;
 
 type
@@ -146,7 +146,8 @@ type
     procedure CefRegisterExtension(const name: string;
       const value: TValue{$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP};
       SyncMainThread: Boolean{$ENDIF}); overload;
-    procedure RegisterClasses(const aObjList: array of TClass);
+    procedure RegisterClasses(const aObjList: array of TClass); overload;
+    procedure RegisterClasses(const aRegParList: Array of TRegExtentionPar); overload;
 
     procedure CefVisitWebPluginInfo(const visitor: ICefWebPluginInfoVisitor);
     procedure CefVisitWebPluginInfoProc(const visitor
@@ -248,19 +249,21 @@ begin
   Result := (Not FCefSingleProcess) and (FLibHandle = 0);
 end;
 
-procedure TDcefBApp.RegisterClasses(const aObjList: array of TClass);
+procedure TDcefBApp.RegisterClasses(const aRegParList: Array of TRegExtentionPar);
 var
   i, J, C: Integer;
   AFound: Boolean;
+  AItem: TRegExtentionPar;
 begin
-  C := Length(TDcefBRenderProcessHandler.Classes);
-  SetLength(TDcefBRenderProcessHandler.Classes, C + Length(aObjList));
-  for i := 0 to High(aObjList) do
+  C := Length(TDcefBRenderProcessHandler.RegParList);
+  SetLength(TDcefBRenderProcessHandler.RegParList, C + Length(aRegParList));
+  for i := 0 to High(aRegParList) do
   begin
     AFound := False;
     for J := 0 to C - 1 do
     begin
-      if TDcefBRenderProcessHandler.Classes[J] = aObjList[i] then
+      AItem := TDcefBRenderProcessHandler.RegParList[J];
+      if (AItem.name = aRegParList[i].name) and (AItem.code = aRegParList[i].code) then
       begin
         AFound := True;
         Break;
@@ -268,11 +271,28 @@ begin
     end;
     if not AFound then
     begin
-      TDcefBRenderProcessHandler.Classes[C] := aObjList[i];
+      TDcefBRenderProcessHandler.RegParList[C] := aRegParList[i];
       Inc(C);
     end;
   end;
-  SetLength(TDcefBRenderProcessHandler.Classes, C);
+  SetLength(TDcefBRenderProcessHandler.RegParList, C);
+end;
+
+procedure TDcefBApp.RegisterClasses(const aObjList: array of TClass);
+var
+  aRegParList: Array of TRegExtentionPar;
+  Index: Integer;
+begin
+  SetLength(aRegParList, Length(aObjList));
+  for Index := Low(aObjList) to High(aObjList) do
+  begin
+    aRegParList[Index].name := aObjList[Index].ClassName;
+    aRegParList[Index].code := '';
+    aRegParList[Index].Handler := nil;
+    aRegParList[Index].value := aObjList[Index];
+  end;
+  RegisterClasses(aRegParList);
+  SetLength(aRegParList, 0);
 end;
 
 

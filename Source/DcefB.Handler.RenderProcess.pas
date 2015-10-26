@@ -27,7 +27,8 @@ interface
 
 uses
   System.Classes, System.SysUtils, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
-  DcefB.Cef3.Types, DcefB.Cef3.Api, DcefB.BaseObject, DcefB.res;
+  DcefB.Cef3.Types, DcefB.Cef3.Api, DcefB.BaseObject, DcefB.Events,
+  DcefB.res, Rtti, TypInfo, Variants;
 
 type
   TDcefBRenderProcessHandler = class(TCefRenderProcessHandlerOwn)
@@ -55,7 +56,7 @@ type
       sourceProcess: TCefProcessId; const message: ICefProcessMessage)
       : Boolean; override;
   public
-    class var Classes: TDynClassArr;
+    class var RegParList: Array of TRegExtentionPar;
   end;
 
 implementation
@@ -115,9 +116,33 @@ end;
 function TDcefBRenderProcessHandler.OnProcessMessageReceived
   (const browser: ICefBrowser; sourceProcess: TCefProcessId;
   const message: ICefProcessMessage): Boolean;
+  procedure DoRunInRender;
+  var
+    aBrowser: ICefBrowser;
+    ATemp: Pointer;
+    AProc: TRenderProcessCallbackA;
+    aData: Pointer;
+  begin
+    aBrowser := ICefBrowser
+      (Pointer(StrToInt64('$' + message.ArgumentList.GetString(0))));
+    ATemp := Pointer(StrToInt64('$' + message.ArgumentList.GetString(1)));
+    AProc := TRenderProcessCallbackA(ATemp);
+    aData := Pointer(StrToInt64('$' + message.ArgumentList.GetString(2)));
+    if Assigned(AProc) then
+      AProc(aBrowser, Browser.MainFrame.GetV8Context, aData);
+    TRenderProcessCallbackA(ATemp) := nil;
+  end;
+
 begin
-  Result := False;
+  if message.Name = '@dcefbrowser_runinrender' then
+  begin
+    DoRunInRender;
+    Result := True;
+  end
+  else
+    Result := False;
 end;
+
 
 procedure TDcefBRenderProcessHandler.OnRenderThreadCreated(const extraInfo
   : ICefListValue);
@@ -140,10 +165,15 @@ var
 begin
   inherited;
 
-  for Index := Low(Classes) to High(Classes) do
+  for Index := Low(RegParList) to High(RegParList) do
   begin
-    DcefBApp.CefRegisterExtension(Classes[Index].ClassName, Classes[Index]
-{$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}, True {$ENDIF});
+    if (RegParList[Index].code = '') and (RegParList[Index].Handler = nil) then
+      DcefBApp.CefRegisterExtension(RegParList[Index].name,
+        RegParList[Index].value
+{$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}, True {$ENDIF})
+    else
+      DcefBApp.CefRegisterExtension(RegParList[Index].name,
+        RegParList[Index].code, RegParList[Index].Handler);
   end;
 end;
 
