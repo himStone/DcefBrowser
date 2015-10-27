@@ -26,8 +26,7 @@ unit DcefB.Core.DevToolsView;
 interface
 
 uses
-  Winapi.Windows, System.Classes, Vcl.Controls, Winapi.Messages, Vcl.ExtCtrls,
-  Generics.Collections, Vcl.Forms,
+  Windows, Classes, Controls, Messages, ExtCtrls, Forms, Generics.Collections,
   DcefB.Cef3.Types, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
   DcefB.Cef3.Helper, DcefB.res, DcefB.Locker;
 

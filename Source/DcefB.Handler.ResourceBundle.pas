@@ -26,7 +26,7 @@ unit DcefB.Handler.ResourceBundle;
 interface
 
 uses
-  System.Classes, System.SysUtils, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
+  Classes, SysUtils, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
   DcefB.Cef3.Types, DcefB.BaseObject, DcefB.res;
 
 type

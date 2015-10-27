@@ -26,7 +26,7 @@ unit DcefB.res;
 interface
 
 uses
-  Winapi.Messages;
+  Messages;
 
 Const
   WM_LoadingStateChange = WM_USER + 1;

@@ -26,7 +26,8 @@ unit DcefB.Events;
 interface
 
 uses
-  System.Classes, DcefB.Cef3.Interfaces, DcefB.Cef3.Types;
+  Classes,
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Types;
 
 type
   TBrowserDataChangeKind = (BrowserDataChange_StatusMessage,

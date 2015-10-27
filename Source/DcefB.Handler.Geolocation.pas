@@ -26,7 +26,7 @@ unit DcefB.Handler.Geolocation;
 interface
 
 uses
-  WinApi.Windows, System.Classes,
+  Windows, Classes,
   DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.Events,
   DcefB.res, DcefB.Utils, DcefB.BaseObject;
 

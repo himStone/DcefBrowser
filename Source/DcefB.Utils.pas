@@ -26,7 +26,7 @@ unit DcefB.Utils;
 interface
 
 uses
-  WinApi.Windows, System.Classes, DcefB.Cef3.Interfaces;
+  Windows, Classes, DcefB.Cef3.Interfaces;
 
 type
   TDcefBUtils = record

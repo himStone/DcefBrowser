@@ -25,9 +25,8 @@ unit DcefB.Core.DcefBrowser;
 interface
 
 uses
-  Winapi.Windows, System.Classes, Vcl.Controls, Vcl.ComCtrls, Vcl.Forms,
-  Vcl.ExtCtrls, Vcl.Dialogs, System.StrUtils, System.SysUtils,
-  Winapi.Messages, System.Math, Generics.Collections,
+  Windows, Classes, Controls, ComCtrls, Forms, ExtCtrls, Dialogs, StrUtils,
+  SysUtils, Messages, Math, Generics.Collections,
 
   DcefB.Cef3.Types, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
   DcefB.Cef3.Helper, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,

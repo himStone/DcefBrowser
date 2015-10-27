@@ -26,9 +26,9 @@ unit DcefB.Handler.RenderProcess;
 interface
 
 uses
-  System.Classes, System.SysUtils, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
-  DcefB.Cef3.Types, DcefB.Cef3.Api, DcefB.BaseObject, DcefB.Events,
-  DcefB.res, Rtti, TypInfo, Variants;
+  Classes, SysUtils, Rtti, TypInfo, Variants,
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.Cef3.Api,
+  DcefB.BaseObject, DcefB.Events, DcefB.res;
 
 type
   TDcefBRenderProcessHandler = class(TCefRenderProcessHandlerOwn)
@@ -129,7 +129,7 @@ function TDcefBRenderProcessHandler.OnProcessMessageReceived
     AProc := TRenderProcessCallbackA(ATemp);
     aData := Pointer(StrToInt64('$' + message.ArgumentList.GetString(2)));
     if Assigned(AProc) then
-      AProc(aBrowser, Browser.MainFrame.GetV8Context, aData);
+      AProc(aBrowser, browser.MainFrame.GetV8Context, aData);
     TRenderProcessCallbackA(ATemp) := nil;
   end;
 
@@ -142,7 +142,6 @@ begin
   else
     Result := False;
 end;
-
 
 procedure TDcefBRenderProcessHandler.OnRenderThreadCreated(const extraInfo
   : ICefListValue);
@@ -168,11 +167,11 @@ begin
   for Index := Low(RegParList) to High(RegParList) do
   begin
     if (RegParList[Index].code = '') and (RegParList[Index].Handler = nil) then
-      DcefBApp.CefRegisterExtension(RegParList[Index].name,
+      DcefBApp.CefRegisterExtension(RegParList[Index].Name,
         RegParList[Index].value
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}, True {$ENDIF})
     else
-      DcefBApp.CefRegisterExtension(RegParList[Index].name,
+      DcefBApp.CefRegisterExtension(RegParList[Index].Name,
         RegParList[Index].code, RegParList[Index].Handler);
   end;
 end;

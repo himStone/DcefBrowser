@@ -26,10 +26,14 @@ unit DcefB.BaseObject;
 interface
 
 uses
-  System.Classes, Rtti, TypInfo, Variants,
+  Classes, Rtti, TypInfo, Variants,
   DcefB.Cef3.Types, DcefB.Cef3.Classes, DcefB.Cef3.Interfaces;
 
 type
+  {$IF RTLVersion<25}
+    IntPtr = Integer;
+  {$ENDIF}
+
   Pustring = ^ustring;
   PICefFrame = ^ICefFrame;
   PICefFileDialogCallback = ^ICefFileDialogCallback;

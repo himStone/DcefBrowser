@@ -26,7 +26,7 @@ unit DcefB.Core.BrowserHandler;
 interface
 
 uses
-  Windows, Classes, SysUtils, Controls, Winapi.Messages,
+  Windows, Classes, SysUtils, Controls, Messages,
 
   DcefB.CefEvents, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types,
   DcefB.res, DcefB.Events,

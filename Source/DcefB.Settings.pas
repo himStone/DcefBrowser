@@ -26,7 +26,7 @@ unit DcefB.Settings;
 interface
 
 uses
-  System.Classes, System.SysUtils, DcefB.Cef3.Types;
+  Classes, SysUtils, DcefB.Cef3.Types;
 
 type
   PChromiumOptions = ^TChromiumOptions;
