@@ -1,15 +1,21 @@
 unit jsvarhelper;
+
+{ This unit created by swish and can be distribute with bccsafe's dcefbrowser
 
-// create by swish
-
+  2015.10.26
+  ==========
+  * Execute script code wrapped by try/finally make the SetReady always called
+  + Add global DVars.Notify function make notify from js more easy
+}
 interface
 
 uses
-  classes, sysutils, types, syncobjs, variants,
+  classes, sysutils, types, syncobjs, variants, system.Generics.collections,
   DcefB.Core.App, DcefB.Cef3.Interfaces, DcefB.Cef3.classes,
   DcefB.Core.DcefBrowser;
 
 type
+  TJSNotify = procedure(S: String; var AHandled: Boolean) of object;
 
   TJsVars = class
   protected
@@ -33,6 +39,8 @@ type
     procedure ExecuteScript(const AScript, AUrl: String;
       AFromLine: Integer = 0); overload;
     function ExecuteScript(const AScript: String): Variant; overload;
+    class procedure RegisterJsNotify(ANotify: TJSNotify);
+    class procedure UnregisterJsNotify(ANotify: TJSNotify);
     property Defined[AName: String]: Boolean read GetDefined;
     property AsBoolean[AName: String]: Boolean read GetAsBoolean
       write SetAsBoolean;
@@ -47,8 +55,24 @@ implementation
 
 uses windows;
 
+type
+
+  DVars = class
+  protected
+    FHandlers: TList<TJSNotify>;
+    FLocker: TCriticalSection;
+  public
+    constructor Create; overload;
+    destructor Destroy; override;
+    procedure ProcessNotify(S: String);
+    procedure Register(ANotify: TJSNotify);
+    procedure Unregister(ANotify: TJSNotify);
+    class procedure Notify(S: String);
+  end;
+
 var
   VarHelper: TJsVars;
+  _DVars: DVars;
 
 resourcestring
   SCantToVariant = '指定的JavaScript变量无法转换为 Variant';
@@ -178,7 +202,7 @@ var
   S: String;
 begin
   VarHelper := Self;
-  S := S + #13#10 + 'TJsDHelper.SetReady();';
+  S := 'try {'#13#10 + S + '}#13#10finaly{TJsDHelper.SetReady();}';
   FBrowser.ExecuteJavaScript(S);
   Wait;
 end;
@@ -347,6 +371,12 @@ begin
   Wait;
 end;
 
+class procedure TJsVars.RegisterJsNotify(ANotify: TJSNotify);
+begin
+  if Assigned(ANotify) then
+    _DVars.Register(ANotify);
+end;
+
 procedure TJsVars.SetAsBoolean(AName: String; const Value: Boolean);
 begin
   VarHelper := Self;
@@ -432,9 +462,93 @@ begin
   FEvent.SetEvent;
 end;
 
+class procedure TJsVars.UnregisterJsNotify(ANotify: TJSNotify);
+begin
+  if Assigned(ANotify) then
+    _DVars.Unregister(ANotify);
+end;
+
 function TJsVars.Wait(ATimeout: Cardinal): TWaitResult;
 begin
   Result := FEvent.WaitFor(INFINITE);
 end;
+{ DVars }
+
+constructor DVars.Create;
+begin
+  inherited;
+  FLocker := TCriticalSection.Create;
+  FHandlers := TList<TJSNotify>.Create;
+end;
+
+destructor DVars.Destroy;
+begin
+  FreeAndNil(FLocker);
+  FreeAndNil(FHandlers);
+  inherited;
+end;
+
+class procedure DVars.Notify(S: String);
+begin
+  _DVars.ProcessNotify(S);
+end;
+
+procedure DVars.ProcessNotify(S: String);
+var
+  i: Integer;
+  AHandled: Boolean;
+begin
+  FLocker.Enter;
+  try
+    AHandled := false;
+    for i := 0 to FHandlers.Count - 1 do
+    begin
+      FHandlers[i](S, AHandled);
+      if AHandled then
+        Break;
+    end;
+  finally
+    FLocker.Leave;
+  end;
+end;
+
+procedure DVars.Register(ANotify: TJSNotify);
+begin
+  FLocker.Enter;
+  try
+    FHandlers.Add(ANotify);
+  finally
+    FLocker.Leave;
+  end;
+end;
+
+procedure DVars.Unregister(ANotify: TJSNotify);
+var
+  i: Integer;
+begin
+  FLocker.Enter;
+  try
+    for i := 0 to FHandlers.Count - 1 do
+    begin
+      if TMethod(FHandlers[i]) = TMethod(ANotify) then
+      begin
+        FHandlers.Delete(i);
+        Exit;
+      end;
+    end;
+  finally
+    FLocker.Leave;
+  end;
+end;
+
+initialization
+
+_DVars := DVars.Create;
+DcefbApp.RegisterClasses([DVars]);
+
+finalization
+
+FreeAndNil(_DVars);
 
 end.
+
