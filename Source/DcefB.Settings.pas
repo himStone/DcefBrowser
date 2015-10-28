@@ -153,7 +153,7 @@ type
     procedure SetDownLoadPath(const Value: string);
   public
     constructor Create; virtual;
-  public
+  published
     /// <summary>Is enable development tools, Default: True/summary>
     property DevToolsEnable: Boolean read FDevToolsEnable write FDevToolsEnable
       default True;
