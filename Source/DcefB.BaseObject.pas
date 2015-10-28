@@ -30,10 +30,9 @@ uses
   DcefB.Cef3.Types, DcefB.Cef3.Classes, DcefB.Cef3.Interfaces;
 
 type
-  {$IF RTLVersion<25}
-    IntPtr = Integer;
-  {$ENDIF}
-
+{$IF RTLVersion<25}
+  IntPtr = Integer;
+{$ENDIF}
   Pustring = ^ustring;
   PICefFrame = ^ICefFrame;
   PICefFileDialogCallback = ^ICefFileDialogCallback;
@@ -69,14 +68,23 @@ type
   PBeforeUnloadDialogArgs = ^TBeforeUnloadDialogArgs;
   PJsdialogArgs = ^TJsdialogArgs;
   PDragEnterArgs = ^TDragEnterArgs;
+  PICefClient = ^ICefClient;
+  PCefBrowserSettings = ^TCefBrowserSettings;
 
   TDynStrArr = Array of string;
   TDynIntArr = Array of Integer;
   TDynClassArr = Array of TClass;
 
   TBeforePopupArgs = record
+    frame: PICefFrame;
+    targetUrl, targetFrameName: Pustring;
     popupFeatures: PCefPopupFeatures;
     windowInfo: PCefWindowInfo;
+    client: PICefClient;
+    settings: PCefBrowserSettings;
+    noJavascriptAccess: PBoolean;
+    Result: PBoolean;
+    CancelDefaultEvent: PBoolean;
   end;
 
   TFileDialogArgs = record

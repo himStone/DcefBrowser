@@ -768,15 +768,27 @@ function TBrowserView.OnCreateWindow(aBrowser: ICefBrowser;
   LParam: LParam): LRESULT;
 var
   PArgs: PBeforePopupArgs;
+  CancelDefaultEvent: Boolean;
 begin
   PArgs := PBeforePopupArgs(LParam);
-  PArgs.windowInfo.x := PArgs.popupFeatures.x;
-  PArgs.windowInfo.y := PArgs.popupFeatures.y;
-  PArgs.windowInfo.Width := PArgs.popupFeatures.Width;
-  PArgs.windowInfo.Height := PArgs.popupFeatures.Height;
-  PArgs.windowInfo.Style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or
-    WS_CLIPSIBLINGS or WS_TABSTOP;
-  PArgs.windowInfo.parent_window := Self.Handle;
+  CancelDefaultEvent := False;
+  PArgs.CancelDefaultEvent := @CancelDefaultEvent;
+
+  FEvents.doOnBeforePopup(aBrowser, PArgs.frame^, PArgs.targetUrl^,
+    PArgs.targetFrameName^, PArgs.popupFeatures^, PArgs.windowInfo^,
+    PArgs.client^, PArgs.Settings^, PArgs.noJavascriptAccess^, PArgs.Result^,
+    PArgs.CancelDefaultEvent^);
+
+  if Not PArgs.CancelDefaultEvent^ then
+  begin
+    PArgs.windowInfo.x := PArgs.popupFeatures.x;
+    PArgs.windowInfo.y := PArgs.popupFeatures.y;
+    PArgs.windowInfo.Width := PArgs.popupFeatures.Width;
+    PArgs.windowInfo.Height := PArgs.popupFeatures.Height;
+    PArgs.windowInfo.Style := WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN or
+      WS_CLIPSIBLINGS or WS_TABSTOP;
+    PArgs.windowInfo.parent_window := Self.Handle;
+  end;
   Result := S_OK;
 end;
 

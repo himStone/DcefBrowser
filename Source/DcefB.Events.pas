@@ -173,6 +173,13 @@ type
   TOnRenderProcessTerminated = procedure(const browser: ICefBrowser;
     status: TCefTerminationStatus) of object;
 
+  TOnBeforePopup = procedure(const browser: ICefBrowser; const frame: ICefFrame;
+    const targetUrl, targetFrameName: ustring;
+    var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+    var client: ICefClient; var settings: TCefBrowserSettings;
+    var noJavascriptAccess: Boolean; var Result: Boolean;
+    var CancelDefaultEvent: Boolean) of object;
+
   // -------------------------------------------
 
 
@@ -180,7 +187,7 @@ type
   // -------------------------------------------
 
   IDcefBrowser = interface
-    procedure GetSettings(var Settings: TCefBrowserSettings);
+    procedure GetSettings(var settings: TCefBrowserSettings);
     procedure ShowDevTools(const aBrowser: ICefBrowser = nil);
     procedure CloseDevTools(const aBrowser: ICefBrowser = nil);
 
@@ -306,6 +313,13 @@ type
 
     procedure doOnRenderProcessTerminated(const browser: ICefBrowser;
       status: TCefTerminationStatus);
+
+    procedure doOnBeforePopup(const browser: ICefBrowser;
+      const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+      var client: ICefClient; var settings: TCefBrowserSettings;
+      var noJavascriptAccess: Boolean; var Result: Boolean;
+      var CancelDefaultEvent: Boolean);
   end;
 
 implementation

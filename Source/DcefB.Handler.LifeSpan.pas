@@ -92,8 +92,15 @@ var
   PArgs: PBeforePopupArgs;
 begin
   new(PArgs);
+  PArgs.frame := @frame;
+  PArgs.targetUrl := @targetUrl;
+  PArgs.targetFrameName := @targetFrameName;
   PArgs.popupFeatures := @popupFeatures;
   PArgs.windowInfo := @windowInfo;
+  PArgs.client := @client;
+  PArgs.settings := @settings;
+  PArgs.noJavascriptAccess := @noJavascriptAccess;
+  PArgs.Result := @Result;
 
   if Not TDcefBUtils.SendMsg(browser, WM_WindowCheck, LParam(PArgs)) then
   begin

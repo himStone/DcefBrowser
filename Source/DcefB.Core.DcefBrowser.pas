@@ -95,6 +95,7 @@ type
     FOnTooltip: TOnTooltip;
     FOnResetDialogState: TOnResetDialogState;
     FOnRenderProcessTerminated: TOnRenderProcessTerminated;
+    FOnBeforePopup: TOnBeforePopup;
 
     // ---------Default Tab control Event
     procedure doOnDefaultTabChanging(Sender: TObject; var Allow: Boolean);
@@ -226,6 +227,12 @@ type
     procedure doOnResetDialogState(const browser: ICefBrowser);
     procedure doOnRenderProcessTerminated(const browser: ICefBrowser;
       status: TCefTerminationStatus);
+    procedure doOnBeforePopup(const browser: ICefBrowser;
+      const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+      var client: ICefClient; var Settings: TCefBrowserSettings;
+      var noJavascriptAccess: Boolean; var Result: Boolean;
+      var CancelDefaultEvent: Boolean);
 
     function GetZoomLevel: string;
     function GetActiveBrowser: ICefBrowser;
@@ -390,6 +397,7 @@ type
       write FOnResetDialogState;
     property OnRenderProcessTerminated: TOnRenderProcessTerminated
       read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
+    property OnBeforePopup: TOnBeforePopup read FOnBeforePopup write FOnBeforePopup;
   end;
 
   TDcefBrowser = class(TCustomDcefBrowser)
@@ -451,6 +459,7 @@ type
     property OnTooltip;
     property OnResetDialogState;
     property OnRenderProcessTerminated;
+    property OnBeforePopup;
   end;
 
 implementation
@@ -840,6 +849,18 @@ procedure TCustomDcefBrowser.doOnBeforePluginLoad(const browser: ICefBrowser;
 begin
   if Assigned(FOnBeforePluginLoad) then
     FOnBeforePluginLoad(browser, URL, policyUrl, info, CancelLoad);
+end;
+
+procedure TCustomDcefBrowser.doOnBeforePopup(const browser: ICefBrowser;
+  const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+  var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+  var client: ICefClient; var Settings: TCefBrowserSettings;
+  var noJavascriptAccess, Result, CancelDefaultEvent: Boolean);
+begin
+  if Assigned(FOnBeforePopup) then
+    FOnBeforePopup(browser, frame, targetUrl, targetFrameName, popupFeatures,
+      windowInfo, client, Settings, noJavascriptAccess, Result,
+      CancelDefaultEvent);
 end;
 
 procedure TCustomDcefBrowser.doOnBeforeResourceLoad(const browser: ICefBrowser;
