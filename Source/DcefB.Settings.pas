@@ -150,7 +150,9 @@ type
     FCloseWPagesClosed: Boolean;
     FDownLoadPath: string;
     FAutoDown: Boolean;
+    FShowLoadError: Boolean;
     procedure SetDownLoadPath(const Value: string);
+    procedure SetShowLoadError(const Value: Boolean);
   public
     constructor Create; virtual;
   published
@@ -167,6 +169,9 @@ type
     property AutoDown: Boolean read FAutoDown write FAutoDown default False;
     /// <summary>Download Path, Default: (Current folder) + Download /summary>
     property DownLoadPath: string read FDownLoadPath write SetDownLoadPath;
+    /// <summary>Is show load Error, Default: False /summary>
+    property ShowLoadError: Boolean read FShowLoadError write SetShowLoadError
+      default False;
   end;
 
 implementation
@@ -231,6 +236,11 @@ begin
     else
       FDownLoadPath := Value + '\';
   end;
+end;
+
+procedure TDcefBOptions.SetShowLoadError(const Value: Boolean);
+begin
+  FShowLoadError := Value;
 end;
 
 end.

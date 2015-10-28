@@ -924,12 +924,12 @@ begin
   FEvents.doOnLoadError(aBrowser, PArgs.frame^, PArgs.errorCode,
     PArgs.errorText^, PArgs.failedUrl^, PArgs.CancelDefaultEvent);
 
-  if Not PArgs.CancelDefaultEvent and (PArgs.errorCode <> NET_ERROR_ABORTED)
-  then // NET_ERROR_ABORTED: user cancel download
+  if (FDcefBOptions.ShowLoadError) and (Not PArgs.CancelDefaultEvent) and
+    (PArgs.errorCode <> NET_ERROR_ABORTED) then
+  // NET_ERROR_ABORTED: user cancel download
     aBrowser.MainFrame.LoadString('<html><body><h2>Failed to load URL ' +
       PArgs.failedUrl^ + ' with error ' + PArgs.errorText^ + ' (' +
       inttostr(PArgs.errorCode) + ').</h2></body></html>', PArgs.failedUrl^);
-
 end;
 
 procedure TBrowserView.OnLoadingStateChange(aBrowser: ICefBrowser;
