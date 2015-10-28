@@ -768,18 +768,14 @@ function TBrowserView.OnCreateWindow(aBrowser: ICefBrowser;
   LParam: LParam): LRESULT;
 var
   PArgs: PBeforePopupArgs;
-  CancelDefaultEvent: Boolean;
 begin
   PArgs := PBeforePopupArgs(LParam);
-  CancelDefaultEvent := False;
-  PArgs.CancelDefaultEvent := @CancelDefaultEvent;
-
   FEvents.doOnBeforePopup(aBrowser, PArgs.frame^, PArgs.targetUrl^,
     PArgs.targetFrameName^, PArgs.popupFeatures^, PArgs.windowInfo^,
     PArgs.client^, PArgs.Settings^, PArgs.noJavascriptAccess^, PArgs.Result^,
-    PArgs.CancelDefaultEvent^);
+    PArgs.CancelDefaultEvent);
 
-  if Not PArgs.CancelDefaultEvent^ then
+  if Not PArgs.CancelDefaultEvent then
   begin
     PArgs.windowInfo.x := PArgs.popupFeatures.x;
     PArgs.windowInfo.y := PArgs.popupFeatures.y;

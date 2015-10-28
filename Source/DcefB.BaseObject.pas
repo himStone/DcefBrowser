@@ -84,7 +84,7 @@ type
     settings: PCefBrowserSettings;
     noJavascriptAccess: PBoolean;
     Result: PBoolean;
-    CancelDefaultEvent: PBoolean;
+    CancelDefaultEvent: Boolean;
   end;
 
   TFileDialogArgs = record

@@ -101,6 +101,7 @@ begin
   PArgs.settings := @settings;
   PArgs.noJavascriptAccess := @noJavascriptAccess;
   PArgs.Result := @Result;
+  PArgs.CancelDefaultEvent := False;
 
   if Not TDcefBUtils.SendMsg(browser, WM_WindowCheck, LParam(PArgs)) then
   begin
