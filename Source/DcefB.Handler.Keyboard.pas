@@ -103,17 +103,17 @@ begin
     CancelDefaultEvent);
   if Not CancelDefaultEvent then
   begin
-    if (event.windows_key_code = 123) and (event.Kind = KEYEVENT_KEYUP) then
+    if (event.native_key_code = 123) and (event.Kind = KEYEVENT_KEYUP) then
       TDcefBUtils.SendMsg(browser, WM_DevTools, 0); // F12
 
-    if (event.windows_key_code = 116) and (event.Kind = KEYEVENT_KEYUP) then
+    if (event.native_key_code = 116) and (event.Kind = KEYEVENT_KEYUP) then
       TDcefBUtils.SendMsg(browser, WM_RefreshIgnoreCache, 0); // F5
 
-    if (event.windows_key_code = 70) and
+    if (event.native_key_code = 70) and
       (EVENTFLAG_CONTROL_DOWN in event.modifiers) then
       TDcefBUtils.SendMsg(browser, WM_SearchText, 0); // Ctrl+F
 
-    if (event.windows_key_code = 115) and // Alt + F4
+    if (event.native_key_code = 115) and // Alt + F4
       (EVENTFLAG_ALT_DOWN in event.modifiers) then
       Result := True;
   end;
