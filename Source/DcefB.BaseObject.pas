@@ -69,7 +69,6 @@ type
   PJsdialogArgs = ^TJsdialogArgs;
   PDragEnterArgs = ^TDragEnterArgs;
   PICefClient = ^ICefClient;
-  PCefBrowserSettings = ^TCefBrowserSettings;
 
   TDynStrArr = Array of string;
   TDynIntArr = Array of Integer;
