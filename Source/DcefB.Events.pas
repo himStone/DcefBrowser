@@ -27,7 +27,7 @@ interface
 
 uses
   Classes,
-  DcefB.Cef3.Interfaces, DcefB.Cef3.Types;
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Types, DcefB.Cef3.Api;
 
 type
   TBrowserDataChangeKind = (BrowserDataChange_StatusMessage,
@@ -131,7 +131,7 @@ type
   TOnFileDialog = procedure(const browser: ICefBrowser;
     mode: TCefFileDialogMode; const title, defaultFileName: ustring;
     acceptTypes: TStrings; const callback: ICefFileDialogCallback;
-    out Result: Boolean) of object;
+    out Cancel: Boolean) of object;
 
   TOnPluginCrashed = procedure(const browser: ICefBrowser;
     const pluginPath: ustring) of object;
@@ -141,7 +141,7 @@ type
 
   TOnRequestGeolocationPermission = procedure(const browser: ICefBrowser;
     const requestingUrl: ustring; requestId: Integer;
-    const callback: ICefGeolocationCallback; out Result: Boolean) of object;
+    const callback: ICefGeolocationCallback; var Cancel: Boolean) of object;
   TOnCancelGeolocationPermission = procedure(const browser: ICefBrowser;
     const requestingUrl: ustring; requestId: Integer) of object;
 
@@ -154,13 +154,13 @@ type
     of object;
   TOnStartDragging = procedure(const browser: ICefBrowser;
     const dragData: ICefDragData; allowedOps: TCefDragOperations; x, y: Integer;
-    out Result: Boolean) of object;
+    var Cancel: Boolean) of object;
   TOnUpdateDragCursor = procedure(const browser: ICefBrowser;
     operation: TCefDragOperation) of object;
 
   TOnCertificateError = procedure(certError: TCefErrorCode;
     const requestUrl: ustring;
-    const callback: ICefAllowCertificateErrorCallback; out Result: Boolean)
+    const callback: ICefAllowCertificateErrorCallback; var Cancel: Boolean)
     of object;
 
   TOnCursorChange = procedure(const browser: ICefBrowser;
@@ -177,7 +177,7 @@ type
     const targetUrl, targetFrameName: ustring;
     var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
     var client: ICefClient; var settings: TCefBrowserSettings;
-    var noJavascriptAccess: Boolean; var Result: Boolean;
+    var noJavascriptAccess: Boolean; var Cancel: Boolean;
     var CancelDefaultEvent: Boolean) of object;
 
   // -------------------------------------------
@@ -272,7 +272,7 @@ type
     procedure doOnFileDialog(const browser: ICefBrowser;
       mode: TCefFileDialogMode; const title, defaultFileName: ustring;
       acceptTypes: TStrings; const callback: ICefFileDialogCallback;
-      out Result: Boolean);
+      var Cancel: Boolean);
 
     procedure doOnPluginCrashed(const browser: ICefBrowser;
       const pluginPath: ustring);
@@ -282,7 +282,7 @@ type
 
     procedure doOnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer;
-      const callback: ICefGeolocationCallback; out Result: Boolean);
+      const callback: ICefGeolocationCallback; var Cancel: Boolean);
     procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer);
 
@@ -295,13 +295,13 @@ type
       var Cancel: Boolean);
     procedure doOnStartDragging(const browser: ICefBrowser;
       const dragData: ICefDragData; allowedOps: TCefDragOperations;
-      x, y: Integer; out Result: Boolean);
+      x, y: Integer; var Cancel: Boolean);
     procedure doOnUpdateDragCursor(const browser: ICefBrowser;
       operation: TCefDragOperation);
 
     procedure doOnCertificateError(certError: TCefErrorCode;
       const requestUrl: ustring;
-      const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
+      const callback: ICefAllowCertificateErrorCallback; var Cancel: Boolean);
 
     procedure doOnCursorChange(const browser: ICefBrowser;
       cursor: TCefCursorHandle; cursorType: TCefCursorType;
@@ -318,7 +318,7 @@ type
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var settings: TCefBrowserSettings;
-      var noJavascriptAccess: Boolean; var Result: Boolean;
+      var noJavascriptAccess: Boolean; var Cancel: Boolean;
       var CancelDefaultEvent: Boolean);
   end;
 

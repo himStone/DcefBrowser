@@ -196,11 +196,11 @@ type
     procedure doOnFileDialog(const browser: ICefBrowser;
       mode: TCefFileDialogMode; const title, defaultFileName: ustring;
       acceptTypes: TStrings; const callback: ICefFileDialogCallback;
-      out Result: Boolean);
+      var Cancel: Boolean);
 
     procedure doOnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer;
-      const callback: ICefGeolocationCallback; out Result: Boolean);
+      const callback: ICefGeolocationCallback; var Cancel: Boolean);
     procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer);
 
@@ -209,14 +209,14 @@ type
       const callback: ICefQuotaCallback; var Cancel: Boolean);
     procedure doOnCertificateError(certError: TCefErrorCode;
       const requestUrl: ustring;
-      const callback: ICefAllowCertificateErrorCallback; out Result: Boolean);
+      const callback: ICefAllowCertificateErrorCallback; var Cancel: Boolean);
 
     procedure doOnDragEnter(const browser: ICefBrowser;
       const dragData: ICefDragData; mask: TCefDragOperations;
       var Cancel: Boolean);
     procedure doOnStartDragging(const browser: ICefBrowser;
       const dragData: ICefDragData; allowedOps: TCefDragOperations;
-      x, y: Integer; out Result: Boolean);
+      x, y: Integer; var Cancel: Boolean);
     procedure doOnUpdateDragCursor(const browser: ICefBrowser;
       operation: TCefDragOperation);
     procedure doOnCursorChange(const browser: ICefBrowser;
@@ -231,7 +231,7 @@ type
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var Settings: TCefBrowserSettings;
-      var noJavascriptAccess: Boolean; var Result: Boolean;
+      var noJavascriptAccess: Boolean; var Cancel: Boolean;
       var CancelDefaultEvent: Boolean);
 
     function GetZoomLevel: string;
@@ -794,11 +794,11 @@ end;
 procedure TCustomDcefBrowser.doOnFileDialog(const browser: ICefBrowser;
   mode: TCefFileDialogMode; const title, defaultFileName: ustring;
   acceptTypes: TStrings; const callback: ICefFileDialogCallback;
-  out Result: Boolean);
+  var Cancel: Boolean);
 begin
   if Assigned(FOnFileDialog) then
     FOnFileDialog(browser, mode, title, defaultFileName, acceptTypes,
-      callback, Result);
+      callback, Cancel);
 end;
 
 procedure TCustomDcefBrowser.doOnAddBrowser(const browser: ICefBrowser);
@@ -855,11 +855,11 @@ procedure TCustomDcefBrowser.doOnBeforePopup(const browser: ICefBrowser;
   const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
   var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
   var client: ICefClient; var Settings: TCefBrowserSettings;
-  var noJavascriptAccess, Result, CancelDefaultEvent: Boolean);
+  var noJavascriptAccess, Cancel, CancelDefaultEvent: Boolean);
 begin
   if Assigned(FOnBeforePopup) then
     FOnBeforePopup(browser, frame, targetUrl, targetFrameName, popupFeatures,
-      windowInfo, client, Settings, noJavascriptAccess, Result,
+      windowInfo, client, Settings, noJavascriptAccess, Cancel,
       CancelDefaultEvent);
 end;
 
@@ -889,10 +889,10 @@ end;
 
 procedure TCustomDcefBrowser.doOnCertificateError(certError: TCefErrorCode;
   const requestUrl: ustring; const callback: ICefAllowCertificateErrorCallback;
-  out Result: Boolean);
+  var Cancel: Boolean);
 begin
   if Assigned(FOnCertificateError) then
-    FOnCertificateError(certError, requestUrl, callback, Result);
+    FOnCertificateError(certError, requestUrl, callback, Cancel);
 end;
 
 procedure TCustomDcefBrowser.doOnConsoleMessage(const browser: ICefBrowser;
@@ -1044,11 +1044,11 @@ end;
 
 procedure TCustomDcefBrowser.doOnRequestGeolocationPermission
   (const browser: ICefBrowser; const requestingUrl: ustring; requestId: Integer;
-  const callback: ICefGeolocationCallback; out Result: Boolean);
+  const callback: ICefGeolocationCallback; var Cancel: Boolean);
 begin
   if Assigned(FOnRequestGeolocationPermission) then
     FOnRequestGeolocationPermission(browser, requestingUrl, requestId,
-      callback, Result);
+      callback, Cancel);
 end;
 
 procedure TCustomDcefBrowser.doOnResetDialogState(const browser: ICefBrowser);
@@ -1074,10 +1074,10 @@ end;
 
 procedure TCustomDcefBrowser.doOnStartDragging(const browser: ICefBrowser;
   const dragData: ICefDragData; allowedOps: TCefDragOperations; x, y: Integer;
-  out Result: Boolean);
+  var Cancel: Boolean);
 begin
   if Assigned(FOnStartDragging) then
-    FOnStartDragging(browser, dragData, allowedOps, x, y, Result);
+    FOnStartDragging(browser, dragData, allowedOps, x, y, Cancel);
 end;
 
 procedure TCustomDcefBrowser.doOnTakeFocus(const browser: ICefBrowser;
