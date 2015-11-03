@@ -46,13 +46,10 @@ type
     property Browser: ICefBrowser read FBrowser;
   end;
 
-  TBrowserWrapperDic = class(TDictionary<Integer, TCefBrowserWrapper>)
+  TBrowserWrapperDic = class(TObjectDictionary<Integer, TCefBrowserWrapper>)
   public
+    constructor Create();
     procedure Add(aBrowser: ICefBrowser);
-    procedure Clear;
-  end;
-
-  TClientDic = class(TDictionary<Integer, ICefClient>)
     procedure Clear;
   end;
 
@@ -85,32 +82,19 @@ end;
 
 procedure TBrowserWrapperDic.Clear;
 var
-  Index: Integer;
-  BrowserWrapperArr: TArray<TCefBrowserWrapper>;
+  Item: TCefBrowserWrapper;
 begin
-  BrowserWrapperArr := inherited Values.ToArray;
-  for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
+  for Item in inherited Values do
   begin
-    BrowserWrapperArr[Index].Browser.StopLoad;
-    DestroyWindow(BrowserWrapperArr[Index].Browser.host.WindowHandle);
-    BrowserWrapperArr[Index].Free;
+    Item.Browser.StopLoad;
+    DestroyWindow(Item.Browser.host.WindowHandle);
   end;
-  SetLength(BrowserWrapperArr, 0);
   inherited;
 end;
 
-{ TClientDic }
-
-procedure TClientDic.Clear;
-var
-  Index: Integer;
-  ClientArr: TArray<ICefClient>;
+constructor TBrowserWrapperDic.Create;
 begin
-  ClientArr := inherited Values.ToArray;
-  for Index := Low(ClientArr) to High(ClientArr) do
-    (ClientArr[Index] as ICefClientHandler).Disconnect;
-  SetLength(ClientArr, 0);
-  inherited Clear;
+  inherited Create([doOwnsValues]);
 end;
 
 end.
