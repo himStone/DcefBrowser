@@ -68,6 +68,7 @@ end;
 destructor TCefBrowserWrapper.Destroy;
 begin
   FBrowser := nil;
+  inherited;
 end;
 
 { TBrowserWrapperDic }

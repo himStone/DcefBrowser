@@ -577,7 +577,6 @@ begin
       FEvents.doOnCloseBrowser(ClosePageArr, NeedShowBrowserId);
       SetLength(ClosePageArr, 0);
 
-      aCloseBrowserWrapper.Free;
       FBrowserDic.Remove(aCloseBrowserId);
       if (FBrowserDic.Count = 0) and FDcefBOptions.CloseWPagesClosed then
         SendMessage(Application.Handle, WM_CLOSE, 0, 0);
