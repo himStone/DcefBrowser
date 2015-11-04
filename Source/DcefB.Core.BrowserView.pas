@@ -215,31 +215,28 @@ procedure TBrowserView.CloseAllBrowser(const aIsTrigClosePageEvent: Boolean);
 var
   ClosePageArr: Array of Integer;
   Index, Id: Integer;
-  BrowserWrapperArr: TArray<TCefBrowserWrapper>;
+  Item: TCefBrowserWrapper;
   NeedShowBrowserId: Integer;
 begin
   NeedShowBrowserId := -1;
   BrowserDicLocker.Enter;
   ClosedUrlListLocker.Enter;
   try
-    BrowserWrapperArr := FBrowserDic.Values.ToArray;
-    SetLength(ClosePageArr, High(BrowserWrapperArr) + 1);
-    for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
-      ClosePageArr[Index] := BrowserWrapperArr[Index].Browser.Identifier;
+    SetLength(ClosePageArr, FBrowserDic.Count);
+    for Item in FBrowserDic.Values do
+      ClosePageArr[Index] := Item.Browser.Identifier;
     if aIsTrigClosePageEvent then
       FEvents.doOnBeforeCloseBrowser(ClosePageArr,
         TCloseBrowserType.CLOSETYPE_DEFAULT, NeedShowBrowserId);
 
-    for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
+    for Item in FBrowserDic.Values do
     begin
-      Id := BrowserWrapperArr[Index].Browser.Identifier;
-      FClosedURL.Add(BrowserWrapperArr[Index].Browser.MainFrame.Url);
-      BrowserWrapperArr[Index].Browser.StopLoad;
-      DestroyWindow(BrowserWrapperArr[Index].Browser.host.WindowHandle);
-      BrowserWrapperArr[Index].Free;
+      Id := Item.Browser.Identifier;
+      FClosedURL.Add(Item.Browser.MainFrame.Url);
+      Item.Browser.StopLoad;
+      DestroyWindow(Item.Browser.host.WindowHandle);
       FBrowserDic.Remove(Id);
     end;
-    SetLength(BrowserWrapperArr, 0);
 
     if aIsTrigClosePageEvent then
       FEvents.doOnCloseBrowser(ClosePageArr, NeedShowBrowserId);
@@ -257,7 +254,7 @@ function TBrowserView.CloseAllOtherBrowser(const aBrowserId: Integer): Boolean;
 var
   ClosePageArr: Array of Integer;
   Index, Id: Integer;
-  BrowserWrapperArr: TArray<TCefBrowserWrapper>;
+  Item: TCefBrowserWrapper;
   NeedShowBrowserId: Integer;
 begin
   Result := False;
@@ -265,31 +262,26 @@ begin
   BrowserDicLocker.Enter;
   ClosedUrlListLocker.Enter;
   try
-    BrowserWrapperArr := FBrowserDic.Values.ToArray;
-    for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
+    for Item in FBrowserDic.Values do
     begin
-      if BrowserWrapperArr[Index].Browser.Identifier <> NeedShowBrowserId then
+      if Item.Browser.Identifier <> NeedShowBrowserId then
       begin
         SetLength(ClosePageArr, Length(ClosePageArr) + 1);
-        ClosePageArr[High(ClosePageArr)] := BrowserWrapperArr[Index]
-          .Browser.Identifier;
+        ClosePageArr[High(ClosePageArr)] := Item.Browser.Identifier;
       end;
     end;
     FEvents.doOnBeforeCloseBrowser(ClosePageArr,
       TCloseBrowserType.CLOSETYPE_DEFAULT, NeedShowBrowserId);
 
-    for Index := High(BrowserWrapperArr) downto Low(BrowserWrapperArr) do
-      if BrowserWrapperArr[Index].Browser.Identifier <> aBrowserId then
+    for Item in FBrowserDic.Values do
+      if Item.Browser.Identifier <> aBrowserId then
       begin
-        Id := BrowserWrapperArr[Index].Browser.Identifier;
-        FClosedURL.Add(BrowserWrapperArr[Index].Browser.MainFrame.Url);
-        BrowserWrapperArr[Index].Browser.StopLoad;
-        Result := DestroyWindow(BrowserWrapperArr[Index]
-          .Browser.host.WindowHandle);
-        BrowserWrapperArr[Index].Free;
+        Id := Item.Browser.Identifier;
+        FClosedURL.Add(Item.Browser.MainFrame.Url);
+        Item.Browser.StopLoad;
+        Result := DestroyWindow(Item.Browser.host.WindowHandle);
         FBrowserDic.Remove(Id);
       end;
-    SetLength(BrowserWrapperArr, 0);
 
     FEvents.doOnCloseBrowser(ClosePageArr, -1);
     SetLength(ClosePageArr, 0);
