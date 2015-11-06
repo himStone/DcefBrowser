@@ -27,10 +27,18 @@ interface
 
 uses
   Classes, SysUtils, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
-  DcefB.Cef3.Types, DcefB.BaseObject, DcefB.res;
+  DcefB.Cef3.Types, DcefB.BaseObject, DcefB.res, DcefB.Events;
 
 type
-  TDcefBResourceBundleHandler = class(TCefResourceBundleHandlerOwn)
+  TDcefBResourceBundleHandler = class(TCefResourceBundleHandlerOwn,
+    IDcefBResourceBundleHandler)
+  private
+    FOnGetLocalizedString: TOnGetLocalizedString;
+    FOnGetDataResource: TOnGetDataResource;
+    procedure SetOnGetDataResource(const Value: TOnGetDataResource);
+    procedure SetOnGetLocalizedString(const Value: TOnGetLocalizedString);
+    function GetOnGetDataResource: TOnGetDataResource;
+    function GetOnGetLocalizedString: TOnGetLocalizedString;
   protected
     function GetDataResource(resourceId: Integer; out data: Pointer;
       out dataSize: NativeUInt): Boolean; override;
@@ -46,12 +54,39 @@ function TDcefBResourceBundleHandler.GetDataResource(resourceId: Integer;
   out data: Pointer; out dataSize: NativeUInt): Boolean;
 begin
   Result := False;
+  if Assigned(FOnGetDataResource) then
+    FOnGetDataResource(resourceId, data, dataSize, Result);
 end;
 
 function TDcefBResourceBundleHandler.GetLocalizedString(messageId: Integer;
   out stringVal: ustring): Boolean;
 begin
   Result := False;
+  if Assigned(FOnGetLocalizedString) then
+    FOnGetLocalizedString(messageId, stringVal, Result);
+end;
+
+function TDcefBResourceBundleHandler.GetOnGetDataResource: TOnGetDataResource;
+begin
+  Result := FOnGetDataResource;
+end;
+
+function TDcefBResourceBundleHandler.GetOnGetLocalizedString
+  : TOnGetLocalizedString;
+begin
+  Result := FOnGetLocalizedString;
+end;
+
+procedure TDcefBResourceBundleHandler.SetOnGetDataResource
+  (const Value: TOnGetDataResource);
+begin
+  FOnGetDataResource := Value;
+end;
+
+procedure TDcefBResourceBundleHandler.SetOnGetLocalizedString
+  (const Value: TOnGetLocalizedString);
+begin
+  FOnGetLocalizedString := Value;
 end;
 
 end.

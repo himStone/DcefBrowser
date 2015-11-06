@@ -322,6 +322,80 @@ type
       var CancelDefaultEvent: Boolean);
   end;
 
+  // --------------------app events
+  TOnGetDataResource = procedure(resourceId: Integer; out data: Pointer;
+    var dataSize: NativeUInt; var Cancel: Boolean) of object;
+  TOnGetLocalizedString = procedure(messageId: Integer; out stringVal: ustring;
+    var Cancel: Boolean) of object;
+  TOnContextInitialized = procedure() of object;
+  TOnBeforeChildProcessLaunch = procedure(const commandLine: ICefCommandLine)
+    of object;
+  TOnRenderProcessThreadCreated = procedure(const extraInfo: ICefListValue)
+    of object;
+  TOnRenderThreadCreated = procedure(const extraInfo: ICefListValue) of object;
+  TOnWebKitInitialized = procedure() of object;
+  TOnBrowserCreated = procedure(const browser: ICefBrowser) of object;
+  TOnBrowserDestroyed = procedure(const browser: ICefBrowser) of object;
+  TOnBeforeNavigation = procedure(const browser: ICefBrowser;
+    const frame: ICefFrame; const request: ICefRequest;
+    navigationType: TCefNavigationType; isRedirect: Boolean;
+    var Cancel: Boolean) of object;
+  TOnContextCreated = procedure(const browser: ICefBrowser;
+    const frame: ICefFrame; const context: ICefv8Context) of object;
+  TOnContextReleased = procedure(const browser: ICefBrowser;
+    const frame: ICefFrame; const context: ICefv8Context) of object;
+  TOnUncaughtException = procedure(const browser: ICefBrowser;
+    const frame: ICefFrame; const context: ICefv8Context;
+    const exception: ICefV8Exception; const stackTrace: ICefV8StackTrace)
+    of object;
+  TOnFocusedNodeChanged = procedure(const browser: ICefBrowser;
+    const frame: ICefFrame; const node: ICefDomNode) of object;
+  TOnProcessMessageReceived = procedure(const browser: ICefBrowser;
+    sourceProcess: TCefProcessId; const message: ICefProcessMessage;
+    var Cancel: Boolean) of object;
+
+  IDcefBResourceBundleHandler = interface(ICefResourceBundleHandler)
+    procedure SetOnGetDataResource(const Value: TOnGetDataResource);
+    procedure SetOnGetLocalizedString(const Value: TOnGetLocalizedString);
+    function GetOnGetDataResource: TOnGetDataResource;
+    function GetOnGetLocalizedString: TOnGetLocalizedString;
+  end;
+
+  IDcefBBrowserProcessHandler = interface(ICefBrowserProcessHandler)
+    function GetOnBeforeChildProcessLaunch: TOnBeforeChildProcessLaunch;
+    function GetOnRenderProcessThreadCreated: TOnRenderProcessThreadCreated;
+    function GetOnContextInitialized: TOnContextInitialized;
+    procedure SetOnBeforeChildProcessLaunch(const Value
+      : TOnBeforeChildProcessLaunch);
+    procedure SetOnContextInitialized(const Value: TOnContextInitialized);
+    procedure SetOnRenderProcessThreadCreated(const Value
+      : TOnRenderProcessThreadCreated);
+  end;
+
+  IDcefBRenderProcessHandler = interface(ICefRenderProcessHandler)
+    function GetOnBeforeNavigation: TOnBeforeNavigation;
+    function GetOnBrowserCreated: TOnBrowserCreated;
+    function GetOnBrowserDestroyed: TOnBrowserDestroyed;
+    function GetOnContextCreated: TOnContextCreated;
+    function GetOnContextReleased: TOnContextReleased;
+    function GetOnFocusedNodeChanged: TOnFocusedNodeChanged;
+    function GetOnProcessMessageReceived: TOnProcessMessageReceived;
+    function GetOnRenderThreadCreated: TOnRenderThreadCreated;
+    function GetOnUncaughtException: TOnUncaughtException;
+    function GetOnWebKitInitialized: TOnWebKitInitialized;
+    procedure SetOnBeforeNavigation(const Value: TOnBeforeNavigation);
+    procedure SetOnBrowserCreated(const Value: TOnBrowserCreated);
+    procedure SetOnBrowserDestroyed(const Value: TOnBrowserDestroyed);
+    procedure SetOnContextCreated(const Value: TOnContextCreated);
+    procedure SetOnContextReleased(const Value: TOnContextReleased);
+    procedure SetOnFocusedNodeChanged(const Value: TOnFocusedNodeChanged);
+    procedure SetOnProcessMessageReceived(const Value
+      : TOnProcessMessageReceived);
+    procedure SetOnRenderThreadCreated(const Value: TOnRenderThreadCreated);
+    procedure SetOnUncaughtException(const Value: TOnUncaughtException);
+    procedure SetOnWebKitInitialized(const Value: TOnWebKitInitialized);
+  end;
+
 implementation
 
 end.

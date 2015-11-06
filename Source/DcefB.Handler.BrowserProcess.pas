@@ -28,10 +28,23 @@ interface
 uses
   Classes, SysUtils,
   DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types,
-  DcefB.Cef3.Api, DcefB.BaseObject, DcefB.res;
+  DcefB.Cef3.Api, DcefB.BaseObject, DcefB.res, DcefB.Events;
 
 type
-  TDcefBBrowserProcessHandler = class(TCefBrowserProcessHandlerOwn)
+  TDcefBBrowserProcessHandler = class(TCefBrowserProcessHandlerOwn,
+    IDcefBBrowserProcessHandler)
+  private
+    FOnBeforeChildProcessLaunch: TOnBeforeChildProcessLaunch;
+    FOnRenderProcessThreadCreated: TOnRenderProcessThreadCreated;
+    FOnContextInitialized: TOnContextInitialized;
+    function GetOnBeforeChildProcessLaunch: TOnBeforeChildProcessLaunch;
+    function GetOnRenderProcessThreadCreated: TOnRenderProcessThreadCreated;
+    function GetOnContextInitialized: TOnContextInitialized;
+    procedure SetOnBeforeChildProcessLaunch(const Value
+      : TOnBeforeChildProcessLaunch);
+    procedure SetOnContextInitialized(const Value: TOnContextInitialized);
+    procedure SetOnRenderProcessThreadCreated(const Value
+      : TOnRenderProcessThreadCreated);
   protected
     procedure OnContextInitialized; override;
     procedure OnBeforeChildProcessLaunch(const commandLine
@@ -44,24 +57,63 @@ implementation
 
 { TDcefBBrowserProcessHandler }
 
-procedure TDcefBBrowserProcessHandler.OnBeforeChildProcessLaunch(
-  const commandLine: ICefCommandLine);
+function TDcefBBrowserProcessHandler.GetOnBeforeChildProcessLaunch
+  : TOnBeforeChildProcessLaunch;
+begin
+  Result := FOnBeforeChildProcessLaunch;
+end;
+
+function TDcefBBrowserProcessHandler.GetOnContextInitialized
+  : TOnContextInitialized;
+begin
+  Result := FOnContextInitialized;
+end;
+
+function TDcefBBrowserProcessHandler.GetOnRenderProcessThreadCreated
+  : TOnRenderProcessThreadCreated;
+begin
+  Result := FOnRenderProcessThreadCreated;
+end;
+
+procedure TDcefBBrowserProcessHandler.OnBeforeChildProcessLaunch
+  (const commandLine: ICefCommandLine);
 begin
   inherited;
-
+  if Assigned(FOnBeforeChildProcessLaunch) then
+    FOnBeforeChildProcessLaunch(commandLine);
 end;
 
 procedure TDcefBBrowserProcessHandler.OnContextInitialized;
 begin
   inherited;
-
+  if Assigned(FOnContextInitialized) then
+    FOnContextInitialized();
 end;
 
-procedure TDcefBBrowserProcessHandler.OnRenderProcessThreadCreated(
-  const extraInfo: ICefListValue);
+procedure TDcefBBrowserProcessHandler.OnRenderProcessThreadCreated
+  (const extraInfo: ICefListValue);
 begin
   inherited;
+  if Assigned(FOnRenderProcessThreadCreated) then
+    FOnRenderProcessThreadCreated(extraInfo);
+end;
 
+procedure TDcefBBrowserProcessHandler.SetOnBeforeChildProcessLaunch
+  (const Value: TOnBeforeChildProcessLaunch);
+begin
+  FOnBeforeChildProcessLaunch := Value;
+end;
+
+procedure TDcefBBrowserProcessHandler.SetOnContextInitialized
+  (const Value: TOnContextInitialized);
+begin
+  FOnContextInitialized := Value;
+end;
+
+procedure TDcefBBrowserProcessHandler.SetOnRenderProcessThreadCreated
+  (const Value: TOnRenderProcessThreadCreated);
+begin
+  FOnRenderProcessThreadCreated := Value;
 end;
 
 end.

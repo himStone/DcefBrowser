@@ -48,7 +48,7 @@ uses
 {$ENDIF},
   DcefB.Cef3.Interfaces, DcefB.Cef3.Types, DcefB.Cef3.Api, DcefB.Cef3.Classes,
   DcefB.res, DcefB.Cef3.Helper, DcefB.Handler.ResourceBundle, DcefB.BaseObject,
-  DcefB.Handler.BrowserProcess, DcefB.Handler.RenderProcess;
+  DcefB.Handler.BrowserProcess, DcefB.Handler.RenderProcess, DcefB.Events;
 
 type
   TDcefBApp = class(TInterfacedObject)
@@ -97,11 +97,45 @@ type
       IgnoreCertificateErrors: Boolean = False; BackgroundColor: TCefColor = 0;
       WindowsSandboxInfo: Pointer = nil;
       WindowlessRenderingEnabled: Boolean = False): Boolean;
+
     function GetOnBeforeCommandLineProcessing: TOnBeforeCommandLineProcessing;
     function GetOnRegisterCustomSchemes: TOnRegisterCustomSchemes;
-    procedure SetOnBeforeCommandLineProcessing(
-      const Value: TOnBeforeCommandLineProcessing);
+    procedure SetOnBeforeCommandLineProcessing(const Value
+      : TOnBeforeCommandLineProcessing);
     procedure SetOnRegisterCustomSchemes(const Value: TOnRegisterCustomSchemes);
+    function GetOnBeforeChildProcessLaunch: TOnBeforeChildProcessLaunch;
+    function GetOnBeforeNavigation: TOnBeforeNavigation;
+    function GetOnBrowserCreated: TOnBrowserCreated;
+    function GetOnBrowserDestroyed: TOnBrowserDestroyed;
+    function GetOnContextCreated: TOnContextCreated;
+    function GetOnContextInitialized: TOnContextInitialized;
+    function GetOnContextReleased: TOnContextReleased;
+    function GetOnFocusedNodeChanged: TOnFocusedNodeChanged;
+    function GetOnGetDataResource: TOnGetDataResource;
+    function GetOnGetLocalizedString: TOnGetLocalizedString;
+    function GetOnProcessMessageReceived: TOnProcessMessageReceived;
+    function GetOnRenderProcessThreadCreated: TOnRenderProcessThreadCreated;
+    function GetOnRenderThreadCreated: TOnRenderThreadCreated;
+    function GetOnUncaughtException: TOnUncaughtException;
+    function GetOnWebKitInitialized: TOnWebKitInitialized;
+    procedure SetOnBeforeChildProcessLaunch(const Value
+      : TOnBeforeChildProcessLaunch);
+    procedure SetOnBeforeNavigation(const Value: TOnBeforeNavigation);
+    procedure SetOnBrowserCreated(const Value: TOnBrowserCreated);
+    procedure SetOnBrowserDestroyed(const Value: TOnBrowserDestroyed);
+    procedure SetOnContextCreated(const Value: TOnContextCreated);
+    procedure SetOnContextInitialized(const Value: TOnContextInitialized);
+    procedure SetOnContextReleased(const Value: TOnContextReleased);
+    procedure SetOnFocusedNodeChanged(const Value: TOnFocusedNodeChanged);
+    procedure SetOnGetDataResource(const Value: TOnGetDataResource);
+    procedure SetOnGetLocalizedString(const Value: TOnGetLocalizedString);
+    procedure SetOnProcessMessageReceived(const Value
+      : TOnProcessMessageReceived);
+    procedure SetOnRenderProcessThreadCreated(const Value
+      : TOnRenderProcessThreadCreated);
+    procedure SetOnRenderThreadCreated(const Value: TOnRenderThreadCreated);
+    procedure SetOnUncaughtException(const Value: TOnUncaughtException);
+    procedure SetOnWebKitInitialized(const Value: TOnWebKitInitialized);
   public
     constructor create(); reintroduce;
     destructor Destroy; override;
@@ -144,10 +178,11 @@ type
     function CefRegisterExtension(const name, code: ustring;
       const Handler: ICefv8Handler): Boolean; overload;
     procedure CefRegisterExtension(const name: string;
-      const value: TValue{$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP};
+      const Value: TValue{$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP};
       SyncMainThread: Boolean{$ENDIF}); overload;
     procedure RegisterClasses(const aObjList: array of TClass); overload;
-    procedure RegisterClasses(const aRegParList: Array of TRegExtentionPar); overload;
+    procedure RegisterClasses(const aRegParList
+      : Array of TRegExtentionPar); overload;
 
     procedure CefVisitWebPluginInfo(const visitor: ICefWebPluginInfoVisitor);
     procedure CefVisitWebPluginInfoProc(const visitor
@@ -216,6 +251,40 @@ type
       write SetOnBeforeCommandLineProcessing;
     property OnRegisterCustomSchemes: TOnRegisterCustomSchemes
       read GetOnRegisterCustomSchemes write SetOnRegisterCustomSchemes;
+
+    property OnGetDataResource: TOnGetDataResource read GetOnGetDataResource
+      write SetOnGetDataResource;
+    property OnGetLocalizedString: TOnGetLocalizedString
+      read GetOnGetLocalizedString write SetOnGetLocalizedString;
+
+    property OnContextInitialized: TOnContextInitialized
+      read GetOnContextInitialized write SetOnContextInitialized;
+    property OnBeforeChildProcessLaunch: TOnBeforeChildProcessLaunch
+      read GetOnBeforeChildProcessLaunch write SetOnBeforeChildProcessLaunch;
+    property OnRenderProcessThreadCreated: TOnRenderProcessThreadCreated
+      read GetOnRenderProcessThreadCreated
+      write SetOnRenderProcessThreadCreated;
+
+    property OnRenderThreadCreated: TOnRenderThreadCreated
+      read GetOnRenderThreadCreated write SetOnRenderThreadCreated;
+    property OnWebKitInitialized: TOnWebKitInitialized
+      read GetOnWebKitInitialized write SetOnWebKitInitialized;
+    property OnBrowserCreated: TOnBrowserCreated read GetOnBrowserCreated
+      write SetOnBrowserCreated;
+    property OnBrowserDestroyed: TOnBrowserDestroyed read GetOnBrowserDestroyed
+      write SetOnBrowserDestroyed;
+    property OnBeforeNavigation: TOnBeforeNavigation read GetOnBeforeNavigation
+      write SetOnBeforeNavigation;
+    property OnContextCreated: TOnContextCreated read GetOnContextCreated
+      write SetOnContextCreated;
+    property OnContextReleased: TOnContextReleased read GetOnContextReleased
+      write SetOnContextReleased;
+    property OnUncaughtException: TOnUncaughtException
+      read GetOnUncaughtException write SetOnUncaughtException;
+    property OnFocusedNodeChanged: TOnFocusedNodeChanged
+      read GetOnFocusedNodeChanged write SetOnFocusedNodeChanged;
+    property OnProcessMessageReceived: TOnProcessMessageReceived
+      read GetOnProcessMessageReceived write SetOnProcessMessageReceived;
   end;
 
 var
@@ -224,9 +293,9 @@ var
 implementation
 
 var
-  InnerCefResourceBundleHandler: ICefResourceBundleHandler;
-  InnerCefBrowserProcessHandler: ICefBrowserProcessHandler;
-  InnerCefRenderProcessHandler: ICefRenderProcessHandler;
+  InnerDcefBResourceBundleHandler: IDcefBResourceBundleHandler;
+  InnerDcefBBrowserProcessHandler: IDcefBBrowserProcessHandler;
+  InnerDcefBRenderProcessHandler: IDcefBRenderProcessHandler;
   InnerCefOnBeforeCommandLineProcessing: TOnBeforeCommandLineProcessing;
   InnerCefOnRegisterCustomSchemes: TOnRegisterCustomSchemes;
 
@@ -249,7 +318,8 @@ begin
   Result := (Not FCefSingleProcess) and (FLibHandle = 0);
 end;
 
-procedure TDcefBApp.RegisterClasses(const aRegParList: Array of TRegExtentionPar);
+procedure TDcefBApp.RegisterClasses(const aRegParList
+  : Array of TRegExtentionPar);
 var
   i, J, C: Integer;
   AFound: Boolean;
@@ -263,7 +333,8 @@ begin
     for J := 0 to C - 1 do
     begin
       AItem := TDcefBRenderProcessHandler.RegParList[J];
-      if (AItem.name = aRegParList[i].name) and (AItem.code = aRegParList[i].code) then
+      if (AItem.name = aRegParList[i].name) and
+        (AItem.code = aRegParList[i].code) then
       begin
         AFound := True;
         Break;
@@ -289,23 +360,101 @@ begin
     aRegParList[Index].name := aObjList[Index].ClassName;
     aRegParList[Index].code := '';
     aRegParList[Index].Handler := nil;
-    aRegParList[Index].value := aObjList[Index];
+    aRegParList[Index].Value := aObjList[Index];
   end;
   RegisterClasses(aRegParList);
   SetLength(aRegParList, 0);
 end;
 
+procedure TDcefBApp.SetOnBeforeChildProcessLaunch
+  (const Value: TOnBeforeChildProcessLaunch);
+begin
+  InnerDcefBBrowserProcessHandler.SetOnBeforeChildProcessLaunch(Value);
+end;
 
-procedure TDcefBApp.SetOnBeforeCommandLineProcessing(
-  const Value: TOnBeforeCommandLineProcessing);
+procedure TDcefBApp.SetOnBeforeCommandLineProcessing
+  (const Value: TOnBeforeCommandLineProcessing);
 begin
   InnerCefOnBeforeCommandLineProcessing := Value;
 end;
 
-procedure TDcefBApp.SetOnRegisterCustomSchemes(
-  const Value: TOnRegisterCustomSchemes);
+procedure TDcefBApp.SetOnBeforeNavigation(const Value: TOnBeforeNavigation);
+begin
+  InnerDcefBRenderProcessHandler.SetOnBeforeNavigation(Value);
+end;
+
+procedure TDcefBApp.SetOnBrowserCreated(const Value: TOnBrowserCreated);
+begin
+  InnerDcefBRenderProcessHandler.SetOnBrowserCreated(Value);
+end;
+
+procedure TDcefBApp.SetOnBrowserDestroyed(const Value: TOnBrowserDestroyed);
+begin
+  InnerDcefBRenderProcessHandler.SetOnBrowserDestroyed(Value);
+end;
+
+procedure TDcefBApp.SetOnContextCreated(const Value: TOnContextCreated);
+begin
+  InnerDcefBRenderProcessHandler.SetOnContextCreated(Value);
+end;
+
+procedure TDcefBApp.SetOnContextInitialized(const Value: TOnContextInitialized);
+begin
+  InnerDcefBBrowserProcessHandler.SetOnContextInitialized(Value);
+end;
+
+procedure TDcefBApp.SetOnContextReleased(const Value: TOnContextReleased);
+begin
+  InnerDcefBRenderProcessHandler.SetOnContextReleased(Value);
+end;
+
+procedure TDcefBApp.SetOnFocusedNodeChanged(const Value: TOnFocusedNodeChanged);
+begin
+  InnerDcefBRenderProcessHandler.SetOnFocusedNodeChanged(Value);
+end;
+
+procedure TDcefBApp.SetOnGetDataResource(const Value: TOnGetDataResource);
+begin
+  InnerDcefBResourceBundleHandler.SetOnGetDataResource(Value);
+end;
+
+procedure TDcefBApp.SetOnGetLocalizedString(const Value: TOnGetLocalizedString);
+begin
+  InnerDcefBResourceBundleHandler.SetOnGetLocalizedString(Value);
+end;
+
+procedure TDcefBApp.SetOnProcessMessageReceived(const Value
+  : TOnProcessMessageReceived);
+begin
+  InnerDcefBRenderProcessHandler.SetOnProcessMessageReceived(Value);
+end;
+
+procedure TDcefBApp.SetOnRegisterCustomSchemes(const Value
+  : TOnRegisterCustomSchemes);
 begin
   InnerCefOnRegisterCustomSchemes := Value;
+end;
+
+procedure TDcefBApp.SetOnRenderProcessThreadCreated
+  (const Value: TOnRenderProcessThreadCreated);
+begin
+  InnerDcefBBrowserProcessHandler.SetOnRenderProcessThreadCreated(Value);
+end;
+
+procedure TDcefBApp.SetOnRenderThreadCreated(const Value
+  : TOnRenderThreadCreated);
+begin
+  InnerDcefBRenderProcessHandler.SetOnRenderThreadCreated(Value);
+end;
+
+procedure TDcefBApp.SetOnUncaughtException(const Value: TOnUncaughtException);
+begin
+  InnerDcefBRenderProcessHandler.SetOnUncaughtException(Value);
+end;
+
+procedure TDcefBApp.SetOnWebKitInitialized(const Value: TOnWebKitInitialized);
+begin
+  InnerDcefBRenderProcessHandler.SetOnWebKitInitialized(Value);
 end;
 
 constructor TDcefBApp.create;
@@ -346,14 +495,91 @@ begin
   inherited;
 end;
 
-function TDcefBApp.GetOnBeforeCommandLineProcessing: TOnBeforeCommandLineProcessing;
+function TDcefBApp.GetOnBeforeChildProcessLaunch: TOnBeforeChildProcessLaunch;
+begin
+  Result := InnerDcefBBrowserProcessHandler.GetOnBeforeChildProcessLaunch;
+end;
+
+function TDcefBApp.GetOnBeforeCommandLineProcessing
+  : TOnBeforeCommandLineProcessing;
 begin
   Result := InnerCefOnBeforeCommandLineProcessing;
+end;
+
+function TDcefBApp.GetOnBeforeNavigation: TOnBeforeNavigation;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnBeforeNavigation;
+end;
+
+function TDcefBApp.GetOnBrowserCreated: TOnBrowserCreated;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnBrowserCreated;
+end;
+
+function TDcefBApp.GetOnBrowserDestroyed: TOnBrowserDestroyed;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnBrowserDestroyed;
+end;
+
+function TDcefBApp.GetOnContextCreated: TOnContextCreated;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnContextCreated;
+end;
+
+function TDcefBApp.GetOnContextInitialized: TOnContextInitialized;
+begin
+  Result := InnerDcefBBrowserProcessHandler.GetOnContextInitialized;
+end;
+
+function TDcefBApp.GetOnContextReleased: TOnContextReleased;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnContextReleased;
+end;
+
+function TDcefBApp.GetOnFocusedNodeChanged: TOnFocusedNodeChanged;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnFocusedNodeChanged;
+end;
+
+function TDcefBApp.GetOnGetDataResource: TOnGetDataResource;
+begin
+  Result := InnerDcefBResourceBundleHandler.GetOnGetDataResource;
+end;
+
+function TDcefBApp.GetOnGetLocalizedString: TOnGetLocalizedString;
+begin
+  Result := InnerDcefBResourceBundleHandler.GetOnGetLocalizedString;
+end;
+
+function TDcefBApp.GetOnProcessMessageReceived: TOnProcessMessageReceived;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnProcessMessageReceived;
 end;
 
 function TDcefBApp.GetOnRegisterCustomSchemes: TOnRegisterCustomSchemes;
 begin
   Result := InnerCefOnRegisterCustomSchemes;
+end;
+
+function TDcefBApp.GetOnRenderProcessThreadCreated
+  : TOnRenderProcessThreadCreated;
+begin
+  Result := InnerDcefBBrowserProcessHandler.GetOnRenderProcessThreadCreated;
+end;
+
+function TDcefBApp.GetOnRenderThreadCreated: TOnRenderThreadCreated;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnRenderThreadCreated;
+end;
+
+function TDcefBApp.GetOnUncaughtException: TOnUncaughtException;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnUncaughtException;
+end;
+
+function TDcefBApp.GetOnWebKitInitialized: TOnWebKitInitialized;
+begin
+  Result := InnerDcefBRenderProcessHandler.GetOnWebKitInitialized;
 end;
 
 function TDcefBApp.Init: Boolean;
@@ -450,11 +676,11 @@ begin
 end;
 
 procedure TDcefBApp.CefRegisterExtension(const name: string;
-  const value: TValue);
+  const Value: TValue);
 begin
   CefRegisterExtension(name,
     format('__defineSetter__(''%s'', function(v){native function $s();$s(v)});__defineGetter__(''%0:s'', function(){native function $g();return $g()});',
-    [name]), TCefRTTIExtension.create(value
+    [name]), TCefRTTIExtension.create(Value
 {$IFDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
     , SyncMainThread
 {$ENDIF}
@@ -521,13 +747,13 @@ end;
 function TDcefBApp.CefRegisterExtension(const name, code: ustring;
   const Handler: ICefv8Handler): Boolean;
 var
-  n, c: TCefString;
+  n, C: TCefString;
 begin
   if FLibHandle = 0 then
     raise exception.create(EXP_CEFLIBNOTLOAD);
   n := TCef3Helper.CefString(name);
-  c := TCef3Helper.CefString(code);
-  Result := cef_register_extension(@n, @c,
+  C := TCef3Helper.CefString(code);
+  Result := cef_register_extension(@n, @C,
     TCef3Helper.CefGetData(Handler)) <> 0;
 end;
 
@@ -1103,32 +1329,32 @@ end;
 
 function TInternalApp.GetResourceBundleHandler: ICefResourceBundleHandler;
 begin
-  Result := InnerCefResourceBundleHandler;
+  Result := InnerDcefBResourceBundleHandler;
 end;
 
 function TInternalApp.GetBrowserProcessHandler: ICefBrowserProcessHandler;
 begin
-  Result := InnerCefBrowserProcessHandler;
+  Result := InnerDcefBBrowserProcessHandler;
 end;
 
 function TInternalApp.GetRenderProcessHandler: ICefRenderProcessHandler;
 begin
-  Result := InnerCefRenderProcessHandler;
+  Result := InnerDcefBRenderProcessHandler;
 end;
 
 initialization
 
 IsMultiThread := True;
 DcefBApp := TDcefBApp.create;
-InnerCefResourceBundleHandler := TDcefBResourceBundleHandler.create;
-InnerCefBrowserProcessHandler := TDcefBBrowserProcessHandler.create;
-InnerCefRenderProcessHandler := TDcefBRenderProcessHandler.create;
+InnerDcefBResourceBundleHandler := TDcefBResourceBundleHandler.create;
+InnerDcefBBrowserProcessHandler := TDcefBBrowserProcessHandler.create;
+InnerDcefBRenderProcessHandler := TDcefBRenderProcessHandler.create;
 
 finalization
 
-InnerCefResourceBundleHandler := nil;
-InnerCefBrowserProcessHandler := nil;
-InnerCefRenderProcessHandler := nil;
+InnerDcefBResourceBundleHandler := nil;
+InnerDcefBBrowserProcessHandler := nil;
+InnerDcefBRenderProcessHandler := nil;
 InnerCefOnBeforeCommandLineProcessing := nil;
 InnerCefOnRegisterCustomSchemes := nil;
 DcefBApp.CefShutDown;
