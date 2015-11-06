@@ -22,6 +22,9 @@ object Form1: TForm1
     TabOrder = 0
     Align = alClient
     DefaultURL = 'about:blank'
+    DcefBOptions.DevToolsEnable = False
+    DcefBOptions.CloseWPagesClosed = False
+    DcefBOptions.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\bin\Download\'
     OnLoadEnd = DcefBrowser1LoadEnd
   end
   object Panel1: TPanel

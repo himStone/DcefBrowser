@@ -1,7 +1,7 @@
 program simplebrowser;
 
 uses
-  Vcl.Forms,
+  Forms,
   DcefB.Core.App,
   Unit1 in 'Unit1.pas' {Form1};
 

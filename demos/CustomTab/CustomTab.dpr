@@ -1,7 +1,7 @@
 program CustomTab;
 
 uses
-  Vcl.Forms,
+  Forms,
   DcefB.Core.App,
   UnitFrmMain in 'UnitFrmMain.pas' {MainForm};
 

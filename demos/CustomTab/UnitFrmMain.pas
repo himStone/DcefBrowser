@@ -3,11 +3,9 @@ unit UnitFrmMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
-  Vcl.ComCtrls, Vcl.Menus, Vcl.StdCtrls, Vcl.ExtCtrls, System.Actions,
-  Vcl.ActnList, DcefB.Events, DcefB.Core.DcefBrowser, DcefB.Cef3.Interfaces,
-  DcefB.Cef3.Types;
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, ComCtrls, Menus, StdCtrls, ExtCtrls, Actions, ActnList,
+  DcefB.Events, DcefB.Core.DcefBrowser, DcefB.Cef3.Interfaces, DcefB.Cef3.Types;
 
 type
   TMainForm = class(TForm)
@@ -39,8 +37,8 @@ type
     procedure N1Click(Sender: TObject);
     function GetTabsheetByBrowserID(Const aBrowserID: Integer): TTabsheet;
     procedure DcefBrowser1AddBrowser(const browser: ICefBrowser);
-    procedure DcefBrowser1CloseBrowser(
-      const CloseBrowserIdArr: array of Integer; const ShowBrowserId: Integer);
+    procedure DcefBrowser1CloseBrowser(const CloseBrowserIdArr
+      : array of Integer; const ShowBrowserId: Integer);
     procedure DcefBrowser1StateChange(const browser: ICefBrowser;
       const Kind: TBrowserDataChangeKind; const Value: string);
   private
@@ -143,13 +141,13 @@ begin
   MyCustomTabs.ActivePageIndex := NewTab.PageIndex;
 end;
 
-procedure TMainForm.DcefBrowser1CloseBrowser(
-  const CloseBrowserIdArr: array of Integer; const ShowBrowserId: Integer);
+procedure TMainForm.DcefBrowser1CloseBrowser(const CloseBrowserIdArr
+  : array of Integer; const ShowBrowserId: Integer);
 var
   Index: Integer;
   MyShowTabsheet, MyCloseTabsheet: TTabsheet;
 begin
-  MyShowTabsheet := GetTabsheetByBrowserID(ShowBrowserID);
+  MyShowTabsheet := GetTabsheetByBrowserID(ShowBrowserId);
   for Index := Low(CloseBrowserIdArr) to High(CloseBrowserIdArr) do
   begin
     MyCloseTabsheet := GetTabsheetByBrowserID(CloseBrowserIdArr[Index]);

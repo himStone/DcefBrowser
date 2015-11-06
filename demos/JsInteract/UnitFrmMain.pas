@@ -3,8 +3,8 @@ unit UnitFrmMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, ExtCtrls,
   DcefB.Core.DcefBrowser, DcefB.Core.App, jsvarhelper;
 
 type
@@ -28,6 +28,7 @@ type
   public
     { Public declarations }
   end;
+
 var
   MainForm: TMainForm;
 

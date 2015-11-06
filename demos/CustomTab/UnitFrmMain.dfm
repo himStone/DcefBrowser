@@ -34,6 +34,9 @@ object MainForm: TMainForm
     TabOrder = 1
     Align = alClient
     DefaultURL = 'about:blank'
+    DcefBOptions.DevToolsEnable = False
+    DcefBOptions.CloseWPagesClosed = False
+    DcefBOptions.DownLoadPath = 'C:\Program Files (x86)\Embarcadero\Studio\14.0\bin\Download\'
     OnStateChange = DcefBrowser1StateChange
     OnAddBrowser = DcefBrowser1AddBrowser
     OnCloseBrowser = DcefBrowser1CloseBrowser
