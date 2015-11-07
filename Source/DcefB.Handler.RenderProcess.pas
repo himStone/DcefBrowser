@@ -287,7 +287,8 @@ function TDcefBRenderProcessHandler.OnProcessMessageReceived
   end;
 
 begin
-  if message.Name = '@dcefbrowser_runinrender' then
+  if (sourceProcess = TCefProcessId.PID_BROWSER) and
+    (message.Name = RUNINRENDER_MSG) then
   begin
     DoRunInRender;
     Result := True;

@@ -96,6 +96,8 @@ Const
   EXP_CEFLIBNOTLOAD = 'TDcefBApp.LoadLib must be called first';
   EXP_CEFNOTLOADINMAINPRO = 'TDcefBApp.LoadLib must be called first in the main process';
 
+  RUNINRENDER_MSG = '@dcefbrowser_runinrender';
+
 implementation
 
 end.

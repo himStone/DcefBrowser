@@ -1176,7 +1176,7 @@ begin
   begin
     if ActiveBrowser <> nil then
     begin
-      AMsg := TCefProcessMessageRef.New('@dcefbrowser_runinrender');
+      AMsg := TCefProcessMessageRef.New(RUNINRENDER_MSG);
       AMsg.ArgumentList.SetSize(3);
       // 这里使用字符串而不是整数，是因为JavaScript里没有64位整数
       AMsg.ArgumentList.SetString(0, IntToHex(IntPtr(ActiveBrowser),
