@@ -214,7 +214,7 @@ end;
 procedure TBrowserView.CloseAllBrowser(const aIsTrigClosePageEvent: Boolean);
 var
   ClosePageArr: Array of Integer;
-  Index, Id: Integer;
+  Id: Integer;
   Item: TCefBrowserWrapper;
   NeedShowBrowserId: Integer;
 begin
@@ -222,9 +222,12 @@ begin
   BrowserDicLocker.Enter;
   ClosedUrlListLocker.Enter;
   try
-    SetLength(ClosePageArr, FBrowserDic.Count);
     for Item in FBrowserDic.Values do
-      ClosePageArr[Index] := Item.Browser.Identifier;
+    begin
+      SetLength(ClosePageArr, Length(ClosePageArr) + 1);
+      ClosePageArr[High(ClosePageArr)] := Item.Browser.Identifier;
+    end;
+
     if aIsTrigClosePageEvent then
       FEvents.doOnBeforeCloseBrowser(ClosePageArr,
         TCloseBrowserType.CLOSETYPE_DEFAULT, NeedShowBrowserId);
@@ -253,7 +256,7 @@ end;
 function TBrowserView.CloseAllOtherBrowser(const aBrowserId: Integer): Boolean;
 var
   ClosePageArr: Array of Integer;
-  Index, Id: Integer;
+  Id: Integer;
   Item: TCefBrowserWrapper;
   NeedShowBrowserId: Integer;
 begin
