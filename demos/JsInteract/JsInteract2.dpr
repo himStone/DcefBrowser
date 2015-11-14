@@ -8,7 +8,7 @@ uses
 {$R *.res}
 
 begin
- // DcefBApp.CefSingleProcess  := False;
+  DcefBApp.CefSingleProcess  := False;
   if not DcefBApp.Init then
     Exit;
 
