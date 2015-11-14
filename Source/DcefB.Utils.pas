@@ -26,13 +26,20 @@ unit DcefB.Utils;
 interface
 
 uses
-  Windows, Classes, DcefB.Cef3.Interfaces;
+  Windows, Classes, Variants, SysUtils, ComObj,
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Types, DcefB.res;
 
 type
   TDcefBUtils = record
     class function GetCefParentWindow(aBrowser: ICefBrowser): HWND; static;
     class function SendMsg(aBrowser: ICefBrowser; Msg: UINT; LParam: LParam)
       : Boolean; static;
+    class function GetGuid: string; static;
+    class function ToVariant(V: Icefv8Value): Variant; static;
+    class procedure SetCefValueData(aData: ICefListValue;
+      const aValueIndex: Integer; const aValue: Variant); static;
+    class procedure SetVariantData(var aValue: Variant; aCefList: ICefListValue;
+      const aIndex: Integer); static;
   end;
 
 implementation
@@ -44,11 +51,115 @@ begin
   Result := GetParent(aBrowser.host.WindowHandle);
 end;
 
+class function TDcefBUtils.GetGuid: string;
+var
+  aGuid: TGUID;
+begin
+  CreateGUID(aGuid);
+  Result := GUIDToString(aGuid);
+end;
+
 class function TDcefBUtils.SendMsg(aBrowser: ICefBrowser; Msg: UINT;
   LParam: LParam): Boolean;
 begin
   Result := SendMessage(GetCefParentWindow(aBrowser), Msg, WParam(@aBrowser),
     LParam) <> S_FALSE;
+end;
+
+class procedure TDcefBUtils.SetCefValueData(aData: ICefListValue;
+  const aValueIndex: Integer; const aValue: Variant);
+begin
+  case TVarData(aValue).vType of
+    varInteger, varInt64:
+      aData.SetInt(aValueIndex, aValue);
+    varDouble:
+      aData.SetDouble(aValueIndex, aValue);
+    varBoolean:
+      aData.SetBool(aValueIndex, aValue);
+    varUString, varString:
+      aData.SetString(aValueIndex, aValue)
+  end;
+end;
+
+class procedure TDcefBUtils.SetVariantData(var aValue: Variant;
+  aCefList: ICefListValue; const aIndex: Integer);
+begin
+  case aCefList.GetType(aIndex) of
+    VTYPE_BOOL:
+      aValue := aCefList.GetBool(aIndex);
+    VTYPE_INT:
+      aValue := aCefList.GetInt(aIndex);
+    VTYPE_DOUBLE:
+      aValue := aCefList.GetDouble(aIndex);
+    VTYPE_STRING:
+      aValue := aCefList.GetString(aIndex);
+  end;
+end;
+
+class function TDcefBUtils.ToVariant(V: Icefv8Value): Variant;
+var
+  i: Integer;
+  procedure AsObject;
+  var
+    AList: TStringList;
+    AVal: Icefv8Value;
+    i, t, c: Integer;
+    AValues: array of Variant;
+  begin
+    AList := TStringList.Create;
+    try
+      V.GetKeys(AList);
+      SetLength(AValues, AList.Count shl 1);
+      c := 0;
+      for i := 0 to AList.Count do
+      begin
+        AVal := V.GetValueByIndex(i);
+        if not AVal.IsFunction then
+        begin
+          t := c shl 1;
+          AValues[t] := AList[i];
+          AValues[t + 1] := ToVariant(AVal);
+          Inc(c);
+        end;
+      end;
+      SetLength(AValues, c shl 1);
+      Result := VarArrayOf(AValues);
+    finally
+      FreeAndNil(AList);
+    end;
+  end;
+
+begin
+  if V.IsString then
+    Result := V.GetStringValue
+  else if V.IsBool then
+    Result := V.GetBoolValue
+  else if V.IsInt then
+    Result := V.GetIntValue
+  else if V.IsUInt then
+    Result := V.GetUIntValue
+  else if V.IsDouble then
+    Result := V.GetDoubleValue
+  else if V.IsUndefined then
+    Result := Unassigned
+  else if V.IsNull then
+    Result := Null
+  else if V.IsFunction then
+    Result := V.GetFunctionName
+  else if V.IsArray then
+  begin
+    Result := VarArrayCreate([0, V.GetArrayLength], varVariant);
+    for i := 0 to V.GetArrayLength - 1 do
+    begin
+      Result[i] := ToVariant(V.GetValueByIndex(i));
+    end;
+  end
+  else if V.IsObject then
+  begin
+    AsObject;
+  end
+  else
+    raise Exception.Create(SCantToVariant);
 end;
 
 end.

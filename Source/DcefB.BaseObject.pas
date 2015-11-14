@@ -74,6 +74,15 @@ type
   TDynIntArr = Array of Integer;
   TDynClassArr = Array of TClass;
 
+  TJsExtentionAction = (JSEA_GET, JSEA_SET, JSEA_GETDEFINED, JSEA_SCRIPT);
+
+  PJsExtentionArgs = ^TJsExtentionArgs;
+  TJsExtentionArgs = record
+    JsExtentionId: PString;
+    JsResult: PVariant;
+    ExceptionHint: PString;
+  end;
+
   TBeforePopupArgs = record
     frame: PICefFrame;
     targetUrl, targetFrameName: Pustring;

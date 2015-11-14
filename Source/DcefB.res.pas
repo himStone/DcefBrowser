@@ -80,6 +80,9 @@ Const
   WM_RefreshIgnoreCache = WM_USER + 47;
   WM_SearchText = WM_USER + 48;
 
+  WM_JsExtention = WM_USER + 49;
+  WM_JsExtHelperReady = WM_USER + 50;
+
   State_IsLoading = $001;
   State_CanGoBack = $002;
   State_CanGoForward = $004;
@@ -93,10 +96,18 @@ Const
   SUnloadDialogText = '确定要离开此页吗？';
   SRunOnlyInSinglePro = '暂时只支持单进程模式';
 
+  SVarTypeMismatch = '变量 %s 不存在或类型不匹配';
+  SJSException =
+    '执行脚本时发生异常：'#13#10'信息：%s'#13#10'位置:第 %d 行 %d 列'#13#10'脚本:'#13#10'%s';
+  SCantToVariant = '指定的JavaScript变量无法转换为 Variant';
+
   EXP_CEFLIBNOTLOAD = 'TDcefBApp.LoadLib must be called first';
-  EXP_CEFNOTLOADINMAINPRO = 'TDcefBApp.LoadLib must be called first in the main process';
+  EXP_CEFNOTLOADINMAINPRO =
+    'TDcefBApp.LoadLib must be called first in the main process';
 
   RUNINRENDER_MSG = '@dcefbrowser_runinrender';
+  JSEXTENTION_TORENDER_MSG = '@dcefbrowser_torender_jsextention';
+  JSEXTENTION_TOBROWSER_MEG = '@dcefbrowser_tobrowser_jsextention';
 
 implementation
 

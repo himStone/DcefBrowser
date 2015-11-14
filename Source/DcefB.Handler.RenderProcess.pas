@@ -26,9 +26,9 @@ unit DcefB.Handler.RenderProcess;
 interface
 
 uses
-  Classes, SysUtils, Rtti, TypInfo, Variants,
+  Classes, SysUtils, Rtti, TypInfo, Variants, Windows,
   DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.Cef3.Api,
-  DcefB.BaseObject, DcefB.Events, DcefB.res;
+  DcefB.BaseObject, DcefB.Events, DcefB.res, DcefB.Utils;
 
 type
   TDcefBRenderProcessHandler = class(TCefRenderProcessHandlerOwn,
@@ -286,19 +286,125 @@ function TDcefBRenderProcessHandler.OnProcessMessageReceived
     TRenderProcessCallbackA(ATemp) := nil;
   end;
 
+  procedure DoJsExtention;
+  var
+    aText, aExceptStr, aGuid: string;
+    aJsValue, aJsScriptResult: ICefv8Value;
+    aContext: ICefv8Context;
+    AException: ICefV8Exception;
+    aJsResult: Variant;
+    AMsg: ICefProcessMessage;
+  begin
+    aGuid := message.ArgumentList.GetString(0);
+    aText := message.ArgumentList.GetString(2);
+    aContext := browser.MainFrame.GetV8Context;
+
+    case TJsExtentionAction(message.ArgumentList.GetInt(1)) of
+      JSEA_GET:
+        begin
+          if Assigned(aContext) and aContext.Enter then
+          begin
+            aJsValue := aContext.Global.GetValueByKey(aText);
+            if aJsValue.IsValid then
+            begin
+              if aJsValue.IsUndefined then
+              begin
+                if aContext.Eval(aText, aJsValue, AException) then
+                  aJsResult := TDcefBUtils.ToVariant(aJsValue)
+                else
+                  aExceptStr := Format(SVarTypeMismatch, [aText]);
+              end
+              else
+                aJsResult := TDcefBUtils.ToVariant(aJsValue);
+            end
+            else
+              aExceptStr := Format(SVarTypeMismatch, [aText]);
+          end;
+          Result := True;
+        end;
+      JSEA_SET:
+        begin
+          if (message.ArgumentList.GetSize = 4) and Assigned(aContext) and
+            aContext.Enter then
+          begin
+            case message.ArgumentList.GetType(3) of
+              VTYPE_BOOL:
+                aContext.Global.SetValueByKey(aText,
+                  TCefv8ValueRef.NewBool(message.ArgumentList.GetBool(3)), []);
+              VTYPE_INT:
+                aContext.Global.SetValueByKey(aText,
+                  TCefv8ValueRef.NewInt(message.ArgumentList.GetInt(3)), []);
+              VTYPE_DOUBLE:
+                aContext.Global.SetValueByKey(aText,
+                  TCefv8ValueRef.NewDouble
+                  (message.ArgumentList.GetDouble(3)), []);
+              VTYPE_STRING:
+                begin
+                  aContext.Global.SetValueByKey(aText,
+                    TCefv8ValueRef.NewString
+                    (message.ArgumentList.GetString(3)), []);
+                end;
+            end;
+            aContext.Exit;
+          end;
+          Result := True;
+        end;
+      JSEA_GETDEFINED:
+        begin
+          if aContext.Enter then
+          begin
+            aJsResult := aContext.Global.HasValueByKey(aText);
+            aContext.Exit;
+          end;
+          Result := True;
+        end;
+      JSEA_SCRIPT:
+        begin
+          if Assigned(aContext) and aContext.Enter then
+          begin
+            if not aContext.Eval(aText, aJsScriptResult, AException) then
+            begin
+              aExceptStr := Format(SJSException,
+                [AException.message, AException.LineNumber,
+                AException.StartColumn, AException.SourceLine]);
+            end
+            else
+              aJsResult := TDcefBUtils.ToVariant(aJsScriptResult);
+            aContext.Exit;
+          end;
+          Result := True;
+        end;
+    else
+      Result := False;
+    end;
+
+    if Result then
+    begin
+      AMsg := TCefProcessMessageRef.New(JSEXTENTION_TOBROWSER_MEG);
+      AMsg.ArgumentList.SetSize(3);
+      AMsg.ArgumentList.SetString(0, aGuid);
+      TDcefBUtils.SetCefValueData(AMsg.ArgumentList, 1, aJsResult);
+      AMsg.ArgumentList.SetString(2, aExceptStr);
+      browser.SendProcessMessage(TCefProcessId.PID_BROWSER, AMsg);
+    end;
+  end;
+
 begin
-  if (sourceProcess = TCefProcessId.PID_BROWSER) and
-    (message.Name = RUNINRENDER_MSG) then
+  if message.Name = JSEXTENTION_TORENDER_MSG then
+  begin
+    DoJsExtention;
+    Result := True;
+  end
+  else if message.Name = RUNINRENDER_MSG then
   begin
     DoRunInRender;
     Result := True;
   end
-  else if Assigned(FOnProcessMessageReceived) then
-  begin
-    FOnProcessMessageReceived(browser, sourceProcess, message, Result);
-  end
   else
     Result := False;
+
+  if Assigned(FOnProcessMessageReceived) then
+    FOnProcessMessageReceived(browser, sourceProcess, message, Result);
 end;
 
 procedure TDcefBRenderProcessHandler.OnRenderThreadCreated(const extraInfo

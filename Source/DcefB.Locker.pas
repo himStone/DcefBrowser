@@ -44,6 +44,7 @@ var
   BrowserDicLocker: TDcefBLocker;
   DevToolsBroListLocker: TDcefBLocker;
   ClosedUrlListLocker: TDcefBLocker;
+  JsExtention: TDcefBLocker;
 
 
 implementation
@@ -104,11 +105,13 @@ CpuCount := GetCPUCount;
 BrowserDicLocker := TDcefBLocker.Create;
 DevToolsBroListLocker := TDcefBLocker.Create;
 ClosedUrlListLocker := TDcefBLocker.Create;
+JsExtention := TDcefBLocker.Create;
 
 Finalization
 
 BrowserDicLocker.Free;
 DevToolsBroListLocker.Free;
 ClosedUrlListLocker.Free;
+JsExtention.Free;
 
 end.

@@ -29,7 +29,7 @@ uses
   Windows, Classes, SysUtils, Controls, Messages,
 
   DcefB.CefEvents, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types,
-  DcefB.res, DcefB.Events,
+  DcefB.res, DcefB.Events, DcefB.Utils, DcefB.BaseObject,
   // Handler Unit
   DcefB.Handler.Display, DcefB.Handler.Dialog, DcefB.Handler.Download,
   DcefB.Handler.Focus, DcefB.Handler.Geolocation, DcefB.Handler.JsDialog,
@@ -275,8 +275,32 @@ end;
 
 function TDcefBHandler.OnProcessMessageReceived(const browser: ICefBrowser;
   sourceProcess: TCefProcessId; const message: ICefProcessMessage): Boolean;
+  procedure DoJsExtention;
+  var
+    PArgs: PJsExtentionArgs;
+    aJsExtentionId: string;
+    aJsResult: Variant;
+    aExceptionStr: string;
+  begin
+    aJsExtentionId := message.ArgumentList.GetString(0);
+    TDcefBUtils.SetVariantData(aJsResult, message.ArgumentList, 1);
+    aExceptionStr := message.ArgumentList.GetString(2);
+    New(PArgs);
+    PArgs.JsExtentionId := @aJsExtentionId;
+    PArgs.JsResult := @aJsResult;
+    PArgs.ExceptionHint := @aExceptionStr;
+    TDcefBUtils.SendMsg(browser, WM_JsExtention, LParam(PArgs));
+    Dispose(PArgs);
+  end;
+
 begin
-  Result := doOnProcessMessageReceived(browser, sourceProcess, message);
+  if SameText(message.Name, JSEXTENTION_TOBROWSER_MEG) then
+  begin
+    DoJsExtention;
+    Result := True;
+  end
+  else
+    Result := doOnProcessMessageReceived(browser, sourceProcess, message);
 end;
 
 end.

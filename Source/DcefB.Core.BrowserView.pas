@@ -32,13 +32,14 @@ uses
   DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.BaseObject,
   DcefB.Locker, DcefB.Settings, DcefB.Events, DcefB.Handler.Focus,
   DcefB.CefBrowserWrapper, DcefB.Dcef3.CefErr, DcefB.Handler.Basic,
-  DcefB.Core.BrowserHandler, DcefB.res, DcefB.Utils;
+  DcefB.Core.BrowserHandler, DcefB.res, DcefB.Utils, DcefB.Core.JsExtention;
 
 type
   TBrowserView = class(TWinControl)
   private
     FEvents: IDcefBrowser;
     FHandler: ICefClient;
+    FJsExtention: TDcefBJsExtention;
     FBrowserDic: TBrowserWrapperDic;
     FClosedURL: TStringList;
     FDcefBOptions: TDcefBOptions;
@@ -93,6 +94,7 @@ type
     procedure OnDevTools(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnRefreshIgnoreCache(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnSearchText(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnJsExtention(aBrowser: ICefBrowser; LParam: LParam);
 
     procedure HideCurrentBrowserWindow;
     function GetEmpty: Boolean;
@@ -170,6 +172,7 @@ type
     property ZoomLevel: string read GetZoomLevel;
     property BrowserWrappers[aBrowserId: Integer]: TCefBrowserWrapper
       read GetWrapperBrowsers;
+    property JsExtention: TDcefBJsExtention read FJsExtention;
   end;
 
 implementation
@@ -331,6 +334,7 @@ begin
 
   FBrowserDic := TBrowserWrapperDic.Create;
   FClosedURL := TStringList.Create;
+  FJsExtention := TDcefBJsExtention.Create;
 end;
 
 procedure TBrowserView.CreateCefWindow(aUrl: string);
@@ -372,6 +376,7 @@ begin
   FEvents := nil;
   FActiveBrowser := nil;
   ClearInterface;
+  FJsExtention.Free;
   FBrowserDic.Free;
   FClosedURL.Free;
   inherited;
@@ -890,6 +895,17 @@ begin
   Result := S_OK;
 end;
 
+procedure TBrowserView.OnJsExtention(aBrowser: ICefBrowser; LParam: LParam);
+var
+  PArgs: PJsExtentionArgs;
+begin
+  PArgs := PJsExtentionArgs(LParam);
+
+  if Assigned(FJsExtention) then
+    FJsExtention.UnRegisterHandler(PArgs.JsExtentionId^, PArgs.ExceptionHint^,
+      PArgs.JsResult^);
+end;
+
 function TBrowserView.OnKeyEvent(aBrowser: ICefBrowser; LParam: LParam)
   : LRESULT;
 var
@@ -920,7 +936,7 @@ begin
 
   if (FDcefBOptions.ShowLoadError) and (Not PArgs.CancelDefaultEvent) and
     (PArgs.errorCode <> NET_ERROR_ABORTED) then
-  // NET_ERROR_ABORTED: user cancel download
+    // NET_ERROR_ABORTED: user cancel download
     aBrowser.MainFrame.LoadString('<html><body><h2>Failed to load URL ' +
       PArgs.failedUrl^ + ' with error ' + PArgs.errorText^ + ' (' +
       inttostr(PArgs.errorCode) + ').</h2></body></html>', PArgs.failedUrl^);
@@ -1362,6 +1378,8 @@ begin
       OnRefreshIgnoreCache(GetCefBrowser, Message.LParam);
     WM_SearchText:
       OnSearchText(GetCefBrowser, Message.LParam);
+    WM_JsExtention:
+      OnJsExtention(nil, Message.LParam);
   else
     inherited WndProc(Message);
   end;

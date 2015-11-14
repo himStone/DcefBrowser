@@ -30,9 +30,8 @@ uses
 
   DcefB.Cef3.Types, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
   DcefB.Cef3.Helper, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
-  DcefB.Events, DcefB.Core.BrowserView,
-  DcefB.Core.BrowserHandler, DcefB.res, DcefB.CefBrowserWrapper,
-  DcefB.Core.DevToolsView;
+  DcefB.Events, DcefB.Core.BrowserView, DcefB.Core.BrowserHandler, DcefB.res,
+  DcefB.CefBrowserWrapper, DcefB.Core.DevToolsView, DcefB.Core.JsExtention;
 
 type
   TCustomDcefBrowser = class(TWinControl, IDcefBrowser)
@@ -246,6 +245,7 @@ type
     function GetTitle: string;
     function GetUrl: string;
     procedure CreateDevToolsView;
+    function GetJsExtention: TDcefBJsExtention;
   protected
     // swish changed:
     FLastWndProc: TWndMethod;
@@ -297,6 +297,7 @@ type
     function GetText(var aText: string; Const TimeOut: Integer = 1000): Boolean;
     // --------
 
+    property JsExtention: TDcefBJsExtention read GetJsExtention;
     property BrowserWrappers[aBrowserID: Integer]: TCefBrowserWrapper
       read GetWrapperBrowsers;
     property ActiveBrowser: ICefBrowser read GetActiveBrowser;
@@ -397,7 +398,8 @@ type
       write FOnResetDialogState;
     property OnRenderProcessTerminated: TOnRenderProcessTerminated
       read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
-    property OnBeforePopup: TOnBeforePopup read FOnBeforePopup write FOnBeforePopup;
+    property OnBeforePopup: TOnBeforePopup read FOnBeforePopup
+      write FOnBeforePopup;
   end;
 
   TDcefBrowser = class(TCustomDcefBrowser)
@@ -1163,6 +1165,11 @@ begin
     Result := FBrowserView.IsLoading
   else
     Result := False;
+end;
+
+function TCustomDcefBrowser.GetJsExtention: TDcefBJsExtention;
+begin
+  Result := FBrowserView.JsExtention;
 end;
 
 procedure TCustomDcefBrowser.GetSettings(var Settings: TCefBrowserSettings);
