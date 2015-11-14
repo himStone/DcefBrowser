@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{211AF648-C551-4104-B0FB-3CCDDEEB9185}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="JsInteract1.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="JsInteract2.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="JsInteract1">
+        <MSBuild Projects="JsInteract1.dproj"/>
+    </Target>
+    <Target Name="JsInteract1:Clean">
+        <MSBuild Projects="JsInteract1.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JsInteract1:Make">
+        <MSBuild Projects="JsInteract1.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="JsInteract2">
+        <MSBuild Projects="JsInteract2.dproj"/>
+    </Target>
+    <Target Name="JsInteract2:Clean">
+        <MSBuild Projects="JsInteract2.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JsInteract2:Make">
+        <MSBuild Projects="JsInteract2.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="JsInteract1;JsInteract2"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="JsInteract1:Clean;JsInteract2:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="JsInteract1:Make;JsInteract2:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

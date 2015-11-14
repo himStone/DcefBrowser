@@ -1,20 +1,20 @@
-program JsInteract;
+program JsInteract2;
 
 uses
   Forms,
   DcefB.Core.App,
-  UnitFrmMain in 'UnitFrmMain.pas' {MainForm};
+  Unit2 in 'Unit2.pas' {Form2};
 
 {$R *.res}
 
 begin
-  // DcefBApp.CefSingleProcess := False;
+ // DcefBApp.CefSingleProcess  := False;
   if not DcefBApp.Init then
     Exit;
 
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TMainForm, MainForm);
+  Application.CreateForm(TForm2, Form2);
   Application.Run;
 
 end.
