@@ -72,24 +72,24 @@ begin
   DcefBrowser1.JsExtention.GetAsStringProc(DcefBrowser1.ActiveBrowser, 'Str',
     procedure(const aData: Variant)
     begin
-      Memo1.Lines.Add('Get Str -> ' + aData.AsString);
+      Memo1.Lines.Add('Get Str -> ' + string(aData));
     end);
   DcefBrowser1.JsExtention.GetAsBooleanProc(DcefBrowser1.ActiveBrowser,
     'Boolean',
     procedure(const aData: Variant)
     begin
-      Memo1.Lines.Add('Get Boolean -> ' + aData.AsString);
+      Memo1.Lines.Add('Get Boolean -> ' + string(aData));
     end);
   DcefBrowser1.JsExtention.GetAsFloatProc(DcefBrowser1.ActiveBrowser, 'Float',
     procedure(const aData: Variant)
     begin
-      Memo1.Lines.Add('Get Float -> ' + aData.AsString);
+      Memo1.Lines.Add('Get Float -> ' + string(aData));
     end);
   DcefBrowser1.JsExtention.GetAsIntegerProc(DcefBrowser1.ActiveBrowser,
     'Integer',
     procedure(const aData: Variant)
     begin
-      Memo1.Lines.Add('Get Integer -> ' + aData.AsString);
+      Memo1.Lines.Add('Get Integer -> ' + string(aData));
     end);
 end;
 
