@@ -928,6 +928,8 @@ end;
 procedure TBrowserView.OnLoadError(aBrowser: ICefBrowser; LParam: LParam);
 var
   PArgs: PLoadErrorArgs;
+  url, aErrorName, aErrorDescription, htmlText: string;
+  errCode: Integer;
 begin
   PArgs := PLoadErrorArgs(LParam);
 
@@ -935,11 +937,20 @@ begin
     PArgs.errorText^, PArgs.failedUrl^, PArgs.CancelDefaultEvent);
 
   if (FDcefBOptions.ShowLoadError) and (Not PArgs.CancelDefaultEvent) and
-    (PArgs.errorCode <> NET_ERROR_ABORTED) then
+    (Not CefErrorManager.IsUserAborted(PArgs.errorCode)) then
     // NET_ERROR_ABORTED: user cancel download
-    aBrowser.MainFrame.LoadString('<html><body><h2>Failed to load URL ' +
-      PArgs.failedUrl^ + ' with error ' + PArgs.errorText^ + ' (' +
-      inttostr(PArgs.errorCode) + ').</h2></body></html>', PArgs.failedUrl^);
+    begin
+      url := PArgs.failedUrl^;
+      errCode := PArgs.errorCode;
+      htmlText := Format('<h2>Failed to load URL %s with error %d</h2>', [url, errCode]);
+      if CefErrorManager.GetErrorDescription(errCode, aErrorName, aErrorDescription) then
+      begin
+        htmlText := htmlText + Format('<p>Error Name: %s</p>', [aErrorName]);
+        htmlText := htmlText + Format('<p>Error Description: %s</p>', [aErrorDescription]);
+      end;
+
+    end;
+    aBrowser.MainFrame.LoadString(Format('<html><body>%s</body></html>', [htmlText]), url);
 end;
 
 procedure TBrowserView.OnLoadingStateChange(aBrowser: ICefBrowser;
