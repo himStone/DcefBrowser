@@ -136,6 +136,10 @@
         <DCCReference Include="..\Source\DcefB.Core.DcefBrowser.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.DevToolsView.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.JsExtention.pas"/>
+        <DCCReference Include="..\Source\DcefB.CustomDialog.pas">
+            <Form>PasswordDlg</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <DCCReference Include="..\Source\DcefB.Dcef3.CefErr.pas"/>
         <DCCReference Include="..\Source\DcefB.Events.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Basic.pas"/>

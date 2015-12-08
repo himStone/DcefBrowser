@@ -45,6 +45,7 @@ type
   PICefDownloadItemCallback = ^ICefDownloadItemCallback;
   PICefGeolocationCallback = ^ICefGeolocationCallback;
   PICefJsDialogCallback = ^ICefJsDialogCallback;
+  PICefAuthCallback = ^ICefAuthCallback;
   PCefJsDialogType = ^TCefJsDialogType;
   PICefDragData = ^ICefDragData;
   PCefDragOperations = ^TCefDragOperations;
@@ -68,6 +69,7 @@ type
   PBeforeUnloadDialogArgs = ^TBeforeUnloadDialogArgs;
   PJsdialogArgs = ^TJsdialogArgs;
   PDragEnterArgs = ^TDragEnterArgs;
+  PAuthCredentialsArgs = ^TAuthCredentialsArgs;
   PICefClient = ^ICefClient;
 
   TDynStrArr = Array of string;
@@ -220,6 +222,18 @@ type
     dragData: PICefDragData;
     mask: PCefDragOperations;
     Result: PBoolean;
+  end;
+
+  TAuthCredentialsArgs = record
+    frame: PICefFrame;
+    isProxy: PBoolean;
+    host: Pstring;
+    port: PInteger;
+    realm: Pstring;
+    scheme: Pstring;
+    callback: PICefAuthCallback;
+    Result: PBoolean;
+    CancelDefaultEvent: Boolean;
   end;
 
   TRegExtentionPar = record

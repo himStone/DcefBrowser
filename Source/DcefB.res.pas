@@ -67,7 +67,7 @@ Const
   WM_BeforeResourceLoad = WM_USER + 35;
   WM_GetResourceHandler = WM_USER + 36;
   WM_ResourceRedirect = WM_USER + 37;
-  WM_AuthCredentials = WM_USER + 38;
+  WM_GetAuthCredentials = WM_USER + 38;
   WM_QuotaRequest = WM_USER + 39;
   WM_ProtocolExecution = WM_USER + 40;
   WM_BeforePluginLoad = WM_USER + 41;

@@ -88,10 +88,23 @@ end;
 function TDcefBRequestHandler.GetAuthCredentials(const browser: ICefBrowser;
   const frame: ICefFrame; isProxy: Boolean; const host: ustring; port: Integer;
   const realm, scheme: ustring; const callback: ICefAuthCallback): Boolean;
+var
+  PArgs: PAuthCredentialsArgs;
 begin
-  Result := False;
-  FEvents.doOnGetAuthCredentials(browser, frame, isProxy, host, port, realm,
-    scheme, callback, Result);
+  inherited;
+  result := true;
+  New(PArgs);
+  PArgs.frame := @frame;
+  PArgs.isProxy := @isProxy;
+  PArgs.host := @host;
+  PArgs.port := @port;
+  PArgs.realm := @realm;
+  PArgs.scheme := @scheme;
+  PArgs.callback := @callback;
+  PArgs.CancelDefaultEvent := False;
+  PArgs.Result := @Result;
+  TDcefBUtils.SendMsg(browser, WM_GetAuthCredentials, LParam(PArgs));
+  Dispose(PArgs);
 end;
 
 function TDcefBRequestHandler.GetResourceHandler(const browser: ICefBrowser;

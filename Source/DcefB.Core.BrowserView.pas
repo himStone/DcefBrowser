@@ -32,7 +32,8 @@ uses
   DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.BaseObject,
   DcefB.Locker, DcefB.Settings, DcefB.Events, DcefB.Handler.Focus,
   DcefB.CefBrowserWrapper, DcefB.Dcef3.CefErr, DcefB.Handler.Basic,
-  DcefB.Core.BrowserHandler, DcefB.res, DcefB.Utils, DcefB.Core.JsExtention;
+  DcefB.Core.BrowserHandler, DcefB.res, DcefB.Utils, DcefB.Core.JsExtention,
+  DcefB.CustomDialog;
 
 type
   TBrowserView = class(TWinControl)
@@ -95,6 +96,7 @@ type
     procedure OnRefreshIgnoreCache(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnSearchText(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnJsExtention(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnGetAuthCredentials(aBrowser: ICefBrowser; LParam: LParam);
 
     procedure HideCurrentBrowserWindow;
     function GetEmpty: Boolean;
@@ -626,6 +628,40 @@ begin
     string(Pointer(LParam)^));
 end;
 
+procedure TBrowserView.OnGetAuthCredentials(aBrowser: ICefBrowser;
+  LParam: LParam);
+var
+  PArgs: PAuthCredentialsArgs;
+  u, p: ustring;
+  r: Boolean;
+begin
+  PArgs := PAuthCredentialsArgs(LParam);
+  FEvents.doOnGetAuthCredentials(aBrowser, PArgs.frame^, PArgs.isProxy^,
+    PArgs.host^, PArgs.port^, PArgs.realm^, PArgs.scheme^, PArgs.callback^,
+    PArgs.CancelDefaultEvent);
+  if Not PArgs.CancelDefaultEvent then
+  begin
+    with TPasswordDlg.Create(nil) do
+      try
+        if ShowModal = mrOk then
+        begin
+          u := edtusername.Text;
+          p := edtPassword.Text;
+          r := True;
+        end
+        else
+          r := False;
+      finally
+        Free;
+      end;
+    PArgs.Result^ := True;
+    if r = True then
+    begin
+      PArgs.callback^.cont(u, p);
+    end;
+  end;
+end;
+
 procedure TBrowserView.OnBeforeClose(aBrowser: ICefBrowser; LParam: LParam);
 begin
   //
@@ -928,7 +964,7 @@ end;
 procedure TBrowserView.OnLoadError(aBrowser: ICefBrowser; LParam: LParam);
 var
   PArgs: PLoadErrorArgs;
-  url, aErrorName, aErrorDescription, htmlText: string;
+  Url, aErrorName, aErrorDescription, htmlText: string;
   errCode: Integer;
 begin
   PArgs := PLoadErrorArgs(LParam);
@@ -938,19 +974,23 @@ begin
 
   if (FDcefBOptions.ShowLoadError) and (Not PArgs.CancelDefaultEvent) and
     (Not CefErrorManager.IsUserAborted(PArgs.errorCode)) then
-    // NET_ERROR_ABORTED: user cancel download
+  // NET_ERROR_ABORTED: user cancel download
+  begin
+    Url := PArgs.failedUrl^;
+    errCode := PArgs.errorCode;
+    htmlText := Format('<h2>Failed to load URL %s with error %d</h2>',
+      [Url, errCode]);
+    if CefErrorManager.GetErrorDescription(errCode, aErrorName,
+      aErrorDescription) then
     begin
-      url := PArgs.failedUrl^;
-      errCode := PArgs.errorCode;
-      htmlText := Format('<h2>Failed to load URL %s with error %d</h2>', [url, errCode]);
-      if CefErrorManager.GetErrorDescription(errCode, aErrorName, aErrorDescription) then
-      begin
-        htmlText := htmlText + Format('<p>Error Name: %s</p>', [aErrorName]);
-        htmlText := htmlText + Format('<p>Error Description: %s</p>', [aErrorDescription]);
-      end;
-
+      htmlText := htmlText + Format('<p>Error Name: %s</p>', [aErrorName]);
+      htmlText := htmlText + Format('<p>Error Description: %s</p>',
+        [aErrorDescription]);
     end;
-    aBrowser.MainFrame.LoadString(Format('<html><body>%s</body></html>', [htmlText]), url);
+
+  end;
+  aBrowser.MainFrame.LoadString(Format('<html><body>%s</body></html>',
+    [htmlText]), Url);
 end;
 
 procedure TBrowserView.OnLoadingStateChange(aBrowser: ICefBrowser;
@@ -1125,7 +1165,7 @@ var
   PArgs: PTooltipArgs;
 begin
   PArgs := PTooltipArgs(LParam);
-  FEvents.doOnTooltip(aBrowser, PArgs.text^, PArgs.Result^);
+  FEvents.doOnTooltip(aBrowser, PArgs.Text^, PArgs.Result^);
   Result := S_OK;
 end;
 
@@ -1391,6 +1431,8 @@ begin
       OnSearchText(GetCefBrowser, Message.LParam);
     WM_JsExtention:
       OnJsExtention(nil, Message.LParam);
+    WM_GetAuthCredentials:
+      OnGetAuthCredentials(nil, Message.LParam);
   else
     inherited WndProc(Message);
   end;

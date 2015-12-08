@@ -57,6 +57,7 @@ contains
   DcefB.Core.DcefBrowser in '..\Source\DcefB.Core.DcefBrowser.pas',
   DcefB.Core.DevToolsView in '..\Source\DcefB.Core.DevToolsView.pas',
   DcefB.Core.JsExtention in '..\Source\DcefB.Core.JsExtention.pas',
+  DcefB.CustomDialog in '..\Source\DcefB.CustomDialog.pas' {PasswordDlg},
   DcefB.Dcef3.CefErr in '..\Source\DcefB.Dcef3.CefErr.pas',
   DcefB.Events in '..\Source\DcefB.Events.pas',
   DcefB.Handler.Basic in '..\Source\DcefB.Handler.Basic.pas',
