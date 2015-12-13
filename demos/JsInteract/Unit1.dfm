@@ -1,7 +1,7 @@
-object Form1: TForm1
+object Form2: TForm2
   Left = 0
   Top = 0
-  Caption = 'JsInteract1'
+  Caption = 'JsInteract2'
   ClientHeight = 545
   ClientWidth = 738
   Color = clBtnFace
@@ -12,7 +12,6 @@ object Form1: TForm1
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object DcefBrowser1: TDcefBrowser
@@ -39,50 +38,35 @@ object Form1: TForm1
     TabOrder = 1
     object Memo1: TMemo
       Left = 0
-      Top = 121
+      Top = 91
       Width = 738
-      Height = 245
+      Height = 275
       Align = alClient
       ScrollBars = ssVertical
       TabOrder = 0
+      ExplicitTop = 121
+      ExplicitHeight = 245
     end
     object GroupBox1: TGroupBox
       Left = 0
       Top = 0
       Width = 738
-      Height = 121
+      Height = 91
       Align = alTop
-      Caption = 'Method 1'
       TabOrder = 1
-      object Label1: TLabel
-        Left = 11
-        Top = 24
-        Width = 429
-        Height = 13
-        Caption = 
-          'Use unit jsvarhelper(created by swish), Easy to use but only sup' +
-          'port single process mode'
-        Color = clBtnFace
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clRed
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        ParentColor = False
-        ParentFont = False
-      end
+      ExplicitTop = 24
       object Button1: TButton
         Left = 11
-        Top = 49
-        Width = 121
+        Top = 17
+        Width = 78
         Height = 25
-        Caption = 'SetAndGetTest'
+        Caption = 'SetTest'
         TabOrder = 0
         OnClick = Button1Click
       end
       object Button3: TButton
         Left = 138
-        Top = 86
+        Top = 54
         Width = 75
         Height = 25
         Caption = 'RunJs'
@@ -91,11 +75,20 @@ object Form1: TForm1
       end
       object Edit2: TEdit
         Left = 11
-        Top = 88
+        Top = 56
         Width = 121
         Height = 21
         TabOrder = 2
         Text = 'RunErrorJS();'
+      end
+      object Button2: TButton
+        Left = 95
+        Top = 17
+        Width = 75
+        Height = 25
+        Caption = 'GetTest'
+        TabOrder = 3
+        OnClick = Button2Click
       end
     end
   end

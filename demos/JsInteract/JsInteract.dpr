@@ -1,9 +1,9 @@
-program JsInteract2;
+program JsInteract;
 
 uses
   Forms,
   DcefB.Core.App,
-  Unit2 in 'Unit2.pas' {Form2};
+  Unit1 in 'Unit1.pas' {Form2};
 
 {$R *.res}
 
