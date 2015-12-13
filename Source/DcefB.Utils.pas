@@ -26,7 +26,7 @@ unit DcefB.Utils;
 interface
 
 uses
-  Windows, Classes, Variants, SysUtils, ComObj,
+  Windows, Classes, Variants, SysUtils, ComObj, SyncObjs,
   DcefB.Cef3.Interfaces, DcefB.Cef3.Types, DcefB.res;
 
 type
@@ -40,6 +40,8 @@ type
       const aValueIndex: Integer; const aValue: Variant); static;
     class procedure SetVariantData(var aValue: Variant; aCefList: ICefListValue;
       const aIndex: Integer); static;
+    class function MsgWaitForEvent(AEvent: TEvent; ATimeout: Cardinal)
+      : TWaitResult; static;
   end;
 
 implementation
@@ -57,6 +59,94 @@ var
 begin
   CreateGUID(aGuid);
   Result := GUIDToString(aGuid);
+end;
+
+//Copy From QWorker.pas
+class function TDcefBUtils.MsgWaitForEvent(AEvent: TEvent; ATimeout: Cardinal)
+  : TWaitResult;
+var
+  T: Cardinal;
+{$IFDEF MSWINDOWS}
+  AHandles: array [0 .. 0] of THandle;
+  rc: DWORD;
+{$ENDIF}
+  procedure ProcessAppMessage;
+{$IFDEF MSWINDOWS}
+  var
+    AMsg: Msg;
+{$ENDIF}
+  begin
+{$IFDEF MSWINDOWS}
+    while PeekMessage(AMsg, 0, 0, 0, PM_REMOVE) do
+    begin
+      TranslateMessage(AMsg);
+      DispatchMessage(AMsg);
+    end;
+{$ELSE}
+    Application.ProcessMessages;
+{$ENDIF}
+  end;
+
+begin
+  if GetCurrentThreadId <> MainThreadId then
+    Result := AEvent.WaitFor(ATimeout)
+  else
+  begin
+{$IFDEF MSWINDOWS}
+    Result := wrTimeout;
+    AHandles[0] := AEvent.Handle;
+    repeat
+      T := GetTickCount;
+      rc := MsgWaitForMultipleObjects(1, AHandles[0], False, ATimeout,
+        QS_ALLINPUT);
+      if rc = WAIT_OBJECT_0 + 1 then
+      begin
+        ProcessAppMessage;
+        T := GetTickCount - T;
+        if ATimeout > T then
+          Dec(ATimeout, T)
+        else
+        begin
+          Result := wrTimeout;
+          Break;
+        end;
+      end
+      else
+      begin
+        case rc of
+          WAIT_ABANDONED:
+            Result := wrAbandoned;
+          WAIT_OBJECT_0:
+            Result := wrSignaled;
+          WAIT_TIMEOUT:
+            Result := wrTimeout;
+          WAIT_FAILED:
+            Result := wrError;
+          WAIT_IO_COMPLETION:
+            Result := wrIOCompletion;
+        end;
+        Break;
+      end;
+    until False;
+{$ELSE}
+    repeat
+      // 每隔10毫秒检查一下是否有消息需要处理，有则处理，无则进入下一个等待
+      T := GetTimestamp;
+      Result := AEvent.WaitFor(10);
+      if Result = wrTimeout then
+      begin
+        T := (GetTimestamp - T) div 10;
+        ProcessAppMessage;
+        if ATimeout > T then
+          Dec(ATimeout, T)
+        else
+          Break;
+      end
+      else
+        Break;
+    until False;
+{$ENDIF}
+  end;
 end;
 
 class function TDcefBUtils.SendMsg(aBrowser: ICefBrowser; Msg: UINT;
@@ -103,7 +193,7 @@ var
   var
     AList: TStringList;
     AVal: Icefv8Value;
-    i, t, c: Integer;
+    i, T, c: Integer;
     AValues: array of Variant;
   begin
     AList := TStringList.Create;
@@ -116,9 +206,9 @@ var
         AVal := V.GetValueByIndex(i);
         if not AVal.IsFunction then
         begin
-          t := c shl 1;
-          AValues[t] := AList[i];
-          AValues[t + 1] := ToVariant(AVal);
+          T := c shl 1;
+          AValues[T] := AList[i];
+          AValues[T + 1] := ToVariant(AVal);
           Inc(c);
         end;
       end;
