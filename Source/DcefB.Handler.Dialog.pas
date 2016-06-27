@@ -74,6 +74,7 @@ begin
   PArgs.acceptTypes := @acceptTypes;
   PArgs.callback := @callback;
   PArgs.Result := @Result;
+  TDcefBUtils.SendMsg(browser, WM_FileDialog, LParam(PArgs));
   Dispose(PArgs);
 end;
 
