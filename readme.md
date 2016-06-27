@@ -14,13 +14,13 @@ DcefBrowser provide a simple method to develop Multi-tab webbrowser
 
 DcefBrowser only support CEF3, no support for CEF1
 
-Dcef3 version: dcef3-0cc175e7a629 
+cef3 version: 3.2171.1979
 
 ### Which platforms are supported?
 
 Windows, VCL
 
-Test in Delphi XE6, It seems to work on Delphi 2007 and Newer
+Test in Delphi XE6, It seems to work on Delphi 2009 and Newer
 
 ### Which tabs control is advised?
 
