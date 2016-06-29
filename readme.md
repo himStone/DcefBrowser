@@ -14,7 +14,7 @@ DcefBrowser provide a simple method to develop Multi-tab webbrowser
 
 DcefBrowser only support CEF3, no support for CEF1
 
-Cef3 version: 3.2171.1979
+Cef3 version: 3.2704.1427
 
 ### Which platforms are supported?
 
