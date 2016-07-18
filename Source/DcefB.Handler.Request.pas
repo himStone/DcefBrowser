@@ -36,34 +36,34 @@ type
     FEvents: IDcefBrowser;
   protected
     function OnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
-      const Request: ICefRequest; isRedirect: Boolean): Boolean; override;
-    function OnBeforeResourceLoad(const browser: ICefBrowser;
-      const frame: ICefFrame; const Request: ICefRequest): Boolean; override;
-    function GetResourceHandler(const browser: ICefBrowser;
-      const frame: ICefFrame; const Request: ICefRequest)
-      : ICefResourceHandler; override;
-    procedure OnResourceRedirect(const browser: ICefBrowser;
-      const frame: ICefFrame; const oldUrl: ustring;
-      var newUrl: ustring); override;
-    function GetAuthCredentials(const browser: ICefBrowser;
-      const frame: ICefFrame; isProxy: Boolean; const host: ustring;
-      port: Integer; const realm, scheme: ustring;
+      const request: ICefRequest; isRedirect: Boolean): Boolean; override;
+    function OnOpenUrlFromTab(const browser: ICefBrowser; const frame: ICefFrame;
+      const targetUrl: ustring; targetDisposition: TCefWindowOpenDisposition;
+      userGesture: Boolean): Boolean; override;
+    function OnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const callback: ICefRequestCallback): TCefReturnValue; override;
+    function GetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest): ICefResourceHandler; override;
+    procedure OnResourceRedirect(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; var newUrl: ustring); override;
+    function OnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse): Boolean; override;
+    function GetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse): ICefResponseFilter; override;
+    procedure OnResourceLoadComplete(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; status: TCefUrlRequestStatus;
+      receivedContentLength: Int64); override;
+    function GetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
+      isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean; override;
-    function OnQuotaRequest(const browser: ICefBrowser;
-      const originUrl: ustring; newSize: Int64;
-      const callback: ICefQuotaCallback): Boolean; override;
-    procedure OnProtocolExecution(const browser: ICefBrowser;
-      const url: ustring; out allowOsExecution: Boolean); override;
-    function OnBeforePluginLoad(const browser: ICefBrowser; const url: ustring;
-      const policyUrl: ustring; const info: ICefWebPluginInfo)
-      : Boolean; override;
-    function OnCertificateError(certError: TCefErrorCode;
-      const requestUrl: ustring;
-      const callback: ICefAllowCertificateErrorCallback): Boolean; override;
-    procedure OnPluginCrashed(const browser: ICefBrowser;
-      const pluginPath: ustring); override;
-    procedure OnRenderProcessTerminated(const browser: ICefBrowser;
-      status: TCefTerminationStatus); override;
+    function OnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
+      newSize: Int64; const callback: ICefRequestCallback): Boolean; override;
+    procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); override;
+    function OnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; override;
+    procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); override;
+    procedure OnRenderViewReady(const browser: ICefBrowser); override;
+    procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); override;
   public
     constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
@@ -85,6 +85,7 @@ begin
   inherited;
 end;
 
+// Called on the IO thread
 function TDcefBRequestHandler.GetAuthCredentials(const browser: ICefBrowser;
   const frame: ICefFrame; isProxy: Boolean; const host: ustring; port: Integer;
   const realm, scheme: ustring; const callback: ICefAuthCallback): Boolean;
@@ -107,12 +108,22 @@ begin
   Dispose(PArgs);
 end;
 
+// Called on the IO thread
 function TDcefBRequestHandler.GetResourceHandler(const browser: ICefBrowser;
   const frame: ICefFrame; const Request: ICefRequest): ICefResourceHandler;
 begin
   FEvents.doOnGetResourceHandler(browser, frame, Request, Result);
 end;
 
+// Called on the IO thread
+function TDcefBRequestHandler.GetResourceResponseFilter(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse): ICefResponseFilter;
+begin
+  FEvents.doOnGetResourceResponseFilter(browser, frame, request, response, Result);
+end;
+
+// Called on the UI thread
 function TDcefBRequestHandler.OnBeforeBrowse(const browser: ICefBrowser;
   const frame: ICefFrame; const Request: ICefRequest;
   isRedirect: Boolean): Boolean;
@@ -121,28 +132,33 @@ begin
   FEvents.doOnBeforeBrowse(browser, frame, Request, isRedirect, Result);
 end;
 
-function TDcefBRequestHandler.OnBeforePluginLoad(const browser: ICefBrowser;
-  const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
+// Called on the IO thread
+function TDcefBRequestHandler.OnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const callback: ICefRequestCallback): TCefReturnValue;
 begin
-  Result := False;
-  FEvents.doOnBeforePluginLoad(browser, url, policyUrl, info, Result);
+  Result := TCefReturnValue.RV_CONTINUE;
+  FEvents.doOnBeforeResourceLoad(browser, frame, request, callback, Result);
 end;
 
-function TDcefBRequestHandler.OnBeforeResourceLoad(const browser: ICefBrowser;
-  const frame: ICefFrame; const Request: ICefRequest): Boolean;
+// Called on the UI thread
+function TDcefBRequestHandler.OnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean;
 begin
   Result := False;
-  FEvents.doOnBeforeResourceLoad(browser, frame, Request, Result);
+  FEvents.doOnCertificateError(browser, certError, requestUrl, sslInfo, callback, Result);
 end;
 
-function TDcefBRequestHandler.OnCertificateError(certError: TCefErrorCode;
-  const requestUrl: ustring;
-  const callback: ICefAllowCertificateErrorCallback): Boolean;
+// Called on the UI thread
+function TDcefBRequestHandler.OnOpenUrlFromTab(const browser: ICefBrowser;
+  const frame: ICefFrame; const targetUrl: ustring;
+  targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean): Boolean;
 begin
+  inherited;
   Result := False;
-  FEvents.doOnCertificateError(certError, requestUrl, callback, Result);
+  FEvents.doOnOpenUrlFromTab(browser, frame, targetUrl, targetDisposition, userGesture, Result);
 end;
 
+// Called on the browser process UI thread
 procedure TDcefBRequestHandler.OnPluginCrashed(const browser: ICefBrowser;
   const pluginPath: ustring);
 begin
@@ -150,6 +166,7 @@ begin
   FEvents.doOnPluginCrashed(browser, pluginPath);
 end;
 
+// Called on the UI thread
 procedure TDcefBRequestHandler.OnProtocolExecution(const browser: ICefBrowser;
   const url: ustring; out allowOsExecution: Boolean);
 begin
@@ -157,14 +174,15 @@ begin
   FEvents.doOnProtocolExecution(browser, url, allowOsExecution);
 end;
 
-function TDcefBRequestHandler.OnQuotaRequest(const browser: ICefBrowser;
-  const originUrl: ustring; newSize: Int64;
-  const callback: ICefQuotaCallback): Boolean;
+// Called on the IO thread
+function TDcefBRequestHandler.OnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
+      newSize: Int64; const callback: ICefRequestCallback): Boolean;
 begin
   Result := False;
   FEvents.doOnQuotaRequest(browser, originUrl, newSize, callback, Result);
 end;
 
+// Called on the browser process UI thread
 procedure TDcefBRequestHandler.OnRenderProcessTerminated(const browser
   : ICefBrowser; status: TCefTerminationStatus);
 begin
@@ -172,11 +190,39 @@ begin
   FEvents.doOnRenderProcessTerminated(browser, status);
 end;
 
-procedure TDcefBRequestHandler.OnResourceRedirect(const browser: ICefBrowser;
-  const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring);
+// Called on the browser process UI thread
+procedure TDcefBRequestHandler.OnRenderViewReady(const browser: ICefBrowser);
 begin
   inherited;
-  FEvents.doOnResourceRedirect(browser, frame, oldUrl, newUrl);
+  //FEvents.doOnRenderViewReady(browser);
+end;
+
+// Called on the IO thread
+procedure TDcefBRequestHandler.OnResourceLoadComplete(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse;
+  status: TCefUrlRequestStatus; receivedContentLength: Int64);
+begin
+  inherited;
+  FEvents.doOnResourceLoadComplete(browser, frame, request, response, status, receivedContentLength);
+end;
+
+// Called on the IO thread
+procedure TDcefBRequestHandler.OnResourceRedirect(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; var newUrl: ustring);
+begin
+  inherited;
+  FEvents.doOnResourceRedirect(browser, frame, request, newUrl);
+end;
+
+// Called on the IO thread
+function TDcefBRequestHandler.OnResourceResponse(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest;
+  const response: ICefResponse): Boolean;
+begin
+  inherited;
+  Result := False;
+  FEvents.doOnResourceResponse(browser, frame, request, response, Result);
 end;
 
 end.

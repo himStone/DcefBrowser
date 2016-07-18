@@ -39,7 +39,7 @@ type
       const requestingUrl: ustring; requestId: Integer;
       const callback: ICefGeolocationCallback): Boolean; override;
     procedure OnCancelGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer); override;
+      requestId: Integer); override;
   public
     constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
@@ -62,8 +62,7 @@ begin
 end;
 
 procedure TDcefBGeolocationHandler.OnCancelGeolocationPermission
-  (const browser: ICefBrowser; const requestingUrl: ustring;
-  requestId: Integer);
+  (const browser: ICefBrowser; requestId: Integer);
 { var
   PArgs: PCancelGeolocationPermissionArgs; }
 begin
@@ -73,7 +72,7 @@ begin
     PArgs.requestId := requestId;
     TDcefBUtils.SendMsg(browser, WM_CancelGeolocationPermission, LParam(PArgs));
     Dispose(PArgs); }
-  FEvents.doOnCancelGeolocationPermission(browser, requestingUrl, requestId);
+  FEvents.doOnCancelGeolocationPermission(browser, requestId);
 end;
 
 function TDcefBGeolocationHandler.OnRequestGeolocationPermission

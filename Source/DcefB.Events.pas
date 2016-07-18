@@ -49,6 +49,8 @@ type
     isLoading, canGoBack, canGoForward: Boolean) of object;
   TOnStateChange = procedure(const browser: ICefBrowser;
     const Kind: TBrowserDataChangeKind; const Value: string) of object;
+  TOnFavIconUrlChange = procedure(const browser: ICefBrowser; const iconUrls: TStrings) of object;
+  TOnFullScreenModeChange = procedure(const browser: ICefBrowser; fullscreen: Boolean) of object;
   TOnAddBrowser = procedure(const browser: ICefBrowser) of object;
   TOnCloseBrowser = procedure(const CloseBrowserIdArr: Array of Integer;
     Const ShowBrowserId: Integer) of object;
@@ -66,6 +68,9 @@ type
   TOnBeforeBrowse = procedure(const browser: ICefBrowser;
     const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean;
     var Cancel: Boolean) of object;
+  TOnOpenUrlFromTab = procedure(const browser: ICefBrowser;
+    const frame: ICefFrame; const targetUrl: ustring; targetDisposition: TCefWindowOpenDisposition;
+    userGesture: Boolean; out Cancel: Boolean) of Object;
 
   TOnPreKeyEvent = procedure(const browser: ICefBrowser;
     const event: PCefKeyEvent; osEvent: TCefEventHandle;
@@ -74,15 +79,22 @@ type
   TOnKeyEvent = procedure(const browser: ICefBrowser; const event: PCefKeyEvent;
     osEvent: TCefEventHandle; var Cancel: Boolean) of object;
 
-  TOnBeforeResourceLoad = procedure(const browser: ICefBrowser;
-    const frame: ICefFrame; const request: ICefRequest; var CancelLoad: Boolean)
-    of object;
+  TOnBeforeResourceLoad = procedure(const browser: ICefBrowser; const frame: ICefFrame;
+    const request: ICefRequest; const callback: ICefRequestCallback; out Result: TCefReturnValue) of object;
+
   TOnGetResourceHandler = procedure(const browser: ICefBrowser;
     const frame: ICefFrame; const request: ICefRequest;
     var ResourceHandler: ICefResourceHandler) of object;
-  TOnResourceRedirect = procedure(const browser: ICefBrowser;
-    const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring)
-    of object;
+  TOnResourceRedirect = procedure(const browser: ICefBrowser; const frame: ICefFrame;
+    const request: ICefRequest; var newUrl: ustring) of object;
+  TOnResourceResponse = procedure(const browser: ICefBrowser; const frame: ICefFrame;
+    const request: ICefRequest; const response: ICefResponse; out Result: Boolean) of Object;
+  TOnGetResourceResponseFilter = procedure(const browser: ICefBrowser;
+    const frame: ICefFrame; const request: ICefRequest; const response: ICefResponse;
+    out Result: ICefResponseFilter) of object;
+  TOnResourceLoadComplete = procedure(const browser: ICefBrowser;
+    const frame: ICefFrame; const request: ICefRequest; const response: ICefResponse;
+    status: TCefUrlRequestStatus; receivedContentLength: Int64) of object;
 
   TOnGotFocus = procedure(const browser: ICefBrowser;
     var CancelDefaultEvent: Boolean) of object;
@@ -101,7 +113,7 @@ type
     const frame: ICefFrame) of object;
 
   TOnJsdialog = procedure(const browser: ICefBrowser;
-    const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+    const originUrl: ustring; dialogType: TCefJsDialogType;
     const messageText, defaultPromptText: ustring;
     callback: ICefJsDialogCallback; out suppressMessage: Boolean;
     var Cancel: Boolean; var CancelDefaultEvent: Boolean) of object;
@@ -123,31 +135,34 @@ type
     port: Integer; const realm, scheme: ustring;
     const callback: ICefAuthCallback; var CancelDefaultEvent: Boolean)
     of object;
+  TOnQuotaRequest = procedure(const browser: ICefBrowser;
+    const originUrl: ustring; newSize: Int64; const callback: ICefRequestCallback;
+    out Cancel: Boolean) of object;
   TOnConsoleMessage = procedure(const browser: ICefBrowser;
     const message, source: ustring; line: Integer; var Cancel: Boolean)
     of object;
   TOnProtocolExecution = procedure(browser: ICefBrowser; const url: ustring;
     var allowOsExecution: Boolean) of object;
-  TOnFileDialog = procedure(const browser: ICefBrowser;
-    mode: TCefFileDialogMode; const title, defaultFileName: ustring;
-    acceptTypes: TStrings; const callback: ICefFileDialogCallback;
-    out Cancel: Boolean) of object;
-
+  TOnCertificateError = procedure(const browser: ICefBrowser;
+    certError: TCefErrorcode; const requestUrl: ustring; const sslInfo: ICefSslInfo;
+    const callback: ICefRequestCallback; out Cancel: Boolean) of Object;
   TOnPluginCrashed = procedure(const browser: ICefBrowser;
     const pluginPath: ustring) of object;
-  TOnBeforePluginLoad = procedure(const browser: ICefBrowser;
-    const url, policyUrl: ustring; const info: ICefWebPluginInfo;
-    var CancelLoad: Boolean) of object;
+  TOnRenderViewReady = procedure(const browser: ICefBrowser) of Object;
+  TOnBeforePluginLoad  = procedure(const browser: ICefBrowser;
+      const URL, policyUrl: ustring; const info: ICefWebPluginInfo;
+      var CancelLoad: Boolean) of Object;
+
+  TOnFileDialog = procedure(const browser: ICefBrowser;
+    mode: TCefFileDialogMode; const title, defaultFilePath: ustring;
+    acceptFilters: TStrings; selectedAcceptFilter: Integer;
+    const callback: ICefFileDialogCallback; var Cancel: Boolean) of Object;
 
   TOnRequestGeolocationPermission = procedure(const browser: ICefBrowser;
     const requestingUrl: ustring; requestId: Integer;
     const callback: ICefGeolocationCallback; var Cancel: Boolean) of object;
   TOnCancelGeolocationPermission = procedure(const browser: ICefBrowser;
-    const requestingUrl: ustring; requestId: Integer) of object;
-
-  TOnQuotaRequest = procedure(const browser: ICefBrowser;
-    const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
-    var Cancel: Boolean) of object;
+    requestId: Integer) of object;
 
   TOnDragEnter = procedure(const browser: ICefBrowser;
     const dragData: ICefDragData; mask: TCefDragOperations; var Cancel: Boolean)
@@ -155,13 +170,12 @@ type
   TOnStartDragging = procedure(const browser: ICefBrowser;
     const dragData: ICefDragData; allowedOps: TCefDragOperations; x, y: Integer;
     var Cancel: Boolean) of object;
+  TOnDraggableRegionsChanged = procedure(const browser: ICefBrowser;
+    regionsCount: NativeUInt; regions: PCefDraggableRegionArray)of Object;
+
   TOnUpdateDragCursor = procedure(const browser: ICefBrowser;
     operation: TCefDragOperation) of object;
-
-  TOnCertificateError = procedure(certError: TCefErrorCode;
-    const requestUrl: ustring;
-    const callback: ICefAllowCertificateErrorCallback; var Cancel: Boolean)
-    of object;
+  TOnScrollOffsetChanged = procedure(const browser: ICefBrowser; x, y: Double) of Object;
 
   TOnCursorChange = procedure(const browser: ICefBrowser;
     cursor: TCefCursorHandle; cursorType: TCefCursorType;
@@ -172,9 +186,12 @@ type
   TOnResetDialogState = procedure(const browser: ICefBrowser) of object;
   TOnRenderProcessTerminated = procedure(const browser: ICefBrowser;
     status: TCefTerminationStatus) of object;
+  TOnFindResult = procedure(const browser: ICefBrowser; identifier,
+    count: Integer; const selectionRect: PCefRect; activeMatchOrdinal: Integer; finalUpdate: Boolean) of Object;
 
   TOnBeforePopup = procedure(const browser: ICefBrowser; const frame: ICefFrame;
     const targetUrl, targetFrameName: ustring;
+    targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
     var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
     var client: ICefClient; var settings: TCefBrowserSettings;
     var noJavascriptAccess: Boolean; var Cancel: Boolean;
@@ -195,6 +212,8 @@ type
       isLoading, canGoBack, canGoForward: Boolean);
     procedure doOnStateChange(const browser: ICefBrowser;
       const Kind: TBrowserDataChangeKind; const Value: string);
+    procedure doOnFaviconUrlChange(const browser: ICefBrowser; iconUrls: TStrings);
+    procedure doOnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean);
     procedure doOnAddBrowser(const browser: ICefBrowser);
     procedure doOnCloseBrowser(const CloseBrowserIdArr: Array of Integer;
       Const ShowBrowserId: Integer);
@@ -210,6 +229,9 @@ type
     procedure doOnBeforeBrowse(const browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean;
       var Cancel: Boolean);
+    procedure doOnOpenUrlFromTab(const browser: ICefBrowser; const frame: ICefFrame;
+      const targetUrl: ustring; targetDisposition: TCefWindowOpenDisposition;
+      userGesture: Boolean; out Cancel: Boolean);
 
     procedure doOnPreKeyEvent(const browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle;
@@ -218,14 +240,20 @@ type
     procedure doOnKeyEvent(const browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle; var Cancel: Boolean);
 
-    procedure doOnBeforeResourceLoad(const browser: ICefBrowser;
-      const frame: ICefFrame; const request: ICefRequest;
-      var CancelLoad: Boolean);
+    procedure doOnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const callback: ICefRequestCallback; out Result: TCefReturnValue);
     procedure doOnGetResourceHandler(const browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest;
       var ResourceHandler: ICefResourceHandler);
     procedure doOnResourceRedirect(const browser: ICefBrowser;
-      const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring);
+      const frame: ICefFrame; const request: ICefRequest; var newUrl: ustring);
+    procedure doOnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; out Cancel: Boolean);
+    procedure doOnGetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; out Result: ICefResponseFilter);
+    procedure doOnResourceLoadComplete(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; status: TCefUrlRequestStatus;
+      receivedContentLength: Int64);
 
     procedure doOnGotFocus(const browser: ICefBrowser;
       var CancelDefaultEvent: Boolean);
@@ -244,7 +272,7 @@ type
       const frame: ICefFrame);
 
     procedure doOnJsdialog(const browser: ICefBrowser;
-      const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+      const originUrl: ustring; dialogType: TCefJsDialogType;
       const messageText, defaultPromptText: ustring;
       callback: ICefJsDialogCallback; out suppressMessage: Boolean;
       var Cancel: Boolean; var CancelDefaultEvent: Boolean);
@@ -269,26 +297,25 @@ type
       const message, source: ustring; line: Integer; var Cancel: Boolean);
     procedure doOnProtocolExecution(browser: ICefBrowser; const url: ustring;
       var allowOsExecution: Boolean);
-    procedure doOnFileDialog(const browser: ICefBrowser;
-      mode: TCefFileDialogMode; const title, defaultFileName: ustring;
-      acceptTypes: TStrings; const callback: ICefFileDialogCallback;
+    procedure doOnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback; Out Cancel: Boolean);
+
+    procedure doOnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
+      const title, defaultFilePath: ustring; acceptFilters: TStrings;
+      selectedAcceptFilter: Integer; const callback: ICefFileDialogCallback;
       var Cancel: Boolean);
 
     procedure doOnPluginCrashed(const browser: ICefBrowser;
       const pluginPath: ustring);
-    procedure doOnBeforePluginLoad(const browser: ICefBrowser;
-      const url, policyUrl: ustring; const info: ICefWebPluginInfo;
-      var CancelLoad: Boolean);
 
     procedure doOnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer;
       const callback: ICefGeolocationCallback; var Cancel: Boolean);
     procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer);
+      requestId: Integer);
 
-    procedure doOnQuotaRequest(const browser: ICefBrowser;
-      const originUrl: ustring; newSize: Int64;
-      const callback: ICefQuotaCallback; var Cancel: Boolean);
+    procedure doOnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
+      newSize: Int64; const callback: ICefRequestCallback; var Cancel: Boolean);
 
     procedure doOnDragEnter(const browser: ICefBrowser;
       const dragData: ICefDragData; mask: TCefDragOperations;
@@ -296,12 +323,14 @@ type
     procedure doOnStartDragging(const browser: ICefBrowser;
       const dragData: ICefDragData; allowedOps: TCefDragOperations;
       x, y: Integer; var Cancel: Boolean);
+    procedure doOnDraggableRegionsChanged(const browser: ICefBrowser;
+      regionsCount: NativeUInt; regions: PCefDraggableRegionArray);
+
     procedure doOnUpdateDragCursor(const browser: ICefBrowser;
       operation: TCefDragOperation);
-
-    procedure doOnCertificateError(certError: TCefErrorCode;
-      const requestUrl: ustring;
-      const callback: ICefAllowCertificateErrorCallback; var Cancel: Boolean);
+    procedure doOnScrollOffsetChanged(const browser: ICefBrowser; x, y: Double);
+    procedure doOnFindResult(const browser: ICefBrowser; identifier, count: Integer;
+      const selectionRect: PCefRect; activeMatchOrdinal: Integer; finalUpdate: Boolean);
 
     procedure doOnCursorChange(const browser: ICefBrowser;
       cursor: TCefCursorHandle; cursorType: TCefCursorType;
@@ -316,6 +345,7 @@ type
 
     procedure doOnBeforePopup(const browser: ICefBrowser;
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean; var Cancel: Boolean;
@@ -327,6 +357,9 @@ type
     var dataSize: NativeUInt; var Cancel: Boolean) of object;
   TOnGetLocalizedString = procedure(messageId: Integer; out stringVal: ustring;
     var Cancel: Boolean) of object;
+  TOnGetDataResourceForScale = procedure(resourceId: Integer;
+      scaleFactor: TCefScaleFactor; out data: Pointer;
+      dataSize: NativeUInt; var Cancel: Boolean) of object;
   TOnContextInitialized = procedure() of object;
   TOnBeforeChildProcessLaunch = procedure(const commandLine: ICefCommandLine)
     of object;
@@ -357,8 +390,10 @@ type
   IDcefBResourceBundleHandler = interface(ICefResourceBundleHandler)
     procedure SetOnGetDataResource(const Value: TOnGetDataResource);
     procedure SetOnGetLocalizedString(const Value: TOnGetLocalizedString);
+    procedure SetOnGetDataResourceForScale(const Value: TOnGetDataResourceForScale);
     function GetOnGetDataResource: TOnGetDataResource;
     function GetOnGetLocalizedString: TOnGetLocalizedString;
+    function GetOnGetDataResourceForScale: TOnGetDataResourceForScale;
   end;
 
   IDcefBBrowserProcessHandler = interface(ICefBrowserProcessHandler)

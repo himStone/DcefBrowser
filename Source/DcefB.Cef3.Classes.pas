@@ -59,53 +59,52 @@ type
 
   TCefRunFileDialogCallbackOwn = class(TCefBaseOwn, ICefRunFileDialogCallback)
   protected
-    procedure cont(const browserHost: ICefBrowserHost;
-      filePaths: TStrings); virtual;
+    procedure OnFileDialogDismissed(selectedAcceptFilter: Integer; filePaths: TStrings); virtual;
   public
-    constructor create;
+    constructor Create;
   end;
 
   TCefFastRunFileDialogCallback = class(TCefRunFileDialogCallbackOwn)
   private
     FCallback: TCefRunFileDialogCallbackProc;
   protected
-    procedure cont(const browserHost: ICefBrowserHost;
-      filePaths: TStrings); override;
+    procedure OnFileDialogDismissed(selectedAcceptFilter: Integer; filePaths: TStrings); override;
   public
-    constructor create(callback: TCefRunFileDialogCallbackProc);
-      reintroduce; virtual;
+    constructor Create(callback: TCefRunFileDialogCallbackProc); reintroduce; virtual;
   end;
 
   TCefBrowserHostRef = class(TCefBaseRef, ICefBrowserHost)
   protected
     function GetBrowser: ICefBrowser;
     procedure CloseBrowser(forceClose: Boolean);
-    procedure setFocus(focus: Boolean);
-    procedure SetWindowVisibility(visible: Boolean);
+    function TryCloseBrowser: Boolean;
+    procedure SetFocus(focus: Boolean);
     function GetWindowHandle: TCefWindowHandle;
     function GetOpenerWindowHandle: TCefWindowHandle;
+    function HasView: Boolean;
     function GetRequestContext: ICefRequestContext;
     function GetZoomLevel: Double;
     procedure SetZoomLevel(zoomLevel: Double);
-    procedure RunFileDialog(mode: TCefFileDialogMode;
-      const title, defaultFileName: ustring; acceptTypes: TStrings;
-      const callback: ICefRunFileDialogCallback);
-    procedure RunFileDialogProc(mode: TCefFileDialogMode;
-      const title, defaultFileName: ustring; acceptTypes: TStrings;
-      const callback: TCefRunFileDialogCallbackProc);
+    procedure RunFileDialog(mode: TCefFileDialogMode; const title, defaultFilePath: ustring;
+      acceptFilters: TStrings; selectedAcceptFilter: Integer; const callback: ICefRunFileDialogCallback);
+    procedure RunFileDialogProc(mode: TCefFileDialogMode; const title, defaultFilePath: ustring;
+      acceptFilters: TStrings; selectedAcceptFilter: Integer; const callback: TCefRunFileDialogCallbackProc);
     procedure StartDownload(const url: ustring);
-    procedure print;
-    procedure find(identifier: Integer; const searchText: ustring;
-      forward, matchCase, findNext: Boolean);
+    procedure DownloadImage(const imageUrl: ustring; isFavicon: Boolean;
+      maxImageSize: Cardinal; bypassCache: Boolean; const callback: ICefDownloadImageCallback);
+    procedure DownloadImageProc(const imageUrl: ustring; isFavicon: Boolean;
+      maxImageSize: Cardinal; bypassCache: Boolean; const callback: TOnDownloadImageFinishedProc);
+    procedure Print;
+    procedure PrintToPdf(const path: ustring; settings: PCefPdfPrintSettings; const callback: ICefPdfPrintCallback);
+    procedure PrintToPdfProc(const path: ustring; settings: PCefPdfPrintSettings; const callback: TOnPdfPrintFinishedProc);
+    procedure Find(identifier: Integer; const searchText: ustring; forward, matchCase, findNext: Boolean);
     procedure StopFinding(clearSelection: Boolean);
-    procedure ShowDevTools(const windowInfo: PCefWindowInfo;
-      const client: ICefClient; const settings: PCefBrowserSettings;
-      inspectElementAt: PCefPoint);
+    procedure ShowDevTools(const windowInfo: PCefWindowInfo; const client: ICefClient;
+      const settings: PCefBrowserSettings; inspectElementAt: PCefPoint);
     procedure CloseDevTools;
-    procedure GetNavigationEntries(const visitor: ICefNavigationEntryVisitor;
-      currentOnly: Boolean);
-    procedure GetNavigationEntriesProc(const proc
-      : TCefNavigationEntryVisitorProc; currentOnly: Boolean);
+    function HasDevTools: Boolean;
+    procedure GetNavigationEntries(const visitor: ICefNavigationEntryVisitor; currentOnly: Boolean);
+    procedure GetNavigationEntriesProc(const proc: TCefNavigationEntryVisitorProc; currentOnly: Boolean);
     procedure SetMouseCursorChangeDisabled(disabled: Boolean);
     function IsMouseCursorChangeDisabled: Boolean;
     procedure ReplaceMisspelling(const word: ustring);
@@ -114,25 +113,24 @@ type
     procedure WasResized;
     procedure NotifyScreenInfoChanged;
     procedure WasHidden(hidden: Boolean);
-    procedure invalidate(kind: TCefPaintElementType);
+    procedure Invalidate(kind: TCefPaintElementType);
     procedure SendKeyEvent(const event: PCefKeyEvent);
     procedure SendMouseClickEvent(const event: PCefMouseEvent;
       kind: TCefMouseButtonType; mouseUp: Boolean; clickCount: Integer);
-    procedure SendMouseMoveEvent(const event: PCefMouseEvent;
-      mouseLeave: Boolean);
-    procedure SendMouseWheelEvent(const event: PCefMouseEvent;
-      deltaX, deltaY: Integer);
+    procedure SendMouseMoveEvent(const event: PCefMouseEvent; mouseLeave: Boolean);
+    procedure SendMouseWheelEvent(const event: PCefMouseEvent; deltaX, deltaY: Integer);
     procedure SendFocusEvent(setFocus: Boolean);
     procedure SendCaptureLostEvent;
     procedure NotifyMoveOrResizeStarted;
+    function GetWindowlessFrameRate(): Integer;
+    procedure SetWindowlessFrameRate(frameRate: Integer);
     function GetNsTextInputContext: TCefTextInputContext;
     procedure HandleKeyEventBeforeTextInputClient(keyEvent: TCefEventHandle);
     procedure HandleKeyEventAfterTextInputClient(keyEvent: TCefEventHandle);
 
     procedure DragTargetDragEnter(const dragData: ICefDragData;
       const event: PCefMouseEvent; allowedOps: TCefDragOperations);
-    procedure DragTargetDragOver(const event: PCefMouseEvent;
-      allowedOps: TCefDragOperations);
+    procedure DragTargetDragOver(const event: PCefMouseEvent; allowedOps: TCefDragOperations);
     procedure DragTargetDragLeave;
     procedure DragTargetDrop(event: PCefMouseEvent);
     procedure DragSourceEndedAt(x, y: Integer; op: TCefDragOperation);
@@ -206,6 +204,7 @@ type
   TCefPostDataRef = class(TCefBaseRef, ICefPostData)
   protected
     function IsReadOnly: Boolean;
+    function HasExcludedElements: Boolean;
     function GetCount: NativeUInt;
     function GetElements(count: NativeUInt): IInterfaceList;
     // ICefPostDataElement
@@ -241,6 +240,9 @@ type
     procedure GetHeaderMap(const headerMap: ICefStringMultimap);
     procedure SetUrl(const value: ustring);
     procedure SetMethod(const value: ustring);
+    procedure SetReferrer(const referrerUrl: string; policy: TCefReferrerPolicy);
+    function GetReferrerUrl: string;
+    function GetReferrerPolicy: TCefReferrerPolicy;
     procedure SetPostData(const value: ICefPostData);
     procedure SetHeaderMap(const headerMap: ICefStringMultimap);
     function GetFlags: TCefUrlRequestFlags;
@@ -251,6 +253,7 @@ type
       const headerMap: ICefStringMultimap);
     function GetResourceType: TCefResourceType;
     function GetTransitionType: TCefTransitionType;
+    function GetIdentifier: UInt64;
   public
     class function UnWrap(data: Pointer): ICefRequest;
     class function New: ICefRequest;
@@ -435,6 +438,7 @@ type
     function GetDisplayHandler: ICefDisplayHandler; virtual;
     function GetDownloadHandler: ICefDownloadHandler; virtual;
     function GetDragHandler: ICefDragHandler; virtual;
+    function GetFindHandler: ICefFindHandler; virtual;
     function GetFocusHandler: ICefFocusHandler; virtual;
     function GetGeolocationHandler: ICefGeolocationHandler; virtual;
     function GetJsdialogHandler: ICefJsDialogHandler; virtual;
@@ -456,22 +460,20 @@ type
       const requestingUrl: ustring; requestId: Integer;
       const callback: ICefGeolocationCallback): Boolean; virtual;
     procedure OnCancelGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer); virtual;
+      requestId: Integer); virtual;
   public
-
     constructor create; virtual;
   end;
 
   TCefLifeSpanHandlerOwn = class(TCefBaseOwn, ICefLifeSpanHandler)
   protected
     function OnBeforePopup(const browser: ICefBrowser; const frame: ICefFrame;
-      const targetUrl, targetFrameName: ustring;
-      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-      var client: ICefClient; var settings: TCefBrowserSettings;
+      const targetUrl, targetFrameName: ustring; targetDisposition: TCefWindowOpenDisposition;
+      userGesture: Boolean; var popupFeatures: TCefPopupFeatures;
+      var windowInfo: TCefWindowInfo; var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean): Boolean; virtual;
     procedure OnAfterCreated(const browser: ICefBrowser); virtual;
     procedure OnBeforeClose(const browser: ICefBrowser); virtual;
-    function RunModal(const browser: ICefBrowser): Boolean; virtual;
     function DoClose(const browser: ICefBrowser): Boolean; virtual;
   public
     constructor create; virtual;
@@ -491,57 +493,48 @@ type
     constructor create; virtual;
   end;
 
-  TCefQuotaCallbackRef = class(TCefBaseRef, ICefQuotaCallback)
+  TCefRequestCallbackRef = class(TCefBaseRef, ICefRequestCallback)
   protected
-    procedure cont(allow: Boolean);
-    procedure cancel;
+    procedure Cont(allow: Boolean);
+    procedure Cancel;
   public
-    class function UnWrap(data: Pointer): ICefQuotaCallback;
-  end;
-
-  TCefAllowCertificateErrorCallbackRef = class(TCefBaseRef,
-    ICefAllowCertificateErrorCallback)
-  protected
-    procedure cont(allow: Boolean);
-  public
-    class function UnWrap(data: Pointer): ICefAllowCertificateErrorCallback;
+     class function UnWrap(data: Pointer): ICefRequestCallback;
   end;
 
   TCefRequestHandlerOwn = class(TCefBaseOwn, ICefRequestHandler)
   protected
     function OnBeforeBrowse(const browser: ICefBrowser; const frame: ICefFrame;
       const request: ICefRequest; isRedirect: Boolean): Boolean; virtual;
-    function OnBeforeResourceLoad(const browser: ICefBrowser;
-      const frame: ICefFrame; const request: ICefRequest): Boolean; virtual;
-    function GetResourceHandler(const browser: ICefBrowser;
-      const frame: ICefFrame; const request: ICefRequest)
-      : ICefResourceHandler; virtual;
-    procedure OnResourceRedirect(const browser: ICefBrowser;
-      const frame: ICefFrame; const oldUrl: ustring;
-      var newUrl: ustring); virtual;
-    function GetAuthCredentials(const browser: ICefBrowser;
-      const frame: ICefFrame; isProxy: Boolean; const host: ustring;
-      port: Integer; const realm, scheme: ustring;
+    function OnOpenUrlFromTab(const browser: ICefBrowser; const frame: ICefFrame;
+      const targetUrl: ustring; targetDisposition: TCefWindowOpenDisposition;
+      userGesture: Boolean): Boolean; virtual;
+    function OnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const callback: ICefRequestCallback): TCefReturnValue; virtual;
+    function GetResourceHandler(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest): ICefResourceHandler; virtual;
+    procedure OnResourceRedirect(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; var newUrl: ustring); virtual;
+    function OnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse): Boolean; virtual;
+    function GetResourceResponseFilter(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse): ICefResponseFilter; virtual;
+    procedure OnResourceLoadComplete(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; status: TCefUrlRequestStatus;
+      receivedContentLength: Int64); virtual;
+    function GetAuthCredentials(const browser: ICefBrowser; const frame: ICefFrame;
+      isProxy: Boolean; const host: ustring; port: Integer; const realm, scheme: ustring;
       const callback: ICefAuthCallback): Boolean; virtual;
-    function OnQuotaRequest(const browser: ICefBrowser;
-      const originUrl: ustring; newSize: Int64;
-      const callback: ICefQuotaCallback): Boolean; virtual;
-    function GetCookieManager(const browser: ICefBrowser;
-      const mainUrl: ustring): ICefCookieManager; virtual;
-    procedure OnProtocolExecution(const browser: ICefBrowser;
-      const url: ustring; out allowOsExecution: Boolean); virtual;
-    function OnBeforePluginLoad(const browser: ICefBrowser;
-      const url, policyUrl: ustring; const info: ICefWebPluginInfo)
-      : Boolean; virtual;
-    function OnCertificateError(certError: TCefErrorcode;
-      const requestUrl: ustring;
-      const callback: ICefAllowCertificateErrorCallback): Boolean; virtual;
-    procedure OnPluginCrashed(const browser: ICefBrowser;
-      const pluginPath: ustring); virtual;
-    procedure OnRenderProcessTerminated(const browser: ICefBrowser;
-      status: TCefTerminationStatus); virtual;
+    function OnQuotaRequest(const browser: ICefBrowser; const originUrl: ustring;
+      newSize: Int64; const callback: ICefRequestCallback): Boolean; virtual;
+    function GetCookieManager(const browser: ICefBrowser; const mainUrl: ustring): ICefCookieManager; virtual;
+    procedure OnProtocolExecution(const browser: ICefBrowser; const url: ustring; out allowOsExecution: Boolean); virtual;
+    function OnCertificateError(const browser: ICefBrowser; certError: TCefErrorcode;
+      const requestUrl: ustring; const sslInfo: ICefSslInfo; const callback: ICefRequestCallback): Boolean; virtual;
+    procedure OnPluginCrashed(const browser: ICefBrowser; const pluginPath: ustring); virtual;
+    procedure OnRenderViewReady(const browser: ICefBrowser); virtual;
+    procedure OnRenderProcessTerminated(const browser: ICefBrowser; status: TCefTerminationStatus); virtual;
   public
-    constructor create; virtual;
+    constructor Create; virtual;
   end;
 
   TCefDisplayHandlerOwn = class(TCefBaseOwn, ICefDisplayHandler)
@@ -550,6 +543,8 @@ type
       const frame: ICefFrame; const url: ustring); virtual;
     procedure OnTitleChange(const browser: ICefBrowser;
       const title: ustring); virtual;
+    procedure OnFaviconUrlChange(const browser: ICefBrowser; iconUrls: TStrings); virtual;
+    procedure OnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean); virtual;
     function OnTooltip(const browser: ICefBrowser; var text: ustring)
       : Boolean; virtual;
     procedure OnStatusMessage(const browser: ICefBrowser;
@@ -584,7 +579,7 @@ type
   TCefJsDialogHandlerOwn = class(TCefBaseOwn, ICefJsDialogHandler)
   protected
     function OnJsdialog(const browser: ICefBrowser;
-      const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+      const originUrl: ustring; dialogType: TCefJsDialogType;
       const messageText, defaultPromptText: ustring;
       callback: ICefJsDialogCallback; out suppressMessage: Boolean)
       : Boolean; virtual;
@@ -602,6 +597,9 @@ type
     procedure OnBeforeContextMenu(const browser: ICefBrowser;
       const frame: ICefFrame; const params: ICefContextMenuParams;
       const model: ICefMenuModel); virtual;
+    function RunContextMenu(const browser: ICefBrowser; const frame: ICefFrame;
+      const params: ICefContextMenuParams; const model: ICefMenuModel;
+      const callback: ICefRunContextMenuCallback): Boolean; virtual;
     function OnContextMenuCommand(const browser: ICefBrowser;
       const frame: ICefFrame; const params: ICefContextMenuParams;
       commandId: Integer; eventFlags: TCefEventFlags): Boolean; virtual;
@@ -614,8 +612,8 @@ type
   TCefDialogHandlerOwn = class(TCefBaseOwn, ICefDialogHandler)
   protected
     function OnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
-      const title, defaultFileName: ustring; acceptTypes: TStrings;
-      const callback: ICefFileDialogCallback): Boolean; virtual;
+      const title, defaultFilePath: ustring; acceptFilters: TStrings;
+      selectedAcceptFilter: Integer; const callback: ICefFileDialogCallback): Boolean; virtual;
   public
     constructor create; virtual;
   end;
@@ -840,7 +838,7 @@ type
     function close: Boolean;
     function GetFileName: ustring;
     function GetFileSize: Int64;
-    function GetFileLastModified: LongInt;
+    function GetFileLastModified: TCefTime;
     function OpenFile(const password: ustring): Boolean;
     function CloseFile: Boolean;
     function ReadFile(buffer: Pointer; bufferSize: NativeUInt): Integer;
@@ -877,9 +875,7 @@ type
     function GetElementById(const id: ustring): ICefDomNode;
     function GetFocusedNode: ICefDomNode;
     function HasSelection: Boolean;
-    function GetSelectionStartNode: ICefDomNode;
     function GetSelectionStartOffset: Integer;
-    function GetSelectionEndNode: ICefDomNode;
     function GetSelectionEndOffset: Integer;
     function GetSelectionAsMarkup: ustring;
     function GetSelectionAsText: ustring;
@@ -923,6 +919,8 @@ type
   TCefResponseRef = class(TCefBaseRef, ICefResponse)
   protected
     function IsReadOnly: Boolean;
+    function GetError: TCefErrorCode;
+    procedure SetError(error: TCefErrorCode);
     function GetStatus: Integer;
     procedure SetStatus(status: Integer);
     function GetStatusText: ustring;
@@ -1013,16 +1011,14 @@ type
 
   TCefResourceBundleHandlerOwn = class(TCefBaseOwn, ICefResourceBundleHandler)
   protected
-
-    function GetDataResource(resourceId: Integer; out data: Pointer;
-
+    function GetDataResource(stringId: Integer; out data: Pointer;
       out dataSize: NativeUInt): Boolean; virtual; abstract;
-
     function GetLocalizedString(messageId: Integer; out stringVal: ustring)
       : Boolean; virtual; abstract;
-
+    function GetDataResourceForScale(resourceId: Integer;
+      scaleFactor: TCefScaleFactor; out data: Pointer;
+      dataSize: NativeUInt): Boolean; virtual; abstract;
   public
-
     constructor create; virtual;
   end;
 
@@ -1030,15 +1026,20 @@ type
   private
     FGetDataResource: TGetDataResource;
     FGetLocalizedString: TGetLocalizedString;
+    FGetDataResourceForScale: TGetDataResourceForScale;
   protected
     function GetDataResource(resourceId: Integer; out data: Pointer;
       out dataSize: NativeUInt): Boolean; override;
-
-    function GetLocalizedString(messageId: Integer; out stringVal: ustring)
-      : Boolean; override;
+    function GetLocalizedString(stringId: Integer;
+      out stringVal: ustring): Boolean; override;
+    function GetDataResourceForScale(resourceId: Integer;
+      scaleFactor: TCefScaleFactor; out data: Pointer;
+      dataSize: NativeUInt): Boolean; override;
   public
-    constructor create(AGetDataResource: TGetDataResource;
-      AGetLocalizedString: TGetLocalizedString); reintroduce;
+    constructor Create(
+      AGetDataResource: TGetDataResource;
+      AGetLocalizedString: TGetLocalizedString;
+      AGetDataResourceForScale: TGetDataResourceForScale); reintroduce;
   end;
 
   TCefAppOwn = class(TCefBaseOwn, ICefApp)
@@ -1057,28 +1058,68 @@ type
     constructor create; virtual;
   end;
 
+  TCefSetCookieCallbackOwn = class(TCefBaseOwn, ICefSetCookieCallback)
+  protected
+    procedure OnComplete(success: Boolean); virtual; abstract;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefFastSetCookieCallback = class(TCefSetCookieCallbackOwn)
+  private
+    FCallback: TCefSetCookieCallbackProc;
+  protected
+    procedure OnComplete(success: Boolean); override;
+  public
+    constructor Create(const callback: TCefSetCookieCallbackProc); reintroduce;
+  end;
+
+  TCefDeleteCookiesCallbackOwn = class(TCefBaseOwn, ICefDeleteCookiesCallback)
+  protected
+    procedure OnComplete(numDeleted: Integer); virtual; abstract;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefFastDeleteCookiesCallback = class(TCefDeleteCookiesCallbackOwn)
+  private
+    FCallback: TCefDeleteCookiesCallbackProc;
+  protected
+    procedure OnComplete(numDeleted: Integer); override;
+  public
+    constructor Create(const callback: TCefDeleteCookiesCallbackProc); reintroduce;
+  end;
+
   TCefCookieManagerRef = class(TCefBaseRef, ICefCookieManager)
   protected
-    procedure SetSupportedSchemes(schemes: TStrings);
+    procedure SetSupportedSchemes(schemes: TStrings; const callback: ICefCompletionCallback);
+    procedure SetSupportedSchemesProc(schemes: TStrings; const callback: TCefCompletionCallbackProc);
     function VisitAllCookies(const visitor: ICefCookieVisitor): Boolean;
     function VisitAllCookiesProc(const visitor: TCefCookieVisitorProc): Boolean;
-    function VisitUrlCookies(const url: ustring; includeHttpOnly: Boolean;
-      const visitor: ICefCookieVisitor): Boolean;
-    function VisitUrlCookiesProc(const url: ustring; includeHttpOnly: Boolean;
-      const visitor: TCefCookieVisitorProc): Boolean;
-    function SetCookie(const url: ustring; const name, value, domain,
-      path: ustring; secure, httponly, hasExpires: Boolean;
-      const creation, lastAccess, expires: TDateTime): Boolean;
-    function DeleteCookies(const url, cookieName: ustring): Boolean;
-    function SetStoragePath(const path: ustring;
-      persistSessionCookies: Boolean): Boolean;
+    function VisitUrlCookies(const url: ustring;
+      includeHttpOnly: Boolean; const visitor: ICefCookieVisitor): Boolean;
+    function VisitUrlCookiesProc(const url: ustring;
+      includeHttpOnly: Boolean; const visitor: TCefCookieVisitorProc): Boolean;
+    function SetCookie(const url: ustring; const name, value, domain, path: ustring; secure, httponly,
+      hasExpires: Boolean; const creation, lastAccess, expires: TDateTime;
+      const callback: ICefSetCookieCallback): Boolean;
+    function SetCookieProc(const url: ustring; const name, value, domain, path: ustring; secure, httponly,
+      hasExpires: Boolean; const creation, lastAccess, expires: TDateTime;
+      const callback: TCefSetCookieCallbackProc): Boolean;
+    function DeleteCookies(const url, cookieName: ustring; const callback: ICefDeleteCookiesCallback): Boolean;
+    function DeleteCookiesProc(const url, cookieName: ustring; const callback: TCefDeleteCookiesCallbackProc): Boolean;
+    function SetStoragePath(const path: ustring; persistSessionCookies: Boolean; const callback: ICefCompletionCallback): Boolean;
+    function SetStoragePathProc(const path: ustring; persistSessionCookies: Boolean; const callback: TCefCompletionCallbackProc): Boolean;
     function FlushStore(const handler: ICefCompletionCallback): Boolean;
     function FlushStoreProc(const proc: TCefCompletionCallbackProc): Boolean;
   public
     class function UnWrap(data: Pointer): ICefCookieManager;
-    class function Global: ICefCookieManager;
-    class function New(const path: ustring; persistSessionCookies: Boolean)
-      : ICefCookieManager;
+    class function Global(const callback: ICefCompletionCallback): ICefCookieManager;
+    class function GlobalProc(const callback: TCefCompletionCallbackProc): ICefCookieManager;
+    class function New(const path: ustring; persistSessionCookies: Boolean;
+      const callback: ICefCompletionCallback): ICefCookieManager;
+    class function NewProc(const path: ustring; persistSessionCookies: Boolean;
+      const callback: TCefCompletionCallbackProc): ICefCookieManager;
   end;
 
   TCefWebPluginInfoRef = class(TCefBaseRef, ICefWebPluginInfo)
@@ -1134,6 +1175,7 @@ type
     function GetFullPath: ustring;
     function GetId: Cardinal;
     function GetUrl: ustring;
+    function GetOriginalUrl: ustring;
     function GetSuggestedFileName: ustring;
     function GetContentDisposition: ustring;
     function GetMimeType: ustring;
@@ -1150,7 +1192,9 @@ type
 
   TCefDownloadItemCallbackRef = class(TCefBaseRef, ICefDownloadItemCallback)
   protected
-    procedure cancel;
+    procedure Cancel;
+    procedure Pause;
+    procedure Resume;
   public
     class function UnWrap(data: Pointer): ICefDownloadItemCallback;
   end;
@@ -1229,11 +1273,12 @@ type
     function GetMediaStateFlags: TCefContextMenuMediaStateFlags;
     function GetSelectionText: ustring;
     function GetMisspelledWord: ustring;
-    function GetMisspellingHash: Integer;
     function GetDictionarySuggestions(const suggestions: TStringList): Boolean;
     function IsEditable: Boolean;
     function IsSpellCheckEnabled: Boolean;
     function GetEditStateFlags: TCefContextMenuEditStateFlags;
+    function IsCustomMenu: Boolean;
+    function IsPepperMenu: Boolean;
   public
     class function UnWrap(data: Pointer): ICefContextMenuParams;
   end;
@@ -1300,6 +1345,7 @@ type
       out shiftPressed, ctrlPressed, altPressed: Boolean): Boolean;
   public
     class function UnWrap(data: Pointer): ICefMenuModel;
+    class function New(const delegate: ICefMenuModelDelegate): ICefMenuModel;
   end;
 
   TCefListValueRef = class(TCefBaseRef, ICefListValue)
@@ -1307,12 +1353,15 @@ type
     function IsValid: Boolean;
     function IsOwned: Boolean;
     function IsReadOnly: Boolean;
-    function copy: ICefListValue;
+    function IsSame(const that: ICefListValue): Boolean;
+    function IsEqual(const that: ICefListValue): Boolean;
+    function Copy: ICefListValue;
     function SetSize(size: NativeUInt): Boolean;
     function GetSize: NativeUInt;
-    function clear: Boolean;
-    function remove(index: Integer): Boolean;
+    function Clear: Boolean;
+    function Remove(index: Integer): Boolean;
     function GetType(index: Integer): TCefValueType;
+    function GetValue(index: Integer): ICefValue;
     function GetBool(index: Integer): Boolean;
     function GetInt(index: Integer): Integer;
     function GetDouble(index: Integer): Double;
@@ -1320,24 +1369,55 @@ type
     function GetBinary(index: Integer): ICefBinaryValue;
     function GetDictionary(index: Integer): ICefDictionaryValue;
     function GetList(index: Integer): ICefListValue;
+    function SetValue(index: Integer; const value: ICefValue): Boolean;
     function SetNull(index: Integer): Boolean;
     function SetBool(index: Integer; value: Boolean): Boolean;
     function SetInt(index, value: Integer): Boolean;
     function SetDouble(index: Integer; value: Double): Boolean;
     function SetString(index: Integer; const value: ustring): Boolean;
     function SetBinary(index: Integer; const value: ICefBinaryValue): Boolean;
-    function SetDictionary(index: Integer;
-      const value: ICefDictionaryValue): Boolean;
+    function SetDictionary(index: Integer; const value: ICefDictionaryValue): Boolean;
     function SetList(index: Integer; const value: ICefListValue): Boolean;
   public
     class function UnWrap(data: Pointer): ICefListValue;
     class function New: ICefListValue;
   end;
 
+  TCefValueRef = class(TCefBaseRef, ICefValue)
+  protected
+    function IsValid: Boolean;
+    function IsOwned: Boolean;
+    function IsReadOnly: Boolean;
+    function IsSame(const that: ICefValue): Boolean;
+    function IsEqual(const that: ICefValue): Boolean;
+    function Copy: ICefValue;
+    function GetType: TCefValueType;
+    function GetBool: Boolean;
+    function GetInt: Integer;
+    function GetDouble: Double;
+    function GetString: ustring;
+    function GetBinary: ICefBinaryValue;
+    function GetDictionary: ICefDictionaryValue;
+    function GetList: ICefListValue;
+    function SetNull: Boolean;
+    function SetBool(value: Integer): Boolean;
+    function SetInt(value: Integer): Boolean;
+    function SetDouble(value: Double): Boolean;
+    function SetString(const value: ustring): Boolean;
+    function SetBinary(const value: ICefBinaryValue): Boolean;
+    function SetDictionary(const value: ICefDictionaryValue): Boolean;
+    function SetList(const value: ICefListValue): Boolean;
+  public
+    class function UnWrap(data: Pointer): ICefValue;
+    class function New: ICefValue;
+  end;
+
   TCefBinaryValueRef = class(TCefBaseRef, ICefBinaryValue)
   protected
     function IsValid: Boolean;
     function IsOwned: Boolean;
+    function IsSame(const that: ICefBinaryValue): Boolean;
+    function IsEqual(const that: ICefBinaryValue): Boolean;
     function copy: ICefBinaryValue;
     function GetSize: NativeUInt;
     function GetData(buffer: Pointer; bufferSize, dataOffset: NativeUInt)
@@ -1351,15 +1431,18 @@ type
   TCefDictionaryValueRef = class(TCefBaseRef, ICefDictionaryValue)
   protected
     function IsValid: Boolean;
-    function IsOwned: Boolean;
+    function isOwned: Boolean;
     function IsReadOnly: Boolean;
-    function copy(excludeEmptyChildren: Boolean): ICefDictionaryValue;
+    function IsSame(const that: ICefDictionaryValue): Boolean;
+    function IsEqual(const that: ICefDictionaryValue): Boolean;
+    function Copy(excludeEmptyChildren: Boolean): ICefDictionaryValue;
     function GetSize: NativeUInt;
-    function clear: Boolean;
+    function Clear: Boolean;
     function HasKey(const key: ustring): Boolean;
     function GetKeys(const keys: TStrings): Boolean;
-    function remove(const key: ustring): Boolean;
+    function Remove(const key: ustring): Boolean;
     function GetType(const key: ustring): TCefValueType;
+    function GetValue(const key: ustring): ICefValue;
     function GetBool(const key: ustring): Boolean;
     function GetInt(const key: ustring): Integer;
     function GetDouble(const key: ustring): Double;
@@ -1367,15 +1450,14 @@ type
     function GetBinary(const key: ustring): ICefBinaryValue;
     function GetDictionary(const key: ustring): ICefDictionaryValue;
     function GetList(const key: ustring): ICefListValue;
+    function SetValue(const key: ustring; const value: ICefValue): Boolean;
     function SetNull(const key: ustring): Boolean;
     function SetBool(const key: ustring; value: Boolean): Boolean;
     function SetInt(const key: ustring; value: Integer): Boolean;
     function SetDouble(const key: ustring; value: Double): Boolean;
     function SetString(const key, value: ustring): Boolean;
-    function SetBinary(const key: ustring;
-      const value: ICefBinaryValue): Boolean;
-    function SetDictionary(const key: ustring;
-      const value: ICefDictionaryValue): Boolean;
+    function SetBinary(const key: ustring; const value: ICefBinaryValue): Boolean;
+    function SetDictionary(const key: ustring; const value: ICefDictionaryValue): Boolean;
     function SetList(const key: ustring; const value: ICefListValue): Boolean;
   public
     class function UnWrap(data: Pointer): ICefDictionaryValue;
@@ -1446,8 +1528,8 @@ type
     procedure cancel;
   public
     class function UnWrap(data: Pointer): ICefUrlRequest;
-    class function New(const request: ICefRequest;
-      const client: ICefUrlrequestClient): ICefUrlRequest;
+    class function New(const request: ICefRequest; const client: ICefUrlRequestClient;
+      const requestContext: ICefRequestContext): ICefUrlRequest;
   end;
 
   TCefWebPluginInfoVisitorOwn = class(TCefBaseOwn, ICefWebPluginInfoVisitor)
@@ -1520,7 +1602,7 @@ type
 
   TCefFileDialogCallbackRef = class(TCefBaseRef, ICefFileDialogCallback)
   protected
-    procedure cont(filePaths: TStrings);
+    procedure Cont(selectedAcceptFilter: Integer; filePaths: TStrings);
     procedure cancel;
   public
     class function UnWrap(data: Pointer): ICefFileDialogCallback;
@@ -1551,7 +1633,7 @@ type
       x, y: Integer): Boolean; virtual;
     procedure OnUpdateDragCursor(const browser: ICefBrowser;
       operation: TCefDragOperation); virtual;
-    procedure OnScrollOffsetChanged(const browser: ICefBrowser); virtual;
+    procedure OnScrollOffsetChanged(const browser: ICefBrowser; x, y: Double); virtual;
   public
     constructor create; virtual;
   end;
@@ -1587,25 +1669,67 @@ type
 
   TCefDragHandlerOwn = class(TCefBaseOwn, ICefDragHandler)
   protected
-    function OnDragEnter(const browser: ICefBrowser;
-      const dragData: ICefDragData; mask: TCefDragOperations): Boolean; virtual;
+    function OnDragEnter(const browser: ICefBrowser; const dragData: ICefDragData;
+      mask: TCefDragOperations): Boolean; virtual;
+    procedure OnDraggableRegionsChanged(const browser: ICefBrowser;
+      regionsCount: NativeUInt; regions: PCefDraggableRegionArray); virtual;
   public
-    constructor create; virtual;
+    constructor Create; virtual;
+  end;
+
+  TCefFindHandlerOwn = class(TCefBaseOwn, ICefFindHandler)
+  protected
+    procedure OnFindResult(const browser: ICefBrowser;
+      identifier, count: Integer; const selectionRect: PCefRect;
+      activeMatchOrdinal: Integer; finalUpdate: Boolean); virtual; abstract;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefResolveCallbackOwn = class(TCefBaseOwn, ICefResolveCallback)
+  protected
+    procedure OnResolveCompleted(result: TCefErrorCode; resolvedIps: TStrings); virtual; abstract;
+  public
+    constructor Create; virtual;
   end;
 
   TCefRequestContextRef = class(TCefBaseRef, ICefRequestContext)
   protected
     function IsSame(const other: ICefRequestContext): Boolean;
+    function IsSharingWith(const other: ICefRequestContext): Boolean;
     function IsGlobal: Boolean;
     function GetHandler: ICefRequestContextHandler;
+    function GetCachePath: ustring;
+    function GetDefaultCookieManager(const callback: ICefCompletionCallback): ICefCookieManager;
+    function GetDefaultCookieManagerProc(const callback: TCefCompletionCallbackProc): ICefCookieManager;
+    function RegisterSchemeHandlerFactory(const schemeName, domainName: ustring;
+        const factory: ICefSchemeHandlerFactory): Boolean;
+    function ClearSchemeHandlerFactories: Boolean;
+    procedure PurgePluginListCache(reloadPages: Boolean);
+
+    function HasPreference(const name: ustring): Boolean;
+    function GetPreference(const name: ustring): ICefValue;
+    function GetAllPreferences(includeDefaults: Boolean): ICefDictionaryValue;
+    function CanSetPreference(const name: ustring): Boolean;
+    function SetPreference(const name: ustring; const value: ICefValue; out error: ustring): Boolean;
+    procedure ClearCertificateExceptions(const callback: ICefCompletionCallback);
+    procedure CloseAllConnections(const callback: ICefCompletionCallback);
+    procedure ResolveHost(const origin: ustring; const callback: ICefResolveCallback);
+    function ResolveHostCached(const origin: ustring; resolvedIps: TStrings): TCefErrorCode;
   public
     class function UnWrap(data: Pointer): ICefRequestContext;
     class function Global: ICefRequestContext;
+    class function New(const settings: PCefRequestContextSettings;
+      const handler: ICefRequestContextHandler): ICefRequestContext;
+    class function Shared(const other: ICefRequestContext;
+      const handler: ICefRequestContextHandler): ICefRequestContext;
   end;
 
   TCefRequestContextHandlerRef = class(TCefBaseRef, ICefRequestContextHandler)
   protected
     function GetCookieManager: ICefCookieManager;
+    function OnBeforePluginLoad(const mimeType, pluginUrl, topOriginUrl: ustring;
+      const pluginInfo: ICefWebPluginInfo; pluginPolicy: PCefPluginPolicy): Boolean;
   public
     class function UnWrap(data: Pointer): ICefRequestContextHandler;
   end;
@@ -1613,8 +1737,10 @@ type
   TCefRequestContextHandlerOwn = class(TCefBaseOwn, ICefRequestContextHandler)
   protected
     function GetCookieManager: ICefCookieManager; virtual;
+    function OnBeforePluginLoad(const mimeType, pluginUrl, topOriginUrl: ustring;
+      const pluginInfo: ICefWebPluginInfo; pluginPolicy: PCefPluginPolicy): Boolean; virtual;
   public
-    constructor create; virtual;
+    constructor Create; virtual;
   end;
 
   TCefRequestContextHandlerProc = {$IFDEF DELPHI12_UP}reference to
@@ -1643,9 +1769,9 @@ type
     function GetDeviceName: ustring;
     procedure SetDpi(dpi: Integer);
     function GetDpi: Integer;
-    procedure SetPageRanges(const ranges: TCefPageRangeArray);
+    procedure SetPageRanges(const ranges: TCefRangeArray);
     function GetPageRangesCount: NativeUInt;
-    procedure GetPageRanges(out ranges: TCefPageRangeArray);
+    procedure GetPageRanges(out ranges: TCefRangeArray);
     procedure SetSelectionOnly(selectionOnly: Boolean);
     function IsSelectionOnly: Boolean;
     procedure SetCollate(collate: Boolean);
@@ -1670,7 +1796,6 @@ type
     function GetTitle: ustring;
     function GetTransitionType: TCefTransitionType;
     function HasPostData: Boolean;
-    function GetFrameName: ustring;
     function GetCompletionTime: TDateTime;
     function GetHttpStatusCode: Integer;
   public
@@ -1693,6 +1818,138 @@ type
       index, total: Integer): Boolean; override;
   public
     constructor create(const proc: TCefNavigationEntryVisitorProc); reintroduce;
+  end;
+
+  TCefSslCertPrincipalRef = class(TCefBaseRef, ICefSslCertPrincipal)
+  protected
+    function GetDisplayName: ustring;
+    function GetCommonName: ustring;
+    function GetLocalityName: ustring;
+    function GetStateOrProvinceName: ustring;
+    function GetCountryName: ustring;
+    procedure GetStreetAddresses(addresses: TStrings);
+    procedure GetOrganizationNames(names: TStrings);
+    procedure GetOrganizationUnitNames(names: TStrings);
+    procedure GetDomainComponents(components: TStrings);
+  public
+    class function UnWrap(data: Pointer): ICefSslCertPrincipal;
+  end;
+
+  TCefSslInfoRef = class(TCefBaseRef, ICefSslInfo)
+  protected
+    function GetCertStatus: TCefCertStatus;
+    function IsCertStatusError: Boolean;
+    function IsCertStatusMinorError: Boolean;
+    function GetSubject: ICefSslCertPrincipal;
+    function GetIssuer: ICefSslCertPrincipal;
+    function GetSerialNumber: ICefBinaryValue;
+    function GetValidStart: TCefTime;
+    function GetValidExpiry: TCefTime;
+    function GetDerEncoded: ICefBinaryValue;
+    function GetPemEncoded: ICefBinaryValue;
+    function GetIssuerChainSize: NativeUInt;
+    function GetDEREncodedIssuerChain(chainCount: NativeUInt): IInterfaceList;
+    function GetPEMEencodedIssuerChain(chainCount: NativeUInt): IInterfaceList;
+  public
+    class function UnWrap(data: Pointer): ICefSslInfo;
+  end;
+
+  TCefPdfPrintCallbackOwn = class(TCefBaseOwn, ICefPdfPrintCallback)
+  protected
+    procedure OnPdfPrintFinished(const path: ustring; ok: Boolean); virtual; abstract;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefFastPdfPrintCallback = class(TCefPdfPrintCallbackOwn)
+  private
+    FProc: TOnPdfPrintFinishedProc;
+  protected
+    procedure OnPdfPrintFinished(const path: ustring; ok: Boolean); override;
+  public
+    constructor Create(const proc: TOnPdfPrintFinishedProc); reintroduce;
+  end;
+
+  TCefRunContextMenuCallbackRef = class(TCefBaseRef, ICefRunContextMenuCallback)
+  protected
+    procedure Cont(commandId: Integer; eventFlags: TCefEventFlags);
+    procedure Cancel;
+  public
+    class function UnWrap(data: Pointer): ICefRunContextMenuCallback;
+  end;
+
+  TCefResourceBundleRef = class(TCefBaseRef, ICefResourceBundle)
+  protected
+    function GetLocalizedString(stringId: Integer): ustring;
+    function GetDataResource(resourceId: Integer;
+      out data: Pointer; out dataSize: NativeUInt): Boolean;
+    function GetDataResourceForScale(resourceId: Integer; scaleFactor: TCefScaleFactor;
+      out data: Pointer; out dataSize: NativeUInt): Boolean;
+  public
+    class function UnWrap(data: Pointer): ICefResourceBundle;
+    class function Global: ICefResourceBundle;
+  end;
+
+  TCefResponseFilterOwn = class(TCefBaseOwn, ICefResponseFilter)
+  protected
+    function InitFilter: Boolean; virtual; abstract;
+    function Filter(dataIn: Pointer; dataInSize, dataInRead: NativeUInt; dataOut: Pointer;
+      dataOutSize, dataOutWritten: NativeUInt): TCefResponseFilterStatus; virtual; abstract;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefImageRef = class(TCefBaseRef, ICefImage)
+  protected
+    function IsEmpty: Boolean;
+    function IsSame(const that: ICefImage): Boolean;
+    function AddBitmap(scaleFactor: Single; pixelWidth, pixelHeight: Integer;
+      colorType: TCefColorType; alphaType: TCefAlphaType; pixelData: Pointer;
+      pixelDataSize: NativeUInt): Boolean;
+    function AddPng(scaleFactor: Single; const pngData: Pointer; pngDataSize: NativeUInt): Boolean;
+    function AddJpeg(scaleFactor: Single; const jpegData: Pointer; jpegDataSize: NativeUInt): Boolean;
+    function GetWidth: NativeUInt;
+    function GetHeight: NativeUInt;
+    function HasRepresentation(scaleFactor: Single): Boolean;
+    function RemoveRepresentation(scaleFactor: Single): Boolean;
+    function GetRepresentationInfo(scaleFactor: Single; actualScaleFactor: PSingle;
+      pixelWidth, pixelHeight: PInteger): Boolean;
+    function GetAsBitmap(scaleFactor: Single; colorType: TCefColorType;
+      alphaType: TCefAlphaType; pixelWidth, pixelHeight: PInteger): ICefBinaryValue;
+    function GetAsPng(scaleFactor: Single; withTransparency: Boolean;
+      pixelWidth, pixelHeight: PInteger): ICefBinaryValue;
+    function GetAsJpeg(scaleFactor: Single; quality: Integer;
+      pixelWidth, pixelHeight: PInteger): ICefBinaryValue;
+  public
+    class function UnWrap(data: Pointer): ICefImage;
+    class function New: ICefImage;
+  end;
+
+  TCefMenuModelDelegateOwn = class(TCefBaseOwn, ICefMenuModelDelegate)
+  protected
+    procedure ExecuteCommand(const menuModel: ICefMenuModel; commandId: Integer;
+      eventFlags: TCefEventFlags); virtual;
+    procedure MenuWillShow(const menuModel: ICefMenuModel); virtual;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefDownloadImageCallbackOwn = class(TCefBaseOwn, ICefDownloadImageCallback)
+  protected
+    procedure OnDownloadImageFinished(const imageUrl: ustring;
+      httpStatusCode: Integer; const image: ICefImage); virtual; abstract;
+  public
+    constructor Create; virtual;
+  end;
+
+  TCefFastDownloadImageCallback = class(TCefDownloadImageCallbackOwn)
+  private
+    FProc: TOnDownloadImageFinishedProc;
+  protected
+    procedure OnDownloadImageFinished(const imageUrl: ustring;
+      httpStatusCode: Integer; const image: ICefImage); override;
+  public
+    constructor Create(const proc: TOnDownloadImageFinishedProc); reintroduce;
   end;
 
   ECefException = class(exception)
@@ -1799,6 +2056,12 @@ begin
     Result := TCef3Helper.CefGetData(GetDragHandler);
 end;
 
+function cef_client_get_find_handler(self: PCefClient): PCefFindHandler; stdcall;
+begin
+  with TCefClientOwn(TCef3Helper.CefGetObject(self)) do
+    Result := TCef3Helper.CefGetData(GetFindHandler);
+end;
+
 function cef_client_get_focus_handler(self: PCefClient)
   : PCefFocusHandler; stdcall;
 begin
@@ -1879,24 +2142,20 @@ end;
 
 procedure cef_geolocation_handler_on_cancel_geolocation_permission
   (self: PCefGeolocationHandler; browser: PCefBrowser;
-  const requesting_url: PCefString; request_id: Integer); stdcall;
+  request_id: Integer); stdcall;
 begin
   with TCefGeolocationHandlerOwn(TCef3Helper.CefGetObject(self)) do
     OnCancelGeolocationPermission(TCefBrowserRef.UnWrap(browser),
-      TCef3Helper.CefString(requesting_url), request_id);
+      request_id);
 end;
 
 { cef_life_span_handler }
 
-// function cef_life_span_handler_on_before_popup(self: PCefLifeSpanHandler; parentBrowser: PCefBrowser;
-// const popupFeatures: PCefPopupFeatures; windowInfo: PCefWindowInfo; const url: PCefString;
-// var client: PCefClient; settings: PCefBrowserSettings): Integer; stdcall;
 function cef_life_span_handler_on_before_popup(self: PCefLifeSpanHandler;
-  browser: PCefBrowser; frame: PCefFrame;
-  const target_url, target_frame_name: PCefString;
-  const popupFeatures: PCefPopupFeatures; windowInfo: PCefWindowInfo;
-  var client: PCefClient; settings: PCefBrowserSettings;
-  no_javascript_access: PInteger): Integer; stdcall;
+  browser: PCefBrowser; frame: PCefFrame; const target_url, target_frame_name: PCefString;
+  target_disposition: TCefWindowOpenDisposition; user_gesture: Integer;
+  const popupFeatures: PCefPopupFeatures; windowInfo: PCefWindowInfo; var client: PCefClient;
+  settings: PCefBrowserSettings; no_javascript_access: PInteger): Integer; stdcall;
 var
   _url, _frame: ustring;
   _client: ICefClient;
@@ -1907,13 +2166,23 @@ begin
   _client := TCefClientOwn(TCef3Helper.CefGetObject(client)) as ICefClient;
   _nojs := no_javascript_access^ <> 0;
   with TCefLifeSpanHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := ord(OnBeforePopup(TCefBrowserRef.UnWrap(browser),
-      TCefFrameRef.UnWrap(frame), _url, _frame, popupFeatures^, windowInfo^,
-      _client, settings^, _nojs));
+    Result := Ord(OnBeforePopup(
+      TCefBrowserRef.UnWrap(browser),
+      TCefFrameRef.UnWrap(frame),
+      _url,
+      _frame,
+      target_disposition,
+      user_gesture <> 0,
+      popupFeatures^,
+      windowInfo^,
+      _client,
+      settings^,
+      _nojs
+    ));
   TCef3Helper.CefStringSet(target_url, _url);
   TCef3Helper.CefStringSet(target_frame_name, _frame);
   client := TCef3Helper.CefGetData(_client);
-  no_javascript_access^ := ord(_nojs);
+  no_javascript_access^ := Ord(_nojs);
   _client := nil;
 end;
 
@@ -1929,13 +2198,6 @@ procedure cef_life_span_handler_on_before_close(self: PCefLifeSpanHandler;
 begin
   with TCefLifeSpanHandlerOwn(TCef3Helper.CefGetObject(self)) do
     OnBeforeClose(TCefBrowserRef.UnWrap(browser));
-end;
-
-function cef_life_span_handler_run_modal(self: PCefLifeSpanHandler;
-  browser: PCefBrowser): Integer; stdcall;
-begin
-  with TCefLifeSpanHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := ord(RunModal(TCefBrowserRef.UnWrap(browser)));
 end;
 
 function cef_life_span_handler_do_close(self: PCefLifeSpanHandler;
@@ -1982,119 +2244,147 @@ end;
 
 { cef_request_handler }
 
-function cef_request_handler_on_before_browse(self: PCefRequestHandler;
-  browser: PCefBrowser; frame: PCefFrame; request: PCefRequest;
-  isRedirect: Integer): Integer; stdcall;
+function cef_request_handler_on_before_browse(self: PCefRequestHandler; browser: PCefBrowser;
+  frame: PCefFrame; request: PCefRequest; isRedirect: Integer): Integer; stdcall;
 begin
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := ord(OnBeforeBrowse(TCefBrowserRef.UnWrap(browser),
-      TCefFrameRef.UnWrap(frame), TCefRequestRef.UnWrap(request),
-      isRedirect <> 0));
+    Result := Ord(OnBeforeBrowse(TCefBrowserRef.UnWrap(browser), TCefFrameRef.UnWrap(frame),
+      TCefRequestRef.UnWrap(request), isRedirect <> 0));
+end;
+
+function cef_request_handler_on_open_urlfrom_tab(self: PCefRequestHandler; browser: PCefBrowser;
+  frame: PCefFrame; const target_url: PCefString; target_disposition: TCefWindowOpenDisposition;
+  user_gesture: Integer): Integer; stdcall;
+begin
+  with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
+    Result := Ord(OnOpenUrlFromTab(TCefBrowserRef.UnWrap(browser), TCefFrameRef.UnWrap(frame),
+      TCef3Helper.CefString(target_url), target_disposition, user_gesture <> 0));
 end;
 
 function cef_request_handler_on_before_resource_load(self: PCefRequestHandler;
-  browser: PCefBrowser; frame: PCefFrame; request: PCefRequest)
-  : Integer; stdcall;
+  browser: PCefBrowser; frame: PCefFrame; request: PCefRequest;
+  callback: PCefRequestCallback): TCefReturnValue; stdcall;
 begin
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := ord(OnBeforeResourceLoad(TCefBrowserRef.UnWrap(browser),
-      TCefFrameRef.UnWrap(frame), TCefRequestRef.UnWrap(request)));
+    Result := OnBeforeResourceLoad(
+      TCefBrowserRef.UnWrap(browser),
+      TCefFrameRef.UnWrap(frame),
+      TCefRequestRef.UnWrap(request),
+      TcefRequestCallbackRef.UnWrap(callback));
 end;
 
 function cef_request_handler_get_resource_handler(self: PCefRequestHandler;
-  browser: PCefBrowser; frame: PCefFrame; request: PCefRequest)
-  : PCefResourceHandler; stdcall;
+  browser: PCefBrowser; frame: PCefFrame; request: PCefRequest): PCefResourceHandler; stdcall;
 begin
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := TCef3Helper.CefGetData
-      (GetResourceHandler(TCefBrowserRef.UnWrap(browser),
+    Result := TCef3Helper.CefGetData(GetResourceHandler(TCefBrowserRef.UnWrap(browser),
       TCefFrameRef.UnWrap(frame), TCefRequestRef.UnWrap(request)));
 end;
 
 procedure cef_request_handler_on_resource_redirect(self: PCefRequestHandler;
-  browser: PCefBrowser; frame: PCefFrame; const old_url: PCefString;
-  new_url: PCefString); stdcall;
+  browser: PCefBrowser; frame: PCefFrame; const request: PCefRequest; new_url: PCefString); stdcall;
 var
   url: ustring;
 begin
   url := TCef3Helper.CefString(new_url);
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    OnResourceRedirect(TCefBrowserRef.UnWrap(browser),
-      TCefFrameRef.UnWrap(frame), TCef3Helper.CefString(old_url), url);
+    OnResourceRedirect(TCefBrowserRef.UnWrap(browser), TCefFrameRef.UnWrap(frame),
+      TCefRequestRef.UnWrap(request), url);
   if url <> '' then
     TCef3Helper.CefStringSet(new_url, url);
 end;
 
-function cef_request_handler_get_auth_credentials(self: PCefRequestHandler;
-  browser: PCefBrowser; frame: PCefFrame; isProxy: Integer;
-  const host: PCefString; port: Integer; const realm, scheme: PCefString;
-  callback: PCefAuthCallback): Integer; stdcall;
+function cef_request_handler_on_resource_response(self: PCefRequestHandler;
+  browser: PCefBrowser; frame: PCefFrame; request: PCefRequest;
+  response: PCefResponse): Integer; stdcall;
 begin
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := ord(GetAuthCredentials(TCefBrowserRef.UnWrap(browser),
-      TCefFrameRef.UnWrap(frame), isProxy <> 0, TCef3Helper.CefString(host),
-      port, TCef3Helper.CefString(realm), TCef3Helper.CefString(scheme),
-      TCefAuthCallbackRef.UnWrap(callback)));
+    Result := Ord(OnResourceResponse(TCefBrowserRef.UnWrap(browser), TCefFrameRef.UnWrap(frame),
+      TCefRequestRef.UnWrap(request), TCefResponseRef.UnWrap(response)));
 end;
 
-function cef_request_handler_on_quota_request(self: PCefRequestHandler;
-  browser: PCefBrowser; const origin_url: PCefString; new_size: Int64;
-  callback: PCefQuotaCallback): Integer; stdcall;
+function cef_request_handler_get_resource_response_filter(self: PCefRequestHandler; browser: PCefBrowser;
+  frame: PCefFrame; request: PCefRequest; response: PCefResponse): PCefResponseFilter; stdcall;
+begin
+   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
+     Result := TCef3Helper.CefGetData(GetResourceResponseFilter(TCefBrowserRef.UnWrap(browser),
+      TCefFrameRef.UnWrap(frame), TCefRequestRef.UnWrap(request),
+      TCefResponseRef.UnWrap(response)));
+end;
+
+procedure cef_request_handler_on_resource_load_complete(self: PCefRequestHandler; browser: PCefBrowser;
+  frame: PCefFrame; request: PCefRequest; response: PCefResponse;
+  status: TCefUrlRequestStatus; received_content_length: Int64); stdcall;
+begin
+   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
+     OnResourceLoadComplete(TCefBrowserRef.UnWrap(browser),
+      TCefFrameRef.UnWrap(frame), TCefRequestRef.UnWrap(request),
+      TCefResponseRef.UnWrap(response), status, received_content_length);
+end;
+
+function cef_request_handler_get_auth_credentials(self: PCefRequestHandler;
+  browser: PCefBrowser; frame: PCefFrame; isProxy: Integer; const host: PCefString;
+  port: Integer; const realm, scheme: PCefString; callback: PCefAuthCallback): Integer; stdcall;
 begin
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := ord(OnQuotaRequest(TCefBrowserRef.UnWrap(browser),
-      TCef3Helper.CefString(origin_url), new_size,
-      TCefQuotaCallbackRef.UnWrap(callback)));
+    Result := Ord(GetAuthCredentials(
+      TCefBrowserRef.UnWrap(browser), TCefFrameRef.UnWrap(frame), isProxy <> 0,
+      TCef3Helper.CefString(host), port, TCef3Helper.CefString(realm), TCef3Helper.CefString(scheme), TCefAuthCallbackRef.UnWrap(callback)));
+end;
+
+function cef_request_handler_on_quota_request(self: PCefRequestHandler; browser: PCefBrowser;
+  const origin_url: PCefString; new_size: Int64; callback: PCefRequestCallback): Integer; stdcall;
+begin
+  with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
+    Result := Ord(OnQuotaRequest(TCefBrowserRef.UnWrap(browser),
+      TCef3Helper.CefString(origin_url), new_size, TCefRequestCallbackRef.UnWrap(callback)));
 end;
 
 procedure cef_request_handler_on_protocol_execution(self: PCefRequestHandler;
-  browser: PCefBrowser; const url: PCefString;
-  allow_os_execution: PInteger); stdcall;
+  browser: PCefBrowser; const url: PCefString; allow_os_execution: PInteger); stdcall;
 var
   allow: Boolean;
 begin
   allow := allow_os_execution^ <> 0;
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    OnProtocolExecution(TCefBrowserRef.UnWrap(browser),
+    OnProtocolExecution(
+      TCefBrowserRef.UnWrap(browser),
       TCef3Helper.CefString(url), allow);
-  allow_os_execution^ := ord(allow);
-end;
-
-function cef_request_handler_on_before_plugin_load(self: PCefRequestHandler;
-  browser: PCefBrowser; const url, policy_url: PCefString;
-  info: PCefWebPluginInfo): Integer; stdcall;
-begin
-  with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := ord(OnBeforePluginLoad(TCefBrowserRef.UnWrap(browser),
-      TCef3Helper.CefString(url), TCef3Helper.CefString(policy_url),
-      TCefWebPluginInfoRef.UnWrap(info)));
+  allow_os_execution^ := Ord(allow);
 end;
 
 function cef_request_handler_on_certificate_error(self: PCefRequestHandler;
-  cert_error: TCefErrorcode; const request_url: PCefString;
-  callback: PCefAllowCertificateErrorCallback): Integer; stdcall;
+  browser: PCefBrowser; cert_error: TCefErrorcode; const request_url: PCefString;
+  ssl_info: PCefSslInfo; callback: PCefRequestCallback): Integer; stdcall;
 begin
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    Result := ord(OnCertificateError(cert_error,
-      TCef3Helper.CefString(request_url),
-      TCefAllowCertificateErrorCallbackRef.UnWrap(callback)));
+    Result := Ord(OnCertificateError(TCefBrowserRef.UnWrap(browser), cert_error,
+      TCef3Helper.CefString(request_url), TCefSslInfoRef.UnWrap(ssl_info),
+      TCefRequestCallbackRef.UnWrap(callback)));
 end;
 
 procedure cef_request_handler_on_plugin_crashed(self: PCefRequestHandler;
   browser: PCefBrowser; const plugin_path: PCefString); stdcall;
 begin
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    OnPluginCrashed(TCefBrowserRef.UnWrap(browser),
-      TCef3Helper.CefString(plugin_path));
+    OnPluginCrashed(TCefBrowserRef.UnWrap(browser), TCef3Helper.CefString(plugin_path));
 end;
 
-procedure cef_request_handler_on_render_process_terminated
-  (self: PCefRequestHandler; browser: PCefBrowser;
-  status: TCefTerminationStatus); stdcall;
+procedure cef_request_handler_on_render_view_ready(self: PCefRequestHandler;
+  browser: PCefBrowser); stdcall;
+begin
+  with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
+    OnRenderViewReady(TCefBrowserRef.UnWrap(browser));
+end;
+
+procedure cef_request_handler_on_render_process_terminated(self: PCefRequestHandler;
+  browser: PCefBrowser; status: TCefTerminationStatus); stdcall;
 begin
   with TCefRequestHandlerOwn(TCef3Helper.CefGetObject(self)) do
     OnRenderProcessTerminated(TCefBrowserRef.UnWrap(browser), status);
 end;
+
+
 
 { cef_display_handler }
 
@@ -2111,6 +2401,35 @@ procedure cef_display_handler_on_title_change(self: PCefDisplayHandler;
 begin
   with TCefDisplayHandlerOwn(TCef3Helper.CefGetObject(self)) do
     OnTitleChange(TCefBrowserRef.UnWrap(browser), TCef3Helper.CefString(title));
+end;
+
+procedure cef_display_handler_on_favicon_urlchange(self: PCefDisplayHandler;
+  browser: PCefBrowser; icon_urls: TCefStringList); stdcall;
+var
+  list: TStringList;
+  i: Integer;
+  str: TCefString;
+begin
+  list := TStringList.Create;
+  try
+    for i := 0 to cef_string_list_size(icon_urls) - 1 do
+    begin
+      FillChar(str, SizeOf(str), 0);
+      cef_string_list_value(icon_urls, i, @str);
+      list.Add(TCef3Helper.CefStringClearAndGet(str));
+    end;
+    with TCefDisplayHandlerOwn(TCef3Helper.CefGetObject(self)) do
+      OnFaviconUrlChange(TCefBrowserRef.UnWrap(browser), list);
+  finally
+    list.Free;
+  end;
+end;
+
+procedure cef_display_handler_on_fullscreen_mode_change(self: PCefDisplayHandler;
+  browser: PCefBrowser; fullscreen: Integer); stdcall;
+begin
+  with TCefDisplayHandlerOwn(TCef3Helper.CefGetObject(self)) do
+    OnFullScreenModeChange(TCefBrowserRef.UnWrap(browser), fullscreen <> 0);
 end;
 
 function cef_display_handler_on_tooltip(self: PCefDisplayHandler;
@@ -2190,7 +2509,7 @@ end;
 { cef_jsdialog_handler }
 
 function cef_jsdialog_handler_on_jsdialog(self: PCefJsDialogHandler;
-  browser: PCefBrowser; const origin_url, accept_lang: PCefString;
+  browser: PCefBrowser; const origin_url: PCefString;
   dialog_type: TCefJsDialogType; const message_text, default_prompt_text
   : PCefString; callback: PCefJsDialogCallback; suppress_message: PInteger)
   : Integer; stdcall;
@@ -2200,7 +2519,7 @@ begin
   sm := suppress_message^ <> 0;
   with TCefJsDialogHandlerOwn(TCef3Helper.CefGetObject(self)) do
     Result := ord(OnJsdialog(TCefBrowserRef.UnWrap(browser),
-      TCef3Helper.CefString(origin_url), TCef3Helper.CefString(accept_lang),
+      TCef3Helper.CefString(origin_url),
       dialog_type, TCef3Helper.CefString(message_text),
       TCef3Helper.CefString(default_prompt_text),
       TCefJsDialogCallbackRef.UnWrap(callback), sm));
@@ -2241,6 +2560,16 @@ begin
     OnBeforeContextMenu(TCefBrowserRef.UnWrap(browser),
       TCefFrameRef.UnWrap(frame), TCefContextMenuParamsRef.UnWrap(params),
       TCefMenuModelRef.UnWrap(model));
+end;
+
+function cef_context_menu_handler_run_context_menu(self: PCefContextMenuHandler;
+  browser: PCefBrowser; frame: PCefFrame; params: PCefContextMenuParams;
+  model: PCefMenuModel; callback: PCefRunContextMenuCallback): Integer; stdcall;
+begin
+  with TCefContextMenuHandlerOwn(TCef3Helper.CefGetObject(self)) do
+    Result := Ord(RunContextMenu(TCefBrowserRef.UnWrap(browser), TCefFrameRef.UnWrap(frame),
+      TCefContextMenuParamsRef.UnWrap(params), TCefMenuModelRef.UnWrap(model),
+      TCefRunContextMenuCallbackRef.UnWrap(callback)));
 end;
 
 function cef_context_menu_handler_on_context_menu_command
@@ -2469,13 +2798,13 @@ end;
 { cef_resource_bundle_handler }
 
 function cef_resource_bundle_handler_get_localized_string
-  (self: PCefResourceBundleHandler; message_id: Integer; string_val: PCefString)
+  (self: PCefResourceBundleHandler; string_id: Integer; string_val: PCefString)
   : Integer; stdcall;
 var
   str: ustring;
 begin
   Result := ord(TCefResourceBundleHandlerOwn(TCef3Helper.CefGetObject(self))
-    .GetLocalizedString(message_id, str));
+    .GetLocalizedString(string_id, str));
   if Result <> 0 then
     string_val^ := TCef3Helper.CefString(str);
 end;
@@ -2486,6 +2815,14 @@ function cef_resource_bundle_handler_get_data_resource
 begin
   Result := ord(TCefResourceBundleHandlerOwn(TCef3Helper.CefGetObject(self))
     .GetDataResource(resource_id, data, data_size));
+end;
+
+function cef_resource_bundle_handler_get_data_resource_for_scale(
+  self: PCefResourceBundleHandler; resource_id: Integer; scale_factor: TCefScaleFactor;
+  out data: Pointer; data_size: NativeUInt): Integer; stdcall;
+begin
+  Result := Ord(TCefResourceBundleHandlerOwn(TCef3Helper.CefGetObject(self)).
+    GetDataResourceForScale(resource_id, scale_factor, data, data_size));
 end;
 
 { cef_app }
@@ -2753,14 +3090,12 @@ end;
 function cef_resource_handler_can_set_cookie(self: PCefResourceHandler;
   const cookie: PCefCookie): Integer; stdcall;
 begin
-
   with TCefResourceHandlerOwn(TCef3Helper.CefGetObject(self)) do
     Result := ord(CanSetCookie(cookie));
 end;
 
 procedure cef_resource_handler_cancel(self: PCefResourceHandler); stdcall;
 begin
-
   with TCefResourceHandlerOwn(TCef3Helper.CefGetObject(self)) do
     cancel;
 end;
@@ -2787,14 +3122,15 @@ end;
 
 { cef_run_file_dialog_callback }
 
-procedure cef_run_file_dialog_callback_cont(self: PCefRunFileDialogCallback;
-  browser_host: PCefBrowserHost; file_paths: TCefStringList); stdcall;
+procedure cef_run_file_dialog_callback_on_file_dialog_dismissed(
+  self: PCefRunFileDialogCallback; selected_accept_filter: Integer;
+  file_paths: TCefStringList); stdcall;
 var
   list: TStringList;
   i: Integer;
   str: TCefString;
 begin
-  list := TStringList.create;
+  list := TStringList.Create;
   try
     for i := 0 to cef_string_list_size(file_paths) - 1 do
     begin
@@ -2803,7 +3139,7 @@ begin
       list.Add(TCef3Helper.CefStringClearAndGet(str));
     end;
     with TCefRunFileDialogCallbackOwn(TCef3Helper.CefGetObject(self)) do
-      cont(TCefBrowserHostRef.UnWrap(browser_host), list);
+      OnFileDialogDismissed(selected_accept_filter, list);
   finally
     list.Free;
   end;
@@ -2829,28 +3165,28 @@ end;
 
 { cef_dialog_handler }
 
-function cef_dialog_handler_on_file_dialog(self: PCefDialogHandler;
-  browser: PCefBrowser; mode: TCefFileDialogMode;
-  const title, default_file_name: PCefString; accept_types: TCefStringList;
+function cef_dialog_handler_on_file_dialog(self: PCefDialogHandler; browser: PCefBrowser;
+  mode: TCefFileDialogMode; const title, default_file_path: PCefString;
+  accept_filters: TCefStringList; selected_accept_filter: Integer;
   callback: PCefFileDialogCallback): Integer; stdcall;
 var
   list: TStringList;
   i: Integer;
   str: TCefString;
 begin
-  list := TStringList.create;
+  list := TStringList.Create;
   try
-    for i := 0 to cef_string_list_size(accept_types) - 1 do
+    for i := 0 to cef_string_list_size(accept_filters) - 1 do
     begin
       FillChar(str, SizeOf(str), 0);
-      cef_string_list_value(accept_types, i, @str);
+      cef_string_list_value(accept_filters, i, @str);
       list.Add(TCef3Helper.CefStringClearAndGet(str));
     end;
 
     with TCefDialogHandlerOwn(TCef3Helper.CefGetObject(self)) do
-      Result := ord(OnFileDialog(TCefBrowserRef.UnWrap(browser), mode,
-        TCef3Helper.CefString(title), TCef3Helper.CefString(default_file_name),
-        list, TCefFileDialogCallbackRef.UnWrap(callback)));
+      Result := Ord(OnFileDialog(TCefBrowserRef.UnWrap(browser), mode, TCef3Helper.CefString(title),
+        TCef3Helper.CefString(default_file_path), list, selected_accept_filter,
+        TCefFileDialogCallbackRef.UnWrap(callback)));
   finally
     list.Free;
   end;
@@ -2937,11 +3273,11 @@ begin
     OnUpdateDragCursor(TCefBrowserRef.UnWrap(browser), operation);
 end;
 
-procedure cef_render_handler_on_scroll_offset_changed
-  (self: PCefRenderProcessHandler; browser: PCefBrowser); stdcall;
+procedure cef_render_handler_on_scroll_offset_changed(self: PCefRenderProcessHandler;
+  browser: PCefBrowser; x, y: Double); stdcall;
 begin
   with TCefRenderHandlerOwn(TCef3Helper.CefGetObject(self)) do
-    OnScrollOffsetChanged(TCefBrowserRef.UnWrap(browser));
+    OnScrollOffsetChanged(TCefBrowserRef.UnWrap(browser), x, y);
 end;
 
 { cef_completion_callback }
@@ -2964,6 +3300,24 @@ begin
       TCefDragDataRef.UnWrap(dragData), mask));
 end;
 
+procedure cef_drag_handler_on_draggable_regions_changed(self: PCefDragHandler;
+  browser: PCefBrowser; regionsCount: NativeUInt; regions: PCefDraggableRegionArray); stdcall;
+begin
+  with TCefDragHandlerOwn(TCef3Helper.CefGetObject(self)) do
+    OnDraggableRegionsChanged(TCefBrowserRef.UnWrap(browser), regionsCount, regions);
+end;
+
+{ cef_find_handler }
+
+procedure cef_find_handler_on_find_result(self: PCefFindHandler; browser: PCefBrowser; identifier,
+  count: Integer; const selection_rect: PCefRect; active_match_ordinal,
+  final_update: Integer); stdcall;
+begin
+  with TCefFindHandlerOwn(TCef3Helper.CefGetObject(self)) do
+    OnFindResult(TCefBrowserRef.UnWrap(browser), identifier, count, selection_rect,
+      active_match_ordinal, final_update <> 0);
+end;
+
 { cef_request_context_handler }
 
 function cef_request_context_handler_get_cookie_manager
@@ -2971,6 +3325,15 @@ function cef_request_context_handler_get_cookie_manager
 begin
   with TCefRequestContextHandlerOwn(TCef3Helper.CefGetObject(self)) do
     Result := TCef3Helper.CefGetData(GetCookieManager());
+end;
+
+function cef_request_context_handler_on_before_plugin_load(self: PCefRequestContextHandler;
+  const mime_type, plugin_url, top_origin_url: PCefString;
+  plugin_info: PCefWebPluginInfo; plugin_policy: PCefPluginPolicy): Integer; stdcall;
+begin
+  with TCefRequestContextHandlerOwn(TCef3Helper.CefGetObject(self)) do
+    Result := Ord(OnBeforePluginLoad(TCef3Helper.CefString(mime_type), TCef3Helper.CefString(plugin_url),
+      TCef3Helper.CefString(top_origin_url), TCefWebPluginInfoRef.UnWrap(plugin_info), plugin_policy));
 end;
 
 { cef_write_handler_ }
@@ -3016,6 +3379,94 @@ begin
     Result := ord(visit(TCefNavigationEntryRef.UnWrap(entry), current <> 0,
       index, total));
 end;
+
+{ cef_set_cookie_callback }
+
+procedure cef_set_cookie_callback_on_complete(self: PCefSetCookieCallback; success: Integer); stdcall;
+begin
+  with TCefSetCookieCallbackOwn(TCef3Helper.CefGetObject(self)) do
+    OnComplete(success <> 0);
+end;
+
+{ cef_delete_cookie_callback }
+
+procedure cef_delete_cookie_callback_on_complete(self: PCefDeleteCookiesCallback; num_deleted: Integer); stdcall;
+begin
+  with TCefDeleteCookiesCallbackOwn(TCef3Helper.CefGetObject(self)) do
+    OnComplete(num_deleted);
+end;
+
+{ cef_pdf_print_callback }
+
+procedure cef_pdf_print_callback_on_pdf_print_finished(self: PCefPdfPrintCallback; const path: PCefString; ok: Integer); stdcall;
+begin
+  with TCefPdfPrintCallbackOwn(TCef3Helper.CefGetObject(self)) do
+    OnPdfPrintFinished(TCef3Helper.CefString(path), ok <> 0);
+end;
+
+{ cef_resolve_callback }
+
+procedure cef_resolve_callback_on_resolve_completed(self: PCefResolveCallback;
+  result: TCefErrorCode; resolved_ips: TCefStringList); stdcall;
+var
+  list: TStringList;
+  i: Integer;
+  str: TCefString;
+begin
+  list := TStringList.Create;
+  try
+    for i := 0 to cef_string_list_size(resolved_ips) - 1 do
+    begin
+      FillChar(str, SizeOf(str), 0);
+      cef_string_list_value(resolved_ips, i, @str);
+      list.Add(TCef3Helper.CefStringClearAndGet(str));
+    end;
+    with TCefResolveCallbackOwn(TCef3Helper.CefGetObject(self)) do
+      OnResolveCompleted(result, list);
+  finally
+    list.Free;
+  end;
+end;
+
+{ cef_response_filter }
+
+function cef_response_filter_init_filter(self: PCefResponseFilter): Integer; stdcall;
+begin
+  with TCefResponseFilterOwn(TCef3Helper.CefGetObject(self)) do
+    Result := Ord(InitFilter());
+end;
+
+function cef_response_filter_filter(self: PCefResponseFilter; data_in: Pointer; data_in_size, data_in_read: NativeUInt;
+  data_out: Pointer; data_out_size, data_out_written: NativeUInt): TCefResponseFilterStatus; stdcall;
+begin
+  with TCefResponseFilterOwn(TCef3Helper.CefGetObject(self)) do
+    Result := Filter(data_in, data_in_size, data_in_read, data_out, data_out_size, data_out_written);
+end;
+
+{ cef_menu_model_delegate }
+
+procedure cef_menu_model_delegate_execute_command(self: PCefMenuModelDelegate;
+  menu_model: PCefMenuModel; command_id: Integer; event_flags: TCefEventFlags); stdcall;
+begin
+  with TCefMenuModelDelegateOwn(TCef3Helper.CefGetObject(self)) do
+    ExecuteCommand(TCefMenuModelRef.UnWrap(menu_model), command_id, event_flags);
+end;
+
+procedure cef_menu_model_delegate_menu_will_show(self: PCefMenuModelDelegate; menu_model: PCefMenuModel); stdcall;
+begin
+  with TCefMenuModelDelegateOwn(TCef3Helper.CefGetObject(self)) do
+    MenuWillShow(TCefMenuModelRef.UnWrap(menu_model));
+end;
+
+{ cef_download_image_callback }
+
+procedure cef_download_image_callback_on_download_image_finished(self: PCefDownloadImageCallback;
+  const image_url: PCefString; http_status_code: Integer; image: PCefImage); stdcall;
+begin
+  with TCefDownloadImageCallbackOwn(TCef3Helper.CefGetObject(self)) do
+    OnDownloadImageFinished(TCef3Helper.CefString(image_url), http_status_code, TCefImageRef.UnWrap(image));
+end;
+
 { TCefBaseOwn }
 
 constructor TCefBaseOwn.CreateData(size: Cardinal; owned: Boolean);
@@ -3483,6 +3934,11 @@ begin
   end;
 end;
 
+function TCefPostDataRef.HasExcludedElements: Boolean;
+begin
+  Result := PCefPostData(FData)^.has_excluded_elements(PCefPostData(FData)) <> 0;
+end;
+
 class function TCefPostDataRef.New: ICefPostData;
 begin
   Result := UnWrap(cef_post_data_create);
@@ -3717,6 +4173,11 @@ begin
   PCefRequest(FData)^.get_header_map(PCefRequest(FData), headerMap.Handle);
 end;
 
+function TCefRequestRef.GetIdentifier: UInt64;
+begin
+  Result := PCefRequest(FData)^.get_identifier(PCefRequest(FData));
+end;
+
 function TCefRequestRef.GetMethod: ustring;
 begin
   Result := TCef3Helper.CefStringFreeAndGet(PCefRequest(FData)
@@ -3727,6 +4188,16 @@ function TCefRequestRef.GetPostData: ICefPostData;
 begin
   Result := TCefPostDataRef.UnWrap(PCefRequest(FData)
     ^.get_post_data(PCefRequest(FData)));
+end;
+
+function TCefRequestRef.GetReferrerPolicy: TCefReferrerPolicy;
+begin
+  Result := PCefRequest(FData)^.get_referrer_policy(PCefRequest(FData));
+end;
+
+function TCefRequestRef.GetReferrerUrl: string;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefRequest(FData)^.get_referrer_url(PCefRequest(FData)));
 end;
 
 function TCefRequestRef.GetResourceType: TCefResourceType;
@@ -3781,6 +4252,15 @@ begin
   if value <> nil then
     PCefRequest(FData)^.set_post_data(PCefRequest(FData),
       TCef3Helper.CefGetData(value));
+end;
+
+procedure TCefRequestRef.SetReferrer(const referrerUrl: string;
+  policy: TCefReferrerPolicy);
+var
+  u: TCefString;
+begin
+  u := TCef3Helper.CefString(referrerUrl);
+  PCefRequest(FData)^.set_referrer(PCefRequest(FData), @u, policy);
 end;
 
 procedure TCefRequestRef.SetUrl(const value: ustring);
@@ -4697,7 +5177,7 @@ begin
   Result := PCefZipReader(FData).eof(FData) <> 0;
 end;
 
-function TCefZipReaderRef.GetFileLastModified: LongInt;
+function TCefZipReaderRef.GetFileLastModified: TCefTime;
 begin
   Result := PCefZipReader(FData).get_file_last_modified(FData);
 end;
@@ -4954,22 +5434,10 @@ begin
     ^.get_selection_as_text(PCefDomDocument(FData)));
 end;
 
-function TCefDomDocumentRef.GetSelectionEndNode: ICefDomNode;
-begin
-  Result := TCefDomNodeRef.UnWrap(PCefDomDocument(FData)^.get_selection_end_node
-    (PCefDomDocument(FData)));
-end;
-
 function TCefDomDocumentRef.GetSelectionEndOffset: Integer;
 begin
   Result := PCefDomDocument(FData)^.get_selection_end_offset
     (PCefDomDocument(FData));
-end;
-
-function TCefDomDocumentRef.GetSelectionStartNode: ICefDomNode;
-begin
-  Result := TCefDomNodeRef.UnWrap(PCefDomDocument(FData)
-    ^.get_selection_start_node(PCefDomDocument(FData)));
 end;
 
 function TCefDomDocumentRef.GetSelectionStartOffset: Integer;
@@ -5176,6 +5644,11 @@ begin
   Result := UnWrap(cef_response_create);
 end;
 
+function TCefResponseRef.GetError: TCefErrorCode;
+begin
+  Result := PCefResponse(FData)^.get_error(FData);
+end;
+
 function TCefResponseRef.GetHeader(const name: ustring): ustring;
 var
   n: TCefString;
@@ -5210,6 +5683,11 @@ end;
 function TCefResponseRef.IsReadOnly: Boolean;
 begin
   Result := PCefResponse(FData)^.is_read_only(PCefResponse(FData)) <> 0;
+end;
+
+procedure TCefResponseRef.SetError(error: TCefErrorCode);
+begin
+  PCefResponse(FData)^.set_error(FData, error);
 end;
 
 procedure TCefResponseRef.SetHeaderMap(const headerMap: ICefStringMultimap);
@@ -5339,6 +5817,7 @@ begin
     get_display_handler := cef_client_get_display_handler;
     get_download_handler := cef_client_get_download_handler;
     get_drag_handler := cef_client_get_drag_handler;
+    get_find_handler := cef_client_get_find_handler;
     get_focus_handler := cef_client_get_focus_handler;
     get_geolocation_handler := cef_client_get_geolocation_handler;
     get_jsdialog_handler := cef_client_get_jsdialog_handler;
@@ -5372,6 +5851,11 @@ begin
 end;
 
 function TCefClientOwn.GetDragHandler: ICefDragHandler;
+begin
+  Result := nil;
+end;
+
+function TCefClientOwn.GetFindHandler: ICefFindHandler;
 begin
   Result := nil;
 end;
@@ -5426,7 +5910,6 @@ end;
 
 constructor TCefGeolocationHandlerOwn.create;
 begin
-
   inherited CreateData(SizeOf(TCefGeolocationHandler));
   with PCefGeolocationHandler(FData)^ do
   begin
@@ -5445,8 +5928,7 @@ begin
 end;
 
 procedure TCefGeolocationHandlerOwn.OnCancelGeolocationPermission
-  (const browser: ICefBrowser; const requestingUrl: ustring;
-  requestId: Integer);
+  (const browser: ICefBrowser; requestId: Integer);
 begin
 
 end;
@@ -5458,11 +5940,10 @@ begin
   inherited CreateData(SizeOf(TCefLifeSpanHandler));
   with PCefLifeSpanHandler(FData)^ do
   begin
-    on_before_popup := @cef_life_span_handler_on_before_popup;
-    on_after_created := @cef_life_span_handler_on_after_created;
-    on_before_close := @cef_life_span_handler_on_before_close;
-    run_modal := @cef_life_span_handler_run_modal;
-    do_close := @cef_life_span_handler_do_close;
+    on_before_popup := cef_life_span_handler_on_before_popup;
+    on_after_created := cef_life_span_handler_on_after_created;
+    on_before_close := cef_life_span_handler_on_before_close;
+    do_close := cef_life_span_handler_do_close;
   end;
 end;
 
@@ -5478,6 +5959,7 @@ end;
 
 function TCefLifeSpanHandlerOwn.OnBeforePopup(const browser: ICefBrowser;
   const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+  targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
   var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
   var client: ICefClient; var settings: TCefBrowserSettings;
   var noJavascriptAccess: Boolean): Boolean;
@@ -5486,11 +5968,6 @@ begin
 end;
 
 function TCefLifeSpanHandlerOwn.DoClose(const browser: ICefBrowser): Boolean;
-begin
-  Result := False;
-end;
-
-function TCefLifeSpanHandlerOwn.RunModal(const browser: ICefBrowser): Boolean;
 begin
   Result := False;
 end;
@@ -5542,17 +6019,20 @@ begin
   with PCefRequestHandler(FData)^ do
   begin
     on_before_browse := cef_request_handler_on_before_browse;
-    on_before_resource_load := cef_request_handler_on_before_resource_load;
+    on_open_urlfrom_tab := cef_request_handler_on_open_urlfrom_tab;
+    //on_before_resource_load := cef_request_handler_on_before_resource_load;
     get_resource_handler := cef_request_handler_get_resource_handler;
     on_resource_redirect := cef_request_handler_on_resource_redirect;
+    on_resource_response := cef_request_handler_on_resource_response;
+    get_resource_response_filter := cef_request_handler_get_resource_response_filter;
+    on_resource_load_complete := cef_request_handler_on_resource_load_complete;
     get_auth_credentials := cef_request_handler_get_auth_credentials;
     on_quota_request := cef_request_handler_on_quota_request;
     on_protocol_execution := cef_request_handler_on_protocol_execution;
-    on_before_plugin_load := cef_request_handler_on_before_plugin_load;
     on_certificate_error := cef_request_handler_on_certificate_error;
     on_plugin_crashed := cef_request_handler_on_plugin_crashed;
-    on_render_process_terminated :=
-      cef_request_handler_on_render_process_terminated;
+    on_render_view_ready := cef_request_handler_on_render_view_ready;
+    on_render_process_terminated := cef_request_handler_on_render_process_terminated;
   end;
 end;
 
@@ -5576,27 +6056,36 @@ begin
   Result := False;
 end;
 
-function TCefRequestHandlerOwn.OnBeforePluginLoad(const browser: ICefBrowser;
-  const url, policyUrl: ustring; const info: ICefWebPluginInfo): Boolean;
-begin
-  Result := False;
-end;
-
 function TCefRequestHandlerOwn.OnBeforeResourceLoad(const browser: ICefBrowser;
-  const frame: ICefFrame; const request: ICefRequest): Boolean;
+  const frame: ICefFrame; const request: ICefRequest;
+  const callback: ICefRequestCallback): TCefReturnValue;
+begin
+  Result := RV_CONTINUE;
+end;
+
+function TCefRequestHandlerOwn.OnCertificateError(const browser: ICefBrowser;
+  certError: TCefErrorcode; const requestUrl: ustring; const sslInfo: ICefSslInfo;
+  const callback: ICefRequestCallback): Boolean;
 begin
   Result := False;
 end;
 
-function TCefRequestHandlerOwn.OnCertificateError(certError: TCefErrorcode;
-  const requestUrl: ustring;
-  const callback: ICefAllowCertificateErrorCallback): Boolean;
+function TCefRequestHandlerOwn.OnOpenUrlFromTab(const browser: ICefBrowser;
+  const frame: ICefFrame; const targetUrl: ustring;
+  targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean): Boolean;
 begin
   Result := False;
 end;
 
 function TCefRequestHandlerOwn.GetResourceHandler(const browser: ICefBrowser;
   const frame: ICefFrame; const request: ICefRequest): ICefResourceHandler;
+begin
+  Result := nil;
+end;
+
+function TCefRequestHandlerOwn.GetResourceResponseFilter(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse): ICefResponseFilter;
 begin
   Result := nil;
 end;
@@ -5615,7 +6104,7 @@ end;
 
 function TCefRequestHandlerOwn.OnQuotaRequest(const browser: ICefBrowser;
   const originUrl: ustring; newSize: Int64;
-  const callback: ICefQuotaCallback): Boolean;
+  const callback: ICefRequestCallback): Boolean;
 begin
   Result := False;
 end;
@@ -5626,10 +6115,30 @@ begin
 
 end;
 
-procedure TCefRequestHandlerOwn.OnResourceRedirect(const browser: ICefBrowser;
-  const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring);
+procedure TCefRequestHandlerOwn.OnRenderViewReady(const browser: ICefBrowser);
 begin
 
+end;
+
+procedure TCefRequestHandlerOwn.OnResourceLoadComplete(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse;
+  status: TCefUrlRequestStatus; receivedContentLength: Int64);
+begin
+
+end;
+
+procedure TCefRequestHandlerOwn.OnResourceRedirect(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest; var newUrl: ustring);
+begin
+
+end;
+
+function TCefRequestHandlerOwn.OnResourceResponse(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest;
+  const response: ICefResponse): Boolean;
+begin
+  Result := False;
 end;
 
 { TCefDisplayHandlerOwn }
@@ -5641,6 +6150,8 @@ begin
   begin
     on_address_change := cef_display_handler_on_address_change;
     on_title_change := cef_display_handler_on_title_change;
+    on_favicon_urlchange := cef_display_handler_on_favicon_urlchange;
+    on_fullscreen_mode_change := cef_display_handler_on_fullscreen_mode_change;
     on_tooltip := cef_display_handler_on_tooltip;
     on_status_message := cef_display_handler_on_status_message;
     on_console_message := cef_display_handler_on_console_message;
@@ -5657,6 +6168,18 @@ function TCefDisplayHandlerOwn.OnConsoleMessage(const browser: ICefBrowser;
   const message, source: ustring; line: Integer): Boolean;
 begin
   Result := False;
+end;
+
+procedure TCefDisplayHandlerOwn.OnFaviconUrlChange(const browser: ICefBrowser;
+  iconUrls: TStrings);
+begin
+
+end;
+
+procedure TCefDisplayHandlerOwn.OnFullScreenModeChange(
+  const browser: ICefBrowser; fullscreen: Boolean);
+begin
+
 end;
 
 procedure TCefDisplayHandlerOwn.OnStatusMessage(const browser: ICefBrowser;
@@ -5748,7 +6271,7 @@ begin
 end;
 
 function TCefJsDialogHandlerOwn.OnJsdialog(const browser: ICefBrowser;
-  const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+  const originUrl: ustring; dialogType: TCefJsDialogType;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
   out suppressMessage: Boolean): Boolean;
 begin
@@ -5781,6 +6304,7 @@ begin
   with PCefContextMenuHandler(FData)^ do
   begin
     on_before_context_menu := cef_context_menu_handler_on_before_context_menu;
+    run_context_menu := cef_context_menu_handler_run_context_menu;
     on_context_menu_command := cef_context_menu_handler_on_context_menu_command;
     on_context_menu_dismissed :=
       cef_context_menu_handler_on_context_menu_dismissed;
@@ -5805,6 +6329,14 @@ procedure TCefContextMenuHandlerOwn.OnContextMenuDismissed
   (const browser: ICefBrowser; const frame: ICefFrame);
 begin
 
+end;
+
+function TCefContextMenuHandlerOwn.RunContextMenu(const browser: ICefBrowser;
+  const frame: ICefFrame; const params: ICefContextMenuParams;
+  const model: ICefMenuModel;
+  const callback: ICefRunContextMenuCallback): Boolean;
+begin
+  Result := False;
 end;
 
 { TCefV8ExceptionRef }
@@ -5869,34 +6401,43 @@ begin
   begin
     get_localized_string := cef_resource_bundle_handler_get_localized_string;
     get_data_resource := cef_resource_bundle_handler_get_data_resource;
+    get_data_resource_for_scale := cef_resource_bundle_handler_get_data_resource_for_scale;
   end;
 end;
 
 { TCefFastResourceBundle }
 
-constructor TCefFastResourceBundle.create(AGetDataResource: TGetDataResource;
-  AGetLocalizedString: TGetLocalizedString);
+constructor TCefFastResourceBundle.Create(AGetDataResource: TGetDataResource;
+  AGetLocalizedString: TGetLocalizedString; AGetDataResourceForScale: TGetDataResourceForScale);
 begin
-  inherited create;
+  inherited Create;
   FGetDataResource := AGetDataResource;
   FGetLocalizedString := AGetLocalizedString;
+  FGetDataResourceForScale := AGetDataResourceForScale;
 end;
 
 function TCefFastResourceBundle.GetDataResource(resourceId: Integer;
   out data: Pointer; out dataSize: NativeUInt): Boolean;
 begin
   if Assigned(FGetDataResource) then
-    Result := FGetDataResource(resourceId, data, dataSize)
-  else
+    Result := FGetDataResource(resourceId, data, dataSize) else
     Result := False;
 end;
 
-function TCefFastResourceBundle.GetLocalizedString(messageId: Integer;
+function TCefFastResourceBundle.GetDataResourceForScale(resourceId: Integer;
+  scaleFactor: TCefScaleFactor; out data: Pointer;
+  dataSize: NativeUInt): Boolean;
+begin
+  if Assigned(FGetDataResourceForScale) then
+    Result := FGetDataResourceForScale(resourceId, scaleFactor, data, dataSize) else
+    Result := False;
+end;
+
+function TCefFastResourceBundle.GetLocalizedString(stringId: Integer;
   out stringVal: ustring): Boolean;
 begin
   if Assigned(FGetLocalizedString) then
-    Result := FGetLocalizedString(messageId, stringVal)
-  else
+    Result := FGetLocalizedString(stringId, stringVal) else
     Result := False;
 end;
 
@@ -5918,48 +6459,66 @@ end;
 
 { TCefCookieManagerRef }
 
-class function TCefCookieManagerRef.New(const path: ustring;
-  persistSessionCookies: Boolean): ICefCookieManager;
+class function TCefCookieManagerRef.New(const path: ustring; persistSessionCookies: Boolean;
+  const callback: ICefCompletionCallback): ICefCookieManager;
 var
   pth: TCefString;
 begin
   pth := TCef3Helper.CefString(path);
-  Result := UnWrap(cef_cookie_manager_create_manager(@pth,
-    ord(persistSessionCookies)));
+  Result := UnWrap(cef_cookie_manager_create_manager(@pth, Ord(persistSessionCookies), TCef3Helper.CefGetData(callback)));
+end;
+
+class function TCefCookieManagerRef.NewProc(const path: ustring;
+  persistSessionCookies: Boolean;
+  const callback: TCefCompletionCallbackProc): ICefCookieManager;
+begin
+  Result := New(path, persistSessionCookies, TCefFastCompletionCallback.Create(callback));
 end;
 
 function TCefCookieManagerRef.DeleteCookies(const url,
-  cookieName: ustring): Boolean;
+  cookieName: ustring; const callback: ICefDeleteCookiesCallback): Boolean;
 var
   u, n: TCefString;
 begin
   u := TCef3Helper.CefString(url);
   n := TCef3Helper.CefString(cookieName);
-  Result := PCefCookieManager(FData).delete_cookies(PCefCookieManager(FData),
-    @u, @n) <> 0;
+  Result := PCefCookieManager(FData).delete_cookies(
+    PCefCookieManager(FData), @u, @n, TCef3Helper.CefGetData(callback)) <> 0;
 end;
 
-function TCefCookieManagerRef.FlushStore(const handler
-  : ICefCompletionCallback): Boolean;
+function TCefCookieManagerRef.DeleteCookiesProc(const url, cookieName: ustring;
+  const callback: TCefDeleteCookiesCallbackProc): Boolean;
 begin
-  Result := PCefCookieManager(FData).flush_store(PCefCookieManager(FData),
+  Result := DeleteCookies(url, cookieName, TCefFastDeleteCookiesCallback.Create(callback));
+end;
+
+function TCefCookieManagerRef.FlushStore(
+  const handler: ICefCompletionCallback): Boolean;
+begin
+    Result := PCefCookieManager(FData).flush_store(PCefCookieManager(FData),
     TCef3Helper.CefGetData(handler)) <> 0;
 end;
 
-function TCefCookieManagerRef.FlushStoreProc(const proc
-  : TCefCompletionCallbackProc): Boolean;
+function TCefCookieManagerRef.FlushStoreProc(
+  const proc: TCefCompletionCallbackProc): Boolean;
 begin
-  Result := FlushStore(TCefFastCompletionCallback.create(proc))
+  Result := FlushStore(TCefFastCompletionCallback.Create(proc));
 end;
 
-class function TCefCookieManagerRef.Global: ICefCookieManager;
+class function TCefCookieManagerRef.Global(const callback: ICefCompletionCallback): ICefCookieManager;
 begin
-  Result := UnWrap(cef_cookie_manager_get_global_manager());
+  Result := UnWrap(cef_cookie_manager_get_global_manager(TCef3Helper.CefGetData(callback)));
+end;
+
+class function TCefCookieManagerRef.GlobalProc(
+  const callback: TCefCompletionCallbackProc): ICefCookieManager;
+begin
+  Result := Global(TCefFastCompletionCallback.Create(callback));
 end;
 
 function TCefCookieManagerRef.SetCookie(const url, name, value, domain,
-  path: ustring; secure, httponly, hasExpires: Boolean;
-  const creation, lastAccess, expires: TDateTime): Boolean;
+  path: ustring; secure, httponly, hasExpires: Boolean; const creation,
+  lastAccess, expires: TDateTime; const callback: ICefSetCookieCallback): Boolean;
 var
   str: TCefString;
   cook: TCefCookie;
@@ -5969,30 +6528,46 @@ begin
   cook.value := TCef3Helper.CefString(value);
   cook.domain := TCef3Helper.CefString(domain);
   cook.path := TCef3Helper.CefString(path);
-  cook.secure := ord(secure);
-  cook.httponly := ord(httponly);
+  cook.secure := Ord(secure);
+  cook.httponly := Ord(httponly);
   cook.creation := TCef3Helper.DateTimeToCefTime(creation);
   cook.last_access := TCef3Helper.DateTimeToCefTime(lastAccess);
-  cook.has_expires := ord(hasExpires);
+  cook.has_expires := Ord(hasExpires);
   if hasExpires then
-    cook.expires := TCef3Helper.DateTimeToCefTime(expires)
-  else
+    cook.expires := TCef3Helper.DateTimeToCefTime(expires) else
     FillChar(cook.expires, SizeOf(TCefTime), 0);
-  Result := PCefCookieManager(FData).set_cookie(PCefCookieManager(FData), @str,
-    @cook) <> 0;
+  Result := PCefCookieManager(FData).set_cookie(
+    PCefCookieManager(FData), @str, @cook, TCef3Helper.CefGetData(callback)) <> 0;
+end;
+
+function TCefCookieManagerRef.SetCookieProc(const url, name, value, domain,
+  path: ustring; secure, httponly, hasExpires: Boolean; const creation,
+  lastAccess, expires: TDateTime;
+  const callback: TCefSetCookieCallbackProc): Boolean;
+begin
+  Result := SetCookie(url, name, value, domain, path, secure,
+    httponly, hasExpires, creation, lastAccess, expires,
+    TCefFastSetCookieCallback.Create(callback));
 end;
 
 function TCefCookieManagerRef.SetStoragePath(const path: ustring;
-  persistSessionCookies: Boolean): Boolean;
+  persistSessionCookies: Boolean; const callback: ICefCompletionCallback): Boolean;
 var
   p: TCefString;
 begin
   p := TCef3Helper.CefString(path);
-  Result := PCefCookieManager(FData)^.set_storage_path(PCefCookieManager(FData),
-    @p, ord(persistSessionCookies)) <> 0;
+  Result := PCefCookieManager(FData)^.set_storage_path(
+    PCefCookieManager(FData), @p, Ord(persistSessionCookies), TCef3Helper.CefGetData(callback)) <> 0;
 end;
 
-procedure TCefCookieManagerRef.SetSupportedSchemes(schemes: TStrings);
+function TCefCookieManagerRef.SetStoragePathProc(const path: ustring;
+  persistSessionCookies: Boolean;
+  const callback: TCefCompletionCallbackProc): Boolean;
+begin
+  Result := SetStoragePath(path, persistSessionCookies, TCefFastCompletionCallback.Create(callback));
+end;
+
+procedure TCefCookieManagerRef.SetSupportedSchemes(schemes: TStrings; const callback: ICefCompletionCallback);
 var
   list: TCefStringList;
   i: Integer;
@@ -6001,16 +6576,23 @@ begin
   list := cef_string_list_alloc();
   try
     if (schemes <> nil) then
-      for i := 0 to schemes.count - 1 do
+      for i := 0 to schemes.Count - 1 do
       begin
         item := TCef3Helper.CefString(schemes[i]);
         cef_string_list_append(list, @item);
       end;
-    PCefCookieManager(FData).set_supported_schemes
-      (PCefCookieManager(FData), list);
+    PCefCookieManager(FData).set_supported_schemes(
+      PCefCookieManager(FData), list, TCef3Helper.CefGetData(callback));
+
   finally
     cef_string_list_free(list);
   end;
+end;
+
+procedure TCefCookieManagerRef.SetSupportedSchemesProc(schemes: TStrings;
+  const callback: TCefCompletionCallbackProc);
+begin
+  SetSupportedSchemes(schemes, TCefFastCompletionCallback.Create(callback));
 end;
 
 class function TCefCookieManagerRef.UnWrap(data: Pointer): ICefCookieManager;
@@ -6093,6 +6675,25 @@ begin
   PCefBrowserHost(FData).close_dev_tools(FData);
 end;
 
+procedure TCefBrowserHostRef.DownloadImage(const imageUrl: ustring;
+  isFavicon: Boolean; maxImageSize: Cardinal; bypassCache: Boolean;
+  const callback: ICefDownloadImageCallback);
+var
+  url: TCefString;
+begin
+  url := TCef3Helper.CefString(imageUrl);
+  PCefBrowserHost(FData).download_image(FData, @url, Ord(isFavicon), maxImageSize,
+    Ord(bypassCache), TCef3Helper.CefGetData(callback));
+end;
+
+procedure TCefBrowserHostRef.DownloadImageProc(const imageUrl: ustring;
+  isFavicon: Boolean; maxImageSize: Cardinal; bypassCache: Boolean;
+  const callback: TOnDownloadImageFinishedProc);
+begin
+  DownloadImage(imageUrl, isFavicon, maxImageSize, bypassCache,
+    TCefFastDownloadImageCallback.Create(callback));
+end;
+
 procedure TCefBrowserHostRef.DragSourceEndedAt(x, y: Integer;
   op: TCefDragOperation);
 begin
@@ -6148,6 +6749,21 @@ begin
   PCefBrowserHost(FData).print(FData);
 end;
 
+procedure TCefBrowserHostRef.PrintToPdf(const path: ustring;
+  settings: PCefPdfPrintSettings; const callback: ICefPdfPrintCallback);
+var
+  str: TCefString;
+begin
+  str := TCef3Helper.CefString(path);
+  PCefBrowserHost(FData).print_to_pdf(FData, @str, settings, TCef3Helper.CefGetData(callback));
+end;
+
+procedure TCefBrowserHostRef.PrintToPdfProc(const path: ustring;
+  settings: PCefPdfPrintSettings; const callback: TOnPdfPrintFinishedProc);
+begin
+  PrintToPdf(path, settings, TCefFastPdfPrintCallback.Create(callback));
+end;
+
 procedure TCefBrowserHostRef.ReplaceMisspelling(const word: ustring);
 var
   str: TCefString;
@@ -6157,8 +6773,8 @@ begin
 end;
 
 procedure TCefBrowserHostRef.RunFileDialog(mode: TCefFileDialogMode;
-  const title, defaultFileName: ustring; acceptTypes: TStrings;
-  const callback: ICefRunFileDialogCallback);
+  const title, defaultFilePath: ustring; acceptFilters: TStrings;
+  selectedAcceptFilter: Integer; const callback: ICefRunFileDialogCallback);
 var
   t, f: TCefString;
   list: TCefStringList;
@@ -6166,27 +6782,27 @@ var
   i: Integer;
 begin
   t := TCef3Helper.CefString(title);
-  f := TCef3Helper.CefString(defaultFileName);
+  f := TCef3Helper.CefString(defaultFilePath);
   list := cef_string_list_alloc();
   try
-    for i := 0 to acceptTypes.count - 1 do
+    for i := 0 to acceptFilters.Count - 1 do
     begin
-      item := TCef3Helper.CefString(acceptTypes[i]);
+      item := TCef3Helper.CefString(acceptFilters[i]);
       cef_string_list_append(list, @item);
     end;
     PCefBrowserHost(FData).run_file_dialog(PCefBrowserHost(FData), mode, @t, @f,
-      list, TCef3Helper.CefGetData(callback));
+      list, selectedAcceptFilter, TCef3Helper.CefGetData(callback));
   finally
     cef_string_list_free(list);
   end;
 end;
 
 procedure TCefBrowserHostRef.RunFileDialogProc(mode: TCefFileDialogMode;
-  const title, defaultFileName: ustring; acceptTypes: TStrings;
-  const callback: TCefRunFileDialogCallbackProc);
+  const title, defaultFilePath: ustring; acceptFilters: TStrings;
+  selectedAcceptFilter: Integer; const callback: TCefRunFileDialogCallbackProc);
 begin
-  RunFileDialog(mode, title, defaultFileName, acceptTypes,
-    TCefFastRunFileDialogCallback.create(callback));
+  RunFileDialog(mode, title, defaultFilePath, acceptFilters, selectedAcceptFilter,
+    TCefFastRunFileDialogCallback.Create(callback));
 end;
 
 procedure TCefBrowserHostRef.AddWordToDictionary(const word: ustring);
@@ -6247,15 +6863,19 @@ begin
     (PCefBrowserHost(FData), ord(disabled));
 end;
 
-procedure TCefBrowserHostRef.SetWindowVisibility(visible: Boolean);
+procedure TCefBrowserHostRef.SetWindowlessFrameRate(frameRate: Integer);
 begin
-  PCefBrowserHost(FData).set_window_visibility(PCefBrowserHost(FData),
-    ord(visible));
+  PCefBrowserHost(FData).set_windowless_frame_rate(PCefBrowserHost(FData), frameRate);
 end;
 
 function TCefBrowserHostRef.GetWindowHandle: TCefWindowHandle;
 begin
   Result := PCefBrowserHost(FData).get_window_handle(PCefBrowserHost(FData))
+end;
+
+function TCefBrowserHostRef.GetWindowlessFrameRate: Integer;
+begin
+  Result := PCefBrowserHost(FData).get_windowless_frame_rate(PCefBrowserHost(FData));
 end;
 
 function TCefBrowserHostRef.GetOpenerWindowHandle: TCefWindowHandle;
@@ -6309,6 +6929,16 @@ begin
     (PCefBrowserHost(FData), keyEvent);
 end;
 
+function TCefBrowserHostRef.HasDevTools: Boolean;
+begin
+  Result := PCefBrowserHost(FData).has_dev_tools(FData) <> 0;
+end;
+
+function TCefBrowserHostRef.HasView: Boolean;
+begin
+  Result := PCefBrowserHost(FData).has_view(FData) <> 0;
+end;
+
 procedure TCefBrowserHostRef.invalidate(kind: TCefPaintElementType);
 begin
   PCefBrowserHost(FData).invalidate(FData, kind);
@@ -6358,6 +6988,11 @@ end;
 procedure TCefBrowserHostRef.StopFinding(clearSelection: Boolean);
 begin
   PCefBrowserHost(FData).stop_finding(FData, ord(clearSelection));
+end;
+
+function TCefBrowserHostRef.TryCloseBrowser: Boolean;
+begin
+  Result := PCefBrowserHost(FData).try_close_browser(FData) <> 0;
 end;
 
 class function TCefBrowserHostRef.UnWrap(data: Pointer): ICefBrowserHost;
@@ -6488,6 +7123,11 @@ begin
     ^.get_mime_type(PCefDownloadItem(FData)));
 end;
 
+function TCefDownLoadItemRef.GetOriginalUrl: ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefDownloadItem(FData)^.get_original_url(PCefDownloadItem(FData)));
+end;
+
 function TCefDownLoadItemRef.GetPercentComplete: Integer;
 begin
   Result := PCefDownloadItem(FData)^.get_percent_complete
@@ -6578,6 +7218,16 @@ end;
 procedure TCefDownloadItemCallbackRef.cancel;
 begin
   PCefDownloadItemCallback(FData).cancel(PCefDownloadItemCallback(FData));
+end;
+
+procedure TCefDownloadItemCallbackRef.Pause;
+begin
+  PCefDownloadItemCallback(FData).pause(PCefDownloadItemCallback(FData));
+end;
+
+procedure TCefDownloadItemCallbackRef.Resume;
+begin
+  PCefDownloadItemCallback(FData).resume(PCefDownloadItemCallback(FData));
 end;
 
 class function TCefDownloadItemCallbackRef.UnWrap(data: Pointer)
@@ -6937,12 +7587,6 @@ begin
     .get_misspelled_word(PCefContextMenuParams(FData)));
 end;
 
-function TCefContextMenuParamsRef.GetMisspellingHash: Integer;
-begin
-  Result := PCefContextMenuParams(FData).get_misspelling_hash
-    (PCefContextMenuParams(FData));
-end;
-
 function TCefContextMenuParamsRef.GetPageUrl: ustring;
 begin
   Result := TCef3Helper.CefStringFreeAndGet(PCefContextMenuParams(FData)
@@ -6985,10 +7629,20 @@ begin
     .get_ycoord(PCefContextMenuParams(FData));
 end;
 
+function TCefContextMenuParamsRef.IsCustomMenu: Boolean;
+begin
+  Result := PCefContextMenuParams(FData).is_custom_menu(PCefContextMenuParams(FData)) <> 0;
+end;
+
 function TCefContextMenuParamsRef.IsEditable: Boolean;
 begin
   Result := PCefContextMenuParams(FData)
     .is_editable(PCefContextMenuParams(FData)) <> 0;
+end;
+
+function TCefContextMenuParamsRef.IsPepperMenu: Boolean;
+begin
+  Result := PCefContextMenuParams(FData).is_pepper_menu(PCefContextMenuParams(FData)) <> 0;
 end;
 
 function TCefContextMenuParamsRef.IsSpellCheckEnabled: Boolean;
@@ -7242,6 +7896,12 @@ begin
     index) <> 0;
 end;
 
+class function TCefMenuModelRef.New(
+  const delegate: ICefMenuModelDelegate): ICefMenuModel;
+begin
+	Result := UnWrap(cef_menu_model_create(TCef3Helper.CefGetData(delegate)));
+end;
+
 function TCefMenuModelRef.remove(commandId: Integer): Boolean;
 begin
   Result := PCefMenuModel(FData).remove(PCefMenuModel(FData), commandId) <> 0;
@@ -7432,6 +8092,16 @@ begin
   Result := PCefListValue(FData).get_type(PCefListValue(FData), index);
 end;
 
+function TCefListValueRef.GetValue(index: Integer): ICefValue;
+begin
+  Result := TCefValueRef.UnWrap(PCefListValue(FData).get_value(PCefListValue(FData), index));
+end;
+
+function TCefListValueRef.IsEqual(const that: ICefListValue): Boolean;
+begin
+  Result := PCefListValue(FData).is_equal(PCefListValue(FData), TCef3Helper.CefGetData(that)) <> 0;
+end;
+
 function TCefListValueRef.IsOwned: Boolean;
 begin
   Result := PCefListValue(FData).is_owned(PCefListValue(FData)) <> 0;
@@ -7440,6 +8110,11 @@ end;
 function TCefListValueRef.IsReadOnly: Boolean;
 begin
   Result := PCefListValue(FData).is_read_only(PCefListValue(FData)) <> 0;
+end;
+
+function TCefListValueRef.IsSame(const that: ICefListValue): Boolean;
+begin
+  Result := PCefListValue(FData).is_same(PCefListValue(FData), TCef3Helper.CefGetData(that)) <> 0;
 end;
 
 function TCefListValueRef.IsValid: Boolean;
@@ -7511,6 +8186,12 @@ begin
     index, @v) <> 0;
 end;
 
+function TCefListValueRef.SetValue(index: Integer;
+  const value: ICefValue): Boolean;
+begin
+  Result := PCefListValue(FData).set_value(PCefListValue(FData), index, TCef3Helper.CefGetData(value)) <> 0;
+end;
+
 class function TCefListValueRef.UnWrap(data: Pointer): ICefListValue;
 begin
   if data <> nil then
@@ -7538,9 +8219,19 @@ begin
   Result := PCefBinaryValue(FData).get_size(PCefBinaryValue(FData));
 end;
 
+function TCefBinaryValueRef.IsEqual(const that: ICefBinaryValue): Boolean;
+begin
+  Result := PCefBinaryValue(FData).is_equal(PCefBinaryValue(FData), TCef3Helper.CefGetData(that)) <> 0;
+end;
+
 function TCefBinaryValueRef.IsOwned: Boolean;
 begin
   Result := PCefBinaryValue(FData).is_owned(PCefBinaryValue(FData)) <> 0;
+end;
+
+function TCefBinaryValueRef.IsSame(const that: ICefBinaryValue): Boolean;
+begin
+  Result := PCefBinaryValue(FData).is_same(PCefBinaryValue(FData), TCef3Helper.CefGetData(that)) <> 0;
 end;
 
 function TCefBinaryValueRef.IsValid: Boolean;
@@ -7674,6 +8365,14 @@ begin
   Result := PCefDictionaryValue(FData).get_type(PCefDictionaryValue(FData), @k);
 end;
 
+function TCefDictionaryValueRef.GetValue(const key: ustring): ICefValue;
+var
+  k: TCefString;
+begin
+  k := TCef3Helper.CefString(key);
+  Result := TCefValueRef.UnWrap(PCefDictionaryValue(FData).get_value(PCefDictionaryValue(FData), @k));
+end;
+
 function TCefDictionaryValueRef.HasKey(const key: ustring): Boolean;
 var
   k: TCefString;
@@ -7681,6 +8380,12 @@ begin
   k := TCef3Helper.CefString(key);
   Result := PCefDictionaryValue(FData)
     .has_key(PCefDictionaryValue(FData), @k) <> 0;
+end;
+
+function TCefDictionaryValueRef.IsEqual(
+  const that: ICefDictionaryValue): Boolean;
+begin
+  Result := PCefDictionaryValue(FData).is_equal(PCefDictionaryValue(FData), TCef3Helper.CefGetData(that)) <> 0;
 end;
 
 function TCefDictionaryValueRef.IsOwned: Boolean;
@@ -7693,6 +8398,12 @@ function TCefDictionaryValueRef.IsReadOnly: Boolean;
 begin
   Result := PCefDictionaryValue(FData)
     .is_read_only(PCefDictionaryValue(FData)) <> 0;
+end;
+
+function TCefDictionaryValueRef.IsSame(
+  const that: ICefDictionaryValue): Boolean;
+begin
+  Result := PCefDictionaryValue(FData).is_same(PCefDictionaryValue(FData), TCef3Helper.CefGetData(that)) <> 0;
 end;
 
 function TCefDictionaryValueRef.IsValid: Boolean;
@@ -7793,6 +8504,15 @@ begin
   v := TCef3Helper.CefString(value);
   Result := PCefDictionaryValue(FData).set_string(PCefDictionaryValue(FData),
     @k, @v) <> 0;
+end;
+
+function TCefDictionaryValueRef.SetValue(const key: ustring;
+  const value: ICefValue): Boolean;
+var
+  k: TCefString;
+begin
+  k := TCef3Helper.CefString(key);
+  Result := PCefDictionaryValue(FData).set_value(PCefDictionaryValue(FData), @k, TCef3Helper.CefGetData(value)) <> 0;
 end;
 
 class function TCefDictionaryValueRef.UnWrap(data: Pointer)
@@ -8073,11 +8793,10 @@ begin
   PCefUrlRequest(FData).cancel(PCefUrlRequest(FData));
 end;
 
-class function TCefUrlRequestRef.New(const request: ICefRequest;
-  const client: ICefUrlrequestClient): ICefUrlRequest;
+class function TCefUrlRequestRef.New(const request: ICefRequest; const client: ICefUrlRequestClient;
+  const requestContext: ICefRequestContext): ICefUrlRequest;
 begin
-  Result := UnWrap(cef_urlrequest_create(TCef3Helper.CefGetData(request),
-    TCef3Helper.CefGetData(client)));
+  Result := UnWrap(cef_urlrequest_create(TCef3Helper.CefGetData(request), TCef3Helper.CefGetData(client), TCef3Helper.CefGetData(requestContext)));
 end;
 
 function TCefUrlRequestRef.GetRequest: ICefRequest;
@@ -8139,23 +8858,22 @@ begin
   Result := FProc(info, count, total);
 end;
 
-{ TCefQuotaCallbackRef }
+{ TCefRequestCallbackRef }
 
-procedure TCefQuotaCallbackRef.cancel;
+procedure TCefRequestCallbackRef.Cancel;
 begin
-  PCefQuotaCallback(FData).cancel(FData);
+  PCefRequestCallback(FData).cancel(FData);
 end;
 
-procedure TCefQuotaCallbackRef.cont(allow: Boolean);
+procedure TCefRequestCallbackRef.Cont(allow: Boolean);
 begin
-  PCefQuotaCallback(FData).cont(FData, ord(allow));
+  PCefRequestCallback(FData).cont(FData, Ord(allow));
 end;
 
-class function TCefQuotaCallbackRef.UnWrap(data: Pointer): ICefQuotaCallback;
+class function TCefRequestCallbackRef.UnWrap(data: Pointer): ICefRequestCallback;
 begin
   if data <> nil then
-    Result := create(data) as ICefQuotaCallback
-  else
+    Result := Create(data) as ICefRequestCallback else
     Result := nil;
 end;
 
@@ -8275,25 +8993,25 @@ end;
 
 { TCefRunFileDialogCallbackOwn }
 
-procedure TCefRunFileDialogCallbackOwn.cont(const browserHost: ICefBrowserHost;
-  filePaths: TStrings);
-begin
-
-end;
-
-constructor TCefRunFileDialogCallbackOwn.create;
+constructor TCefRunFileDialogCallbackOwn.Create;
 begin
   inherited CreateData(SizeOf(TCefRunFileDialogCallback));
   with PCefRunFileDialogCallback(FData)^ do
-    cont := cef_run_file_dialog_callback_cont;
+    on_file_dialog_dismissed := cef_run_file_dialog_callback_on_file_dialog_dismissed;
+end;
+
+procedure TCefRunFileDialogCallbackOwn.OnFileDialogDismissed(
+  selectedAcceptFilter: Integer; filePaths: TStrings);
+begin
+
 end;
 
 { TCefFastRunFileDialogCallback }
 
-procedure TCefFastRunFileDialogCallback.cont(const browserHost: ICefBrowserHost;
-  filePaths: TStrings);
+procedure TCefFastRunFileDialogCallback.OnFileDialogDismissed(
+  selectedAcceptFilter: Integer; filePaths: TStrings);
 begin
-  FCallback(browserHost, filePaths);
+  FCallback(selectedAcceptFilter, filePaths);
 end;
 
 constructor TCefFastRunFileDialogCallback.create
@@ -8420,7 +9138,7 @@ begin
   PCefFileDialogCallback(FData).cancel(FData);
 end;
 
-procedure TCefFileDialogCallbackRef.cont(filePaths: TStrings);
+procedure TCefFileDialogCallbackRef.Cont(selectedAcceptFilter: Integer; filePaths: TStrings);
 var
   list: TCefStringList;
   i: Integer;
@@ -8428,12 +9146,12 @@ var
 begin
   list := cef_string_list_alloc;
   try
-    for i := 0 to filePaths.count - 1 do
+    for i := 0 to filePaths.Count - 1 do
     begin
       str := TCef3Helper.CefString(filePaths[i]);
       cef_string_list_append(list, @str);
     end;
-    PCefFileDialogCallback(FData).cont(FData, list);
+    PCefFileDialogCallback(FData).cont(FData, selectedAcceptFilter, list);
   finally
     cef_string_list_free(list);
   end;
@@ -8458,8 +9176,9 @@ begin
 end;
 
 function TCefDialogHandlerOwn.OnFileDialog(const browser: ICefBrowser;
-  mode: TCefFileDialogMode; const title, defaultFileName: ustring;
-  acceptTypes: TStrings; const callback: ICefFileDialogCallback): Boolean;
+  mode: TCefFileDialogMode; const title, defaultFilePath: ustring;
+  acceptFilters: TStrings; selectedAcceptFilter: Integer;
+  const callback: ICefFileDialogCallback): Boolean;
 begin
   Result := False;
 end;
@@ -8535,8 +9254,8 @@ begin
 
 end;
 
-procedure TCefRenderHandlerOwn.OnScrollOffsetChanged(const browser
-  : ICefBrowser);
+procedure TCefRenderHandlerOwn.OnScrollOffsetChanged(
+  const browser: ICefBrowser; x, y: Double);
 begin
 
 end;
@@ -8580,22 +9299,6 @@ end;
 procedure TCefFastCompletionCallback.OnComplete;
 begin
   FProc();
-end;
-
-{ TCefAllowCertificateErrorCallbackRef }
-
-procedure TCefAllowCertificateErrorCallbackRef.cont(allow: Boolean);
-begin
-  PCefAllowCertificateErrorCallback(FData).cont(FData, ord(allow));
-end;
-
-class function TCefAllowCertificateErrorCallbackRef.UnWrap(data: Pointer)
-  : ICefAllowCertificateErrorCallback;
-begin
-  if data <> nil then
-    Result := create(data) as ICefAllowCertificateErrorCallback
-  else
-    Result := nil;
 end;
 
 { TCefDragDataRef }
@@ -8771,11 +9474,16 @@ end;
 
 { TCefDragHandlerOwn }
 
-constructor TCefDragHandlerOwn.create;
+constructor TCefDragHandlerOwn.Create;
 begin
   CreateData(SizeOf(TCefDragHandler), False);
   with PCefDragHandler(FData)^ do
+  begin
     on_drag_enter := cef_drag_handler_on_drag_enter;
+{$ifdef Win32}
+    on_draggable_regions_changed := cef_drag_handler_on_draggable_regions_changed;
+{$endif}
+  end;
 end;
 
 function TCefDragHandlerOwn.OnDragEnter(const browser: ICefBrowser;
@@ -8784,16 +9492,89 @@ begin
   Result := False;
 end;
 
+procedure TCefDragHandlerOwn.OnDraggableRegionsChanged(
+  const browser: ICefBrowser; regionsCount: NativeUInt;
+  regions: PCefDraggableRegionArray);
+begin
+
+end;
+
 { TCefRequestContextRef }
+
+function TCefRequestContextRef.CanSetPreference(const name: ustring): Boolean;
+var
+  n: TCefString;
+begin
+  n := TCef3Helper.CefString(name);
+  Result := PCefRequestContext(FData).can_set_preference(FData, @n) <> 0;
+end;
+
+procedure TCefRequestContextRef.ClearCertificateExceptions(
+  const callback: ICefCompletionCallback);
+begin
+  PCefRequestContext(FData).clear_certificate_exceptions(FData, TCef3Helper.CefGetData(callback));
+end;
+
+function TCefRequestContextRef.ClearSchemeHandlerFactories: Boolean;
+begin
+  Result := PCefRequestContext(FData).clear_scheme_handler_factories(FData) <> 0;
+end;
+
+procedure TCefRequestContextRef.CloseAllConnections(
+  const callback: ICefCompletionCallback);
+begin
+  PCefRequestContext(FData).close_all_connections(FData, TCef3Helper.CefGetData(callback));
+end;
+
+function TCefRequestContextRef.GetAllPreferences(
+  includeDefaults: Boolean): ICefDictionaryValue;
+begin
+  Result := TCefDictionaryValueRef.UnWrap(PCefRequestContext(FData).get_all_preferences(FData, Ord(includeDefaults)));
+end;
+
+function TCefRequestContextRef.GetCachePath: ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefRequestContext(FData).get_cache_path(FData));
+end;
+
+function TCefRequestContextRef.GetDefaultCookieManager(
+  const callback: ICefCompletionCallback): ICefCookieManager;
+begin
+  Result := TCefCookieManagerRef.UnWrap(
+    PCefRequestContext(FData).get_default_cookie_manager(
+      FData, TCef3Helper.CefGetData(callback)));
+end;
+
+function TCefRequestContextRef.GetDefaultCookieManagerProc(
+  const callback: TCefCompletionCallbackProc): ICefCookieManager;
+begin
+  Result := GetDefaultCookieManager(TCefFastCompletionCallback.Create(callback));
+end;
 
 function TCefRequestContextRef.GetHandler: ICefRequestContextHandler;
 begin
+  Result := TCefRequestContextHandlerRef.UnWrap(PCefRequestContext(FData).get_handler(FData));
+end;
 
+function TCefRequestContextRef.GetPreference(const name: ustring): ICefValue;
+var
+  n: TCefString;
+begin
+  n := TCef3Helper.CefString(name);
+  Result :=  TCefValueRef.UnWrap(PCefRequestContext(FData).get_preference(FData, @n));
 end;
 
 class function TCefRequestContextRef.Global: ICefRequestContext;
 begin
   Result := UnWrap(cef_request_context_get_global_context());
+end;
+
+function TCefRequestContextRef.HasPreference(const name: ustring): Boolean;
+var
+  n: TCefString;
+begin
+  n := TCef3Helper.CefString(name);
+  Result := PCefRequestContext(FData).has_preference(FData, @n) <> 0;
 end;
 
 function TCefRequestContextRef.IsGlobal: Boolean;
@@ -8805,6 +9586,83 @@ function TCefRequestContextRef.IsSame(const other: ICefRequestContext): Boolean;
 begin
   Result := PCefRequestContext(FData).is_same(FData,
     TCef3Helper.CefGetData(other)) <> 0;
+end;
+
+function TCefRequestContextRef.IsSharingWith(
+  const other: ICefRequestContext): Boolean;
+begin
+  Result:= PCefRequestContext(FData).is_sharing_with(FData, TCef3Helper.CefGetData(other)) <> 0;
+end;
+
+class function TCefRequestContextRef.New(
+  const settings: PCefRequestContextSettings;
+  const handler: ICefRequestContextHandler): ICefRequestContext;
+begin
+  Result := UnWrap(cef_request_context_create_context(settings, TCef3Helper.CefGetData(handler)));
+end;
+
+procedure TCefRequestContextRef.PurgePluginListCache(reloadPages: Boolean);
+begin
+  PCefRequestContext(FData).purge_plugin_list_cache(FData, Ord(reloadPages));
+end;
+
+function TCefRequestContextRef.RegisterSchemeHandlerFactory(const schemeName,
+  domainName: ustring; const factory: ICefSchemeHandlerFactory): Boolean;
+var
+  s, d: TCefString;
+begin
+  s := TCef3Helper.CefString(schemeName);
+  d := TCef3Helper.CefString(domainName);
+  Result := PCefRequestContext(FData).register_scheme_handler_factory(FData, @s, @d, TCef3Helper.CefGetData(factory)) <> 0;
+end;
+
+procedure TCefRequestContextRef.ResolveHost(const origin: ustring;
+  const callback: ICefResolveCallback);
+var
+  o: TCefString;
+begin
+  o := TCef3Helper.CefString(origin);
+  PCefRequestContext(FData).resolve_host(FData, @o, TCef3Helper.CefGetData(callback));
+end;
+
+function TCefRequestContextRef.ResolveHostCached(const origin: ustring;
+  resolvedIps: TStrings): TCefErrorCode;
+var
+  ips: TCefStringList;
+  o, str: TCefString;
+  i: Integer;
+begin
+  ips := cef_string_list_alloc;
+  try
+    o := TCef3Helper.CefString(origin);
+    Result := PCefRequestContext(FData).resolve_host_cached(FData, @o, ips);
+    if Assigned(ips) then
+      for i := 0 to cef_string_list_size(ips) - 1 do
+      begin
+        FillChar(str, SizeOf(str), 0);
+        cef_string_list_value(ips, i, @str);
+        resolvedIps.Add(TCef3Helper.CefStringClearAndGet(str));
+      end;
+  finally
+    cef_string_list_free(ips);
+  end;
+end;
+
+function TCefRequestContextRef.SetPreference(const name: ustring;
+  const value: ICefValue; out error: ustring): Boolean;
+var
+  n, e: TCefString;
+begin
+  n := TCef3Helper.CefString(name);
+  FillChar(e, SizeOf(e), 0);
+  Result := PCefRequestContext(FData).set_preference(FData, @n, TCef3Helper.CefGetData(value), @e) <> 0;
+  error := TCef3Helper.CefString(@e);
+end;
+
+class function TCefRequestContextRef.Shared(const other: ICefRequestContext;
+  const handler: ICefRequestContextHandler): ICefRequestContext;
+begin
+  Result := UnWrap(cef_create_context_shared(TCef3Helper.CefGetData(other), TCef3Helper.CefGetData(handler)));
 end;
 
 class function TCefRequestContextRef.UnWrap(data: Pointer): ICefRequestContext;
@@ -8823,6 +9681,19 @@ begin
     .get_cookie_manager(FData));
 end;
 
+function TCefRequestContextHandlerRef.OnBeforePluginLoad(const mimeType,
+  pluginUrl, topOriginUrl: ustring; const pluginInfo: ICefWebPluginInfo;
+  pluginPolicy: PCefPluginPolicy): Boolean;
+var
+  mt, pu, ou: TCefString;
+begin
+  mt := TCef3Helper.CefString(mimeType);
+  pu:= TCef3Helper.CefString(pluginUrl);
+  ou := TCef3Helper.CefString(topOriginUrl);
+  Result := PCefRequestContextHandler(FData).on_before_plugin_load(
+    FData, @mt, @pu, @ou, TCef3Helper.CefGetData(pluginInfo), pluginPolicy) <> 0;
+end;
+
 class function TCefRequestContextHandlerRef.UnWrap(data: Pointer)
   : ICefRequestContextHandler;
 begin
@@ -8838,12 +9709,22 @@ constructor TCefRequestContextHandlerOwn.create;
 begin
   CreateData(SizeOf(TCefRequestContextHandler), False);
   with PCefRequestContextHandler(FData)^ do
+  begin
     get_cookie_manager := cef_request_context_handler_get_cookie_manager;
+    on_before_plugin_load := cef_request_context_handler_on_before_plugin_load;
+  end;
 end;
 
 function TCefRequestContextHandlerOwn.GetCookieManager: ICefCookieManager;
 begin
   Result := nil;
+end;
+
+function TCefRequestContextHandlerOwn.OnBeforePluginLoad(const mimeType,
+  pluginUrl, topOriginUrl: ustring; const pluginInfo: ICefWebPluginInfo;
+  pluginPolicy: PCefPluginPolicy): Boolean;
+begin
+  Result := False;
 end;
 
 { TCefFastRequestContextHandler }
@@ -8893,7 +9774,7 @@ begin
   Result := PCefPrintSettings(FData).get_duplex_mode(FData);
 end;
 
-procedure TCefPrintSettingsRef.GetPageRanges(out ranges: TCefPageRangeArray);
+procedure TCefPrintSettingsRef.GetPageRanges(out ranges: TCefRangeArray);
 var
   len: NativeUInt;
 begin
@@ -8971,7 +9852,7 @@ begin
   PCefPrintSettings(FData).set_orientation(FData, ord(landscape));
 end;
 
-procedure TCefPrintSettingsRef.SetPageRanges(const ranges: TCefPageRangeArray);
+procedure TCefPrintSettingsRef.SetPageRanges(const ranges: TCefRangeArray);
 var
   len: NativeUInt;
 begin
@@ -9142,12 +10023,6 @@ begin
   Result := PCefNavigationEntry(FData).has_post_data(FData) <> 0;
 end;
 
-function TCefNavigationEntryRef.GetFrameName: ustring;
-begin
-  Result := TCef3Helper.CefStringFreeAndGet(PCefNavigationEntry(FData)
-    .get_frame_name(FData));
-end;
-
 function TCefNavigationEntryRef.GetCompletionTime: TDateTime;
 begin
   Result := TCef3Helper.CefTimeToDateTime(PCefNavigationEntry(FData)
@@ -9196,6 +10071,480 @@ function TCefFastNavigationEntryVisitor.visit(const entry: ICefNavigationEntry;
   current: Boolean; index, total: Integer): Boolean;
 begin
   Result := FVisitor(entry, current, index, total);
+end;
+
+{ TCefFindHandlerOwn }
+
+constructor TCefFindHandlerOwn.Create;
+begin
+  CreateData(SizeOf(TCefFindHandler), False);
+  with PCefFindHandler(FData)^ do
+    on_find_result := cef_find_handler_on_find_result;
+end;
+
+{ TCefSetCookieCallbackOwn }
+
+constructor TCefSetCookieCallbackOwn.Create;
+begin
+  inherited CreateData(SizeOf(TCefSetCookieCallback));
+  with PCefSetCookieCallback(FData)^ do
+    on_complete := cef_set_cookie_callback_on_complete;
+end;
+
+{ TCefFastSetCookieCallback }
+
+constructor TCefFastSetCookieCallback.Create(
+  const callback: TCefSetCookieCallbackProc);
+begin
+  inherited Create;
+  FCallback := callback;
+end;
+
+procedure TCefFastSetCookieCallback.OnComplete(success: Boolean);
+begin
+  FCallback(success);
+end;
+
+{ TCefDeleteCookiesCallbackOwn }
+
+constructor TCefDeleteCookiesCallbackOwn.Create;
+begin
+  inherited CreateData(SizeOf(TCefDeleteCookiesCallback));
+  with PCefDeleteCookiesCallback(FData)^ do
+    on_complete := cef_delete_cookie_callback_on_complete;
+end;
+
+{ TCefFastDeleteCookiesCallback }
+
+constructor TCefFastDeleteCookiesCallback.Create(
+  const callback: TCefDeleteCookiesCallbackProc);
+begin
+  inherited Create;
+  FCallback := callback;
+end;
+
+procedure TCefFastDeleteCookiesCallback.OnComplete(numDeleted: Integer);
+begin
+  FCallback(numDeleted);
+end;
+
+{ TCefValueRef }
+
+function TCefValueRef.Copy: ICefValue;
+begin
+  Result := UnWrap(PCefValue(FData).copy(FData));
+end;
+
+function TCefValueRef.GetBinary: ICefBinaryValue;
+begin
+  Result := TCefBinaryValueRef.UnWrap(PCefValue(FData).get_binary(FData));
+end;
+
+function TCefValueRef.GetBool: Boolean;
+begin
+  Result := PCefValue(FData).get_bool(FData) <> 0;
+end;
+
+function TCefValueRef.GetDictionary: ICefDictionaryValue;
+begin
+  Result := TCefDictionaryValueRef.UnWrap(PCefValue(FData).get_dictionary(FData));
+end;
+
+function TCefValueRef.GetDouble: Double;
+begin
+  Result := PCefValue(FData).get_double(FData);
+end;
+
+function TCefValueRef.GetInt: Integer;
+begin
+  Result := PCefValue(FData).get_int(FData);
+end;
+
+function TCefValueRef.GetList: ICefListValue;
+begin
+  Result := TCefListValueRef.UnWrap(PCefValue(FData).get_list(FData));
+end;
+
+function TCefValueRef.GetString: ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefValue(FData).get_string(FData));
+end;
+
+function TCefValueRef.GetType: TCefValueType;
+begin
+  Result := PCefValue(FData).get_type(FData);
+end;
+
+function TCefValueRef.IsEqual(const that: ICefValue): Boolean;
+begin
+  Result := PCefValue(FData).is_equal(FData, TCef3Helper.CefGetData(that)) <> 0;
+end;
+
+function TCefValueRef.IsOwned: Boolean;
+begin
+  Result := PCefValue(FData).is_owned(FData) <> 0;
+end;
+
+function TCefValueRef.IsReadOnly: Boolean;
+begin
+  Result := PCefValue(FData).is_read_only(FData) <> 0;
+end;
+
+function TCefValueRef.IsSame(const that: ICefValue): Boolean;
+begin
+  Result := PCefValue(FData).is_same(FData, TCef3Helper.CefGetData(that)) <> 0;
+end;
+
+function TCefValueRef.IsValid: Boolean;
+begin
+  Result := PCefValue(FData).is_valid(FData) <> 0;
+end;
+
+class function TCefValueRef.New: ICefValue;
+begin
+  Result := UnWrap(cef_value_create());
+end;
+
+function TCefValueRef.SetBinary(const value: ICefBinaryValue): Boolean;
+begin
+  Result := PCefValue(FData).set_binary(FData, TCef3Helper.CefGetData(value)) <> 0;
+end;
+
+function TCefValueRef.SetBool(value: Integer): Boolean;
+begin
+  Result := PCefValue(FData).set_bool(FData, value) <> 0;
+end;
+
+function TCefValueRef.SetDictionary(const value: ICefDictionaryValue): Boolean;
+begin
+  Result := PCefValue(FData).set_dictionary(FData, TCef3Helper.CefGetData(value)) <> 0;
+end;
+
+function TCefValueRef.SetDouble(value: Double): Boolean;
+begin
+  Result := PCefValue(FData).set_double(FData, value) <> 0;
+end;
+
+function TCefValueRef.SetInt(value: Integer): Boolean;
+begin
+  Result := PCefValue(FData).set_int(FData, value) <> 0;
+end;
+
+function TCefValueRef.SetList(const value: ICefListValue): Boolean;
+begin
+  Result := PCefValue(FData).set_list(FData, TCef3Helper.CefGetData(value)) <> 0;
+end;
+
+function TCefValueRef.SetNull: Boolean;
+begin
+  Result := PCefValue(FData).set_null(FData) <> 0;
+end;
+
+function TCefValueRef.SetString(const value: ustring): Boolean;
+var
+ s: TCefString;
+begin
+  s := TCef3Helper.CefString(value);
+  Result := PCefValue(FData).set_string(FData, @s) <> 0;
+end;
+
+class function TCefValueRef.UnWrap(data: Pointer): ICefValue;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefValue else
+    Result := nil;
+end;
+
+{ TCefSslCertPrincipalRef }
+
+function TCefSslCertPrincipalRef.GetCommonName: ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefSslCertPrincipal(FData).get_common_name(FData));
+end;
+
+function TCefSslCertPrincipalRef.GetCountryName: ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefSslCertPrincipal(FData).get_country_name(FData));
+end;
+
+function TCefSslCertPrincipalRef.GetDisplayName: ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefSslCertPrincipal(FData).get_display_name(FData));
+end;
+
+procedure TCefSslCertPrincipalRef.GetDomainComponents(components: TStrings);
+var
+  list: TCefStringList;
+  i: Integer;
+  str: TCefString;
+begin
+  list := cef_string_list_alloc;
+  try
+    PCefSslCertPrincipal(FData).get_domain_components(FData, list);
+    for i := 0 to cef_string_list_size(list) - 1 do
+    begin
+      FillChar(str, SizeOf(str), 0);
+      cef_string_list_value(list, i, @str);
+      components.Add(TCef3Helper.CefStringClearAndGet(str));
+    end;
+  finally
+    cef_string_list_free(list);
+  end;
+end;
+
+function TCefSslCertPrincipalRef.GetLocalityName: ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefSslCertPrincipal(FData).get_locality_name(FData));
+end;
+
+procedure TCefSslCertPrincipalRef.GetOrganizationNames(names: TStrings);
+var
+  list: TCefStringList;
+  i: Integer;
+  str: TCefString;
+begin
+  list := cef_string_list_alloc;
+  try
+    PCefSslCertPrincipal(FData).get_organization_names(FData, list);
+    for i := 0 to cef_string_list_size(list) - 1 do
+    begin
+      FillChar(str, SizeOf(str), 0);
+      cef_string_list_value(list, i, @str);
+      names.Add(TCef3Helper.CefStringClearAndGet(str));
+    end;
+  finally
+    cef_string_list_free(list);
+  end;
+end;
+
+procedure TCefSslCertPrincipalRef.GetOrganizationUnitNames(names: TStrings);
+var
+  list: TCefStringList;
+  i: Integer;
+  str: TCefString;
+begin
+  list := cef_string_list_alloc;
+  try
+    PCefSslCertPrincipal(FData).get_organization_unit_names(FData, list);
+    for i := 0 to cef_string_list_size(list) - 1 do
+    begin
+      FillChar(str, SizeOf(str), 0);
+      cef_string_list_value(list, i, @str);
+      names.Add(TCef3Helper.CefStringClearAndGet(str));
+    end;
+  finally
+    cef_string_list_free(list);
+  end;
+end;
+
+function TCefSslCertPrincipalRef.GetStateOrProvinceName: ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefSslCertPrincipal(FData).get_state_or_province_name(FData));
+end;
+
+procedure TCefSslCertPrincipalRef.GetStreetAddresses(addresses: TStrings);
+var
+  list: TCefStringList;
+  i: Integer;
+  str: TCefString;
+begin
+  list := cef_string_list_alloc;
+  try
+    PCefSslCertPrincipal(FData).get_street_addresses(FData, list);
+    for i := 0 to cef_string_list_size(list) - 1 do
+    begin
+      FillChar(str, SizeOf(str), 0);
+      cef_string_list_value(list, i, @str);
+      addresses.Add(TCef3Helper.CefStringClearAndGet(str));
+    end;
+  finally
+    cef_string_list_free(list);
+  end;
+end;
+
+class function TCefSslCertPrincipalRef.UnWrap(
+  data: Pointer): ICefSslCertPrincipal;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefSslCertPrincipal else
+    Result := nil;
+end;
+
+{ TCefSslInfoRef }
+
+function TCefSslInfoRef.GetCertStatus: TCefCertStatus;
+begin
+  Result := PCefSslInfo(FData).get_cert_status(FData);
+end;
+
+function TCefSslInfoRef.GetDerEncoded: ICefBinaryValue;
+begin
+  Result := TCefBinaryValueRef.UnWrap(PCefSslInfo(FData).get_derencoded(FData));
+end;
+
+function TCefSslInfoRef.GetDEREncodedIssuerChain(
+  chainCount: NativeUInt): IInterfaceList;
+var
+  arr: PPCefBinaryValue;
+  i: Integer;
+begin
+  Result := TInterfaceList.Create;
+  GetMem(arr, chainCount * SizeOf(Pointer));
+  try
+    PCefSslInfo(FData).get_derencoded_issuer_chain(FData, chainCount, arr);
+    for i := 0 to chainCount - 1 do
+       Result.Add(TCefBinaryValueRef.UnWrap(PPointerArray(arr)[i]));
+  finally
+    FreeMem(arr);
+  end;
+end;
+
+function TCefSslInfoRef.GetIssuer: ICefSslCertPrincipal;
+begin
+  Result := TCefSslCertPrincipalRef.UnWrap(PCefSslInfo(FData).get_issuer(FData));
+end;
+
+function TCefSslInfoRef.GetIssuerChainSize: NativeUInt;
+begin
+  Result := PCefSslInfo(FData).get_issuer_chain_size(FData);
+end;
+
+function TCefSslInfoRef.GetPEMEencodedIssuerChain(
+  chainCount: NativeUInt): IInterfaceList;
+var
+  arr: PPCefBinaryValue;
+  i: Integer;
+begin
+  Result := TInterfaceList.Create;
+  GetMem(arr, chainCount * SizeOf(Pointer));
+  try
+    PCefSslInfo(FData).get_pemencoded_issuer_chain(FData, chainCount, arr);
+    for i := 0 to chainCount - 1 do
+       Result.Add(TCefBinaryValueRef.UnWrap(PPointerArray(arr)[i]));
+  finally
+    FreeMem(arr);
+  end;
+end;
+
+function TCefSslInfoRef.GetPemEncoded: ICefBinaryValue;
+begin
+  Result := TCefBinaryValueRef.UnWrap(PCefSslInfo(FData).get_pemencoded(FData));
+end;
+
+function TCefSslInfoRef.GetSerialNumber: ICefBinaryValue;
+begin
+  Result := TCefBinaryValueRef.UnWrap(PCefSslInfo(FData).get_serial_number(FData));
+end;
+
+function TCefSslInfoRef.GetSubject: ICefSslCertPrincipal;
+begin
+  Result := TCefSslCertPrincipalRef.UnWrap(PCefSslInfo(FData).get_subject(FData));
+end;
+
+function TCefSslInfoRef.GetValidExpiry: TCefTime;
+begin
+  Result := PCefSslInfo(FData).get_valid_expiry(FData);
+end;
+
+function TCefSslInfoRef.GetValidStart: TCefTime;
+begin
+  Result := PCefSslInfo(FData).get_valid_start(FData);
+end;
+
+function TCefSslInfoRef.IsCertStatusError: Boolean;
+begin
+  Result := PCefSslInfo(FData).is_cert_status_error(FData) <> 0;
+end;
+
+function TCefSslInfoRef.IsCertStatusMinorError: Boolean;
+begin
+  Result := PCefSslInfo(FData).is_cert_status_minor_error(FData) <> 0;
+end;
+
+class function TCefSslInfoRef.UnWrap(data: Pointer): ICefSslInfo;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefSslInfo else
+    Result := nil;
+end;
+
+{ TCefPdfPrintCallbackOwn }
+
+constructor TCefPdfPrintCallbackOwn.Create;
+begin
+  CreateData(SizeOf(TCefPdfPrintCallback), False);
+  with PCefPdfPrintCallback(FData)^ do
+    on_pdf_print_finished := cef_pdf_print_callback_on_pdf_print_finished;
+end;
+
+{ TCefFastPdfPrintCallback }
+
+constructor TCefFastPdfPrintCallback.Create(
+  const proc: TOnPdfPrintFinishedProc);
+begin
+  FProc := proc;
+  inherited Create;
+end;
+
+procedure TCefFastPdfPrintCallback.OnPdfPrintFinished(const path: ustring;
+  ok: Boolean);
+begin
+  FProc(path, ok);
+end;
+
+{ TCefRunContextMenuCallbackRef }
+
+procedure TCefRunContextMenuCallbackRef.Cancel;
+begin
+  PCefRunContextMenuCallback(FData).cancel(FData);
+end;
+
+procedure TCefRunContextMenuCallbackRef.Cont(commandId: Integer;
+  eventFlags: TCefEventFlags);
+begin
+  PCefRunContextMenuCallback(FData).cont(FData, commandId, eventFlags);
+end;
+
+class function TCefRunContextMenuCallbackRef.UnWrap(
+  data: Pointer): ICefRunContextMenuCallback;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefRunContextMenuCallback else
+    Result := nil;
+end;
+
+{ TCefResourceBundleRef }
+
+function TCefResourceBundleRef.GetDataResource(resourceId: Integer;
+  out data: Pointer; out dataSize: NativeUInt): Boolean;
+begin
+  Result := PCefResourceBundle(FData).get_data_resource(FData, resourceId,
+    data, dataSize) <> 0;
+end;
+
+function TCefResourceBundleRef.GetDataResourceForScale(resourceId: Integer;
+  scaleFactor: TCefScaleFactor; out data: Pointer;
+  out dataSize: NativeUInt): Boolean;
+begin
+  Result := PCefResourceBundle(FData).get_data_resource_for_scale(FData,
+    resourceId, scaleFactor, data, dataSize) <> 0;
+end;
+
+function TCefResourceBundleRef.GetLocalizedString(stringId: Integer): ustring;
+begin
+  Result := TCef3Helper.CefStringFreeAndGet(PCefResourceBundle(FData).get_localized_string(FData, stringId));
+end;
+
+class function TCefResourceBundleRef.Global: ICefResourceBundle;
+begin
+  Result := UnWrap(cef_resource_bundle_get_global());
+end;
+
+class function TCefResourceBundleRef.UnWrap(data: Pointer): ICefResourceBundle;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefResourceBundle else
+    Result := nil;
 end;
 
 { TCefRTTIExtension }
@@ -10068,5 +11417,165 @@ begin
     exit(False);
 end;
 {$ENDIF}
+
+{ TCefResolveCallbackOwn }
+
+constructor TCefResolveCallbackOwn.Create;
+begin
+  CreateData(SizeOf(TCefResolveCallback), False);
+  with PCefResolveCallback(FData)^ do
+    on_resolve_completed := cef_resolve_callback_on_resolve_completed;
+end;
+
+{ TCefResponseFilterOwn }
+
+constructor TCefResponseFilterOwn.Create;
+begin
+  CreateData(SizeOf(TCefResponseFilter), False);
+  with PCefResponseFilter(FData)^ do
+  begin
+    init_filter := cef_response_filter_init_filter;
+    filter := cef_response_filter_filter;
+  end;
+end;
+
+{ TCefImageRef }
+
+function TCefImageRef.AddBitmap(scaleFactor: Single; pixelWidth,
+  pixelHeight: Integer; colorType: TCefColorType; alphaType: TCefAlphaType;
+  pixelData: Pointer; pixelDataSize: NativeUInt): Boolean;
+begin
+  Result := PCefImage(FData).add_bitmap(FData, scaleFactor, pixelWidth,
+    pixelHeight, colorType, alphaType, pixelData, pixelDataSize) <> 0;
+end;
+
+function TCefImageRef.AddJpeg(scaleFactor: Single; const jpegData: Pointer;
+  jpegDataSize: NativeUInt): Boolean;
+begin
+  Result := PCefImage(FData).add_jpeg(FData, scaleFactor, jpegData, jpegDataSize) <> 0;
+end;
+
+function TCefImageRef.AddPng(scaleFactor: Single; const pngData: Pointer;
+  pngDataSize: NativeUInt): Boolean;
+begin
+  Result := PCefImage(FData).add_png(FData, scaleFactor, pngData, pngDataSize) <> 0;
+end;
+
+function TCefImageRef.GetAsBitmap(scaleFactor: Single; colorType: TCefColorType;
+  alphaType: TCefAlphaType; pixelWidth, pixelHeight: PInteger): ICefBinaryValue;
+begin
+  Result := TCefBinaryValueRef.UnWrap(PCefImage(FData).get_as_bitmap(
+    FData, scaleFactor, colorType, alphaType, pixelWidth, pixelHeight));
+end;
+
+function TCefImageRef.GetAsJpeg(scaleFactor: Single; quality: Integer;
+  pixelWidth, pixelHeight: PInteger): ICefBinaryValue;
+begin
+  Result := TCefBinaryValueRef.UnWrap(PCefImage(FData).get_as_jpeg(
+    FData, scaleFactor, quality, pixelWidth, pixelHeight));
+end;
+
+function TCefImageRef.GetAsPng(scaleFactor: Single; withTransparency: Boolean;
+  pixelWidth, pixelHeight: PInteger): ICefBinaryValue;
+begin
+  Result := TCefBinaryValueRef.UnWrap(PCefImage(FData).get_as_png(
+    FData, scaleFactor, Ord(withTransparency), pixelWidth, pixelHeight));
+end;
+
+function TCefImageRef.GetHeight: NativeUInt;
+begin
+  Result := PCefImage(FData).get_height(FData);
+end;
+
+function TCefImageRef.GetRepresentationInfo(scaleFactor: Single;
+  actualScaleFactor: PSingle; pixelWidth, pixelHeight: PInteger): Boolean;
+begin
+  Result := PCefImage(FData).get_representation_info(FData, scaleFactor,
+    actualScaleFactor, pixelWidth, pixelHeight) <> 0;
+end;
+
+function TCefImageRef.GetWidth: NativeUInt;
+begin
+  Result := PCefImage(FData).get_width(FData);
+end;
+
+function TCefImageRef.HasRepresentation(scaleFactor: Single): Boolean;
+begin
+  Result := PCefImage(FData).has_representation(FData, scaleFactor) <> 0;
+end;
+
+function TCefImageRef.IsEmpty: Boolean;
+begin
+  Result := PCefImage(FData).is_empty(FData) <> 0;
+end;
+
+function TCefImageRef.IsSame(const that: ICefImage): Boolean;
+begin
+  Result := PCefImage(FData).is_same(FData, TCef3Helper.CefGetData(that)) <> 0;
+end;
+
+class function TCefImageRef.New: ICefImage;
+begin
+  Result := UnWrap(cef_image_create());
+end;
+
+function TCefImageRef.RemoveRepresentation(scaleFactor: Single): Boolean;
+begin
+  Result := PCefImage(FData).remove_representation(FData, scaleFactor) <> 0;
+end;
+
+class function TCefImageRef.UnWrap(data: Pointer): ICefImage;
+begin
+  if data <> nil then
+    Result := Create(data) as ICefImage else
+    Result := nil;
+end;
+
+{ TCefMenuModelDelegateOwn }
+
+constructor TCefMenuModelDelegateOwn.Create;
+begin
+  CreateData(SizeOf(TCefMenuModelDelegate), False);
+  with PCefMenuModelDelegate(FData)^ do
+  begin
+    execute_command := cef_menu_model_delegate_execute_command;
+    menu_will_show := cef_menu_model_delegate_menu_will_show;
+  end;
+end;
+
+procedure TCefMenuModelDelegateOwn.ExecuteCommand(
+  const menuModel: ICefMenuModel; commandId: Integer;
+  eventFlags: TCefEventFlags);
+begin
+
+end;
+
+procedure TCefMenuModelDelegateOwn.MenuWillShow(const menuModel: ICefMenuModel);
+begin
+
+end;
+
+{ TCefDownloadImageCallbackOwn }
+
+constructor TCefDownloadImageCallbackOwn.Create;
+begin
+  CreateData(SizeOf(TCefDownloadImageCallback), False);
+  with PCefDownloadImageCallback(FData)^ do
+    on_download_image_finished := nil;
+end;
+
+{ TCefFastDownloadImageCallback }
+
+constructor TCefFastDownloadImageCallback.Create(
+  const proc: TOnDownloadImageFinishedProc);
+begin
+  FProc := proc;
+end;
+
+procedure TCefFastDownloadImageCallback.OnDownloadImageFinished(
+  const imageUrl: ustring; httpStatusCode: Integer; const image: ICefImage);
+begin
+  FProc(imageUrl, httpStatusCode, image);
+end;
 
 end.

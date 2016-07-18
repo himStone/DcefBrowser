@@ -50,7 +50,6 @@ contains
   DcefB.Cef3.Interfaces in '..\Source\DcefB.Cef3.Interfaces.pas',
   DcefB.Cef3.Types in '..\Source\DcefB.Cef3.Types.pas',
   DcefB.CefBrowserWrapper in '..\Source\DcefB.CefBrowserWrapper.pas',
-  DcefB.CefEvents in '..\Source\DcefB.CefEvents.pas',
   DcefB.Core.App in '..\Source\DcefB.Core.App.pas',
   DcefB.Core.BrowserHandler in '..\Source\DcefB.Core.BrowserHandler.pas',
   DcefB.Core.BrowserView in '..\Source\DcefB.Core.BrowserView.pas',
@@ -65,7 +64,6 @@ contains
   DcefB.Handler.Dialog in '..\Source\DcefB.Handler.Dialog.pas',
   DcefB.Handler.Display in '..\Source\DcefB.Handler.Display.pas',
   DcefB.Handler.Download in '..\Source\DcefB.Handler.Download.pas',
-  DcefB.Handler.Drag in '..\Source\DcefB.Handler.Drag.pas',
   DcefB.Handler.Focus in '..\Source\DcefB.Handler.Focus.pas',
   DcefB.Handler.Geolocation in '..\Source\DcefB.Handler.Geolocation.pas',
   DcefB.Handler.JsDialog in '..\Source\DcefB.Handler.JsDialog.pas',
@@ -80,6 +78,8 @@ contains
   DcefB.Locker in '..\Source\DcefB.Locker.pas',
   DcefB.res in '..\Source\DcefB.res.pas',
   DcefB.Settings in '..\Source\DcefB.Settings.pas',
-  DcefB.Utils in '..\Source\DcefB.Utils.pas';
+  DcefB.Utils in '..\Source\DcefB.Utils.pas',
+  DcefB.Handler.Drag in '..\Source\DcefB.Handler.Drag.pas',
+  DcefB.Handler.Find in '..\Source\DcefB.Handler.Find.pas';
 
 end.

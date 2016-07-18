@@ -49,6 +49,8 @@ implementation
 { TDcefBUtils }
 
 class function TDcefBUtils.GetCefParentWindow(aBrowser: ICefBrowser): HWND;
+var
+  h: HWND;
 begin
   Result := GetParent(aBrowser.host.WindowHandle);
 end;

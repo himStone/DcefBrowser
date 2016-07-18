@@ -61,7 +61,6 @@ Const
   WM_DialogClosed = WM_USER + 30;
   WM_DoClose = WM_USER + 31;
   WM_BeforeClose = WM_USER + 32;
-  WM_RunModal = WM_USER + 33;
 
   WM_BeforeBrowse = WM_USER + 34;
   WM_BeforeResourceLoad = WM_USER + 35;
@@ -82,6 +81,9 @@ Const
 
   WM_JsExtention = WM_USER + 49;
   WM_JsExtHelperReady = WM_USER + 50;
+
+  WM_FaviconUrlChange = WM_USER + 51;
+  WM_FullScreenModeChange = WM_USER + 52;
 
   State_IsLoading = $001;
   State_CanGoBack = $002;

@@ -21,7 +21,7 @@
   *
 *)
 
-unit DcefB.Handler.Dialog;
+unit DcefB.Handler.Find;
 
 interface
 
@@ -31,14 +31,13 @@ uses
   DcefB.res, DcefB.Utils, DcefB.BaseObject;
 
 type
-  TDcefBDialogHandler = class(TCefDialogHandlerOwn)
+  TDcefBFindHandler = class(TCefFindHandlerOwn)
   private
     FEvents: IDcefBrowser;
   protected
-    function OnFileDialog(const browser: ICefBrowser; mode: TCefFileDialogMode;
-      const title: ustring; const defaultFilePath: ustring;
-      acceptFilters: TStrings; selectedAcceptFilter: Integer;
-      const callback: ICefFileDialogCallback): Boolean; override;
+    procedure OnFindResult(const browser: ICefBrowser;
+      identifier, count: Integer; const selectionRect: PCefRect;
+      activeMatchOrdinal: Integer; finalUpdate: Boolean); override;
   public
     constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
@@ -46,39 +45,27 @@ type
 
 implementation
 
-{ TDcefBDialogHandler }
+{ TDcefBDragHandler }
 
-constructor TDcefBDialogHandler.Create(aDcefBrowser: IDcefBrowser);
+constructor TDcefBFindHandler.Create(aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
   FEvents := aDcefBrowser;
 end;
 
-destructor TDcefBDialogHandler.Destroy;
+destructor TDcefBFindHandler.Destroy;
 begin
   FEvents := nil;
   inherited;
 end;
 
-function TDcefBDialogHandler.OnFileDialog(const browser: ICefBrowser;
-  mode: TCefFileDialogMode; const title: ustring;
-  const defaultFilePath: ustring; acceptFilters: TStrings;
-  selectedAcceptFilter: Integer;
-  const callback: ICefFileDialogCallback): Boolean;
-var
-  PArgs: PFileDialogArgs;
+
+procedure TDcefBFindHandler.OnFindResult(const browser: ICefBrowser; identifier,
+  count: Integer; const selectionRect: PCefRect; activeMatchOrdinal: Integer;
+  finalUpdate: Boolean);
 begin
-  Result := False;
-  new(PArgs);
-  PArgs.mode := @mode;
-  PArgs.title := @title;
-  PArgs.defaultFilePath := @defaultFilePath;
-  PArgs.acceptFilters := @acceptFilters;
-  PArgs.selectedAcceptFilter := @selectedAcceptFilter;
-  PArgs.callback := @callback;
-  PArgs.Result := @Result;
-  TDcefBUtils.SendMsg(browser, WM_FileDialog, LParam(PArgs));
-  Dispose(PArgs);
+  inherited;
+  FEvents.doOnFindResult(browser, identifier, count, selectionRect, activeMatchOrdinal, finalUpdate);
 end;
 
 end.

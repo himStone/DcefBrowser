@@ -36,7 +36,7 @@ type
     FEvents: IDcefBrowser;
   protected
     function OnJsdialog(const browser: ICefBrowser;
-      const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+      const originUrl: ustring; dialogType: TCefJsDialogType;
       const messageText, defaultPromptText: ustring;
       callback: ICefJsDialogCallback; out suppressMessage: Boolean)
       : Boolean; override;
@@ -91,7 +91,7 @@ begin
 end;
 
 function TDcefBJsDialogHandler.OnJsdialog(const browser: ICefBrowser;
-  const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+  const originUrl: ustring; dialogType: TCefJsDialogType;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
   out suppressMessage: Boolean): Boolean;
 var
@@ -100,7 +100,6 @@ begin
   Result := False;
   New(PArgs);
   PArgs.originUrl := @originUrl;
-  PArgs.acceptLang := @acceptLang;
   PArgs.dialogType := @dialogType;
   PArgs.messageText := @messageText;
   PArgs.defaultPromptText := @defaultPromptText;

@@ -39,6 +39,8 @@ type
       const frame: ICefFrame; const url: ustring); override;
     procedure OnTitleChange(const browser: ICefBrowser;
       const title: ustring); override;
+    procedure OnFaviconUrlChange(const browser: ICefBrowser; iconUrls: TStrings); override;
+    procedure OnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean); override;
     function OnTooltip(const browser: ICefBrowser; var text: ustring)
       : Boolean; override;
     procedure OnStatusMessage(const browser: ICefBrowser;
@@ -92,6 +94,20 @@ begin
   PArgs.Result := @Result;
   TDcefBUtils.SendMsg(browser, WM_ConsoleMessage, LParam(PArgs));
   Dispose(PArgs);
+end;
+
+procedure TDcefBDisplayHandler.OnFaviconUrlChange(const browser: ICefBrowser;
+  iconUrls: TStrings);
+begin
+  inherited;
+  TDcefBUtils.SendMsg(browser, WM_FaviconUrlChange, LParam(@iconUrls));
+end;
+
+procedure TDcefBDisplayHandler.OnFullScreenModeChange(
+  const browser: ICefBrowser; fullscreen: Boolean);
+begin
+  inherited;
+  TDcefBUtils.SendMsg(browser, WM_FullScreenModeChange, LParam(@fullscreen));
 end;
 
 procedure TDcefBDisplayHandler.OnStatusMessage(const browser: ICefBrowser;

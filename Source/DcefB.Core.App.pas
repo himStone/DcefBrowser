@@ -58,6 +58,7 @@ type
 
     FCefLibrary: string;
     FCefCache: ustring;
+    FCefUserDataPath: ustring;
     FCefUserAgent: ustring;
     FCefProductVersion: ustring;
     FCefLocale: ustring;
@@ -74,15 +75,18 @@ type
     FCefRemoteDebuggingPort: Integer;
     FCefGetDataResource: TGetDataResource;
     FCefGetLocalizedString: TGetLocalizedString;
+    FCefGetDataResourceForScale: TGetDataResourceForScale;
     FCefUncaughtExceptionStackSize: Integer;
     FCefContextSafetyImplementation: Integer;
     FCefPersistSessionCookies: Boolean;
     FCefIgnoreCertificateErrors: Boolean;
     FCefBackgroundColor: TCefColor;
+    FCefAcceptLanguageList: ustring;
     FCefWindowsSandboxInfo: Pointer;
     FCefWindowlessRenderingEnabled: Boolean;
 
     function CefLoadLib(const Cache: ustring = '';
+      const UserDataPath: ustring = '';
       const UserAgent: ustring = ''; const ProductVersion: ustring = '';
       const locale: ustring = ''; const LogFile: ustring = '';
       const BrowserSubprocessPath: ustring = '';
@@ -95,6 +99,7 @@ type
       ContextSafetyImplementation: Integer = 0;
       persistSessionCookies: Boolean = False;
       IgnoreCertificateErrors: Boolean = False; BackgroundColor: TCefColor = 0;
+      const AcceptLanguageList: ustring = '';
       WindowsSandboxInfo: Pointer = nil;
       WindowlessRenderingEnabled: Boolean = False): Boolean;
 
@@ -113,6 +118,7 @@ type
     function GetOnFocusedNodeChanged: TOnFocusedNodeChanged;
     function GetOnGetDataResource: TOnGetDataResource;
     function GetOnGetLocalizedString: TOnGetLocalizedString;
+    function GetOnGetDataResourceForScale: TOnGetDataResourceForScale;
     function GetOnProcessMessageReceived: TOnProcessMessageReceived;
     function GetOnRenderProcessThreadCreated: TOnRenderProcessThreadCreated;
     function GetOnRenderThreadCreated: TOnRenderThreadCreated;
@@ -129,6 +135,7 @@ type
     procedure SetOnFocusedNodeChanged(const Value: TOnFocusedNodeChanged);
     procedure SetOnGetDataResource(const Value: TOnGetDataResource);
     procedure SetOnGetLocalizedString(const Value: TOnGetLocalizedString);
+    procedure SetOnGetDataResourceForScale(const Value: TOnGetDataResourceForScale);
     procedure SetOnProcessMessageReceived(const Value
       : TOnProcessMessageReceived);
     procedure SetOnRenderProcessThreadCreated(const Value
@@ -156,6 +163,7 @@ type
     procedure CefRunMessageLoop;
     procedure CefQuitMessageLoop;
     procedure CefSetOsModalLoop(loop: Boolean);
+    procedure CefEnableHighDpiSupport;
 {$ENDIF}
     procedure CefShutDown;
     function CefRegisterSchemeHandlerFactory(const schemeName,
@@ -188,11 +196,7 @@ type
     procedure CefVisitWebPluginInfoProc(const visitor
       : TCefWebPluginInfoVisitorProc);
     procedure CefRefreshWebPlugins;
-    procedure CefAddWebPluginPath(const path: ustring);
-    procedure CefAddWebPluginDirectory(const dir: ustring);
-    procedure CefRemoveWebPluginPath(const path: ustring);
     procedure CefUnregisterInternalWebPlugin(const path: ustring);
-    procedure CefForceWebPluginShutdown(const path: ustring);
     procedure CefRegisterWebPluginCrash(const path: ustring);
     procedure CefIsWebPluginUnstable(const path: ustring;
       const callback: ICefWebPluginUnstableCallback);
@@ -256,6 +260,8 @@ type
       write SetOnGetDataResource;
     property OnGetLocalizedString: TOnGetLocalizedString
       read GetOnGetLocalizedString write SetOnGetLocalizedString;
+    property OnGetDataResourceForScale: TOnGetDataResourceForScale
+      read GetOnGetDataResourceForScale write SetOnGetDataResourceForScale;
 
     property OnContextInitialized: TOnContextInitialized
       read GetOnContextInitialized write SetOnContextInitialized;
@@ -418,6 +424,12 @@ begin
   InnerDcefBResourceBundleHandler.SetOnGetDataResource(Value);
 end;
 
+procedure TDcefBApp.SetOnGetDataResourceForScale(
+  const Value: TOnGetDataResourceForScale);
+begin
+  InnerDcefBResourceBundleHandler.SetOnGetDataResourceForScale(Value);
+end;
+
 procedure TDcefBApp.SetOnGetLocalizedString(const Value: TOnGetLocalizedString);
 begin
   InnerDcefBResourceBundleHandler.SetOnGetLocalizedString(Value);
@@ -464,6 +476,7 @@ begin
 
   FCefLibrary := 'libcef.dll';
   FCefCache := '';
+  FCefUserDataPath := '';
   FCefUserAgent := '';
   FCefProductVersion := '';
   FCefLocale := '';
@@ -485,6 +498,7 @@ begin
   FCefPersistSessionCookies := False;
   FCefIgnoreCertificateErrors := False;
   FCefBackgroundColor := 0;
+  FCefAcceptLanguageList := '';
   FCefWindowsSandboxInfo := nil;
   FCefWindowlessRenderingEnabled := False;
 end;
@@ -546,6 +560,11 @@ begin
   Result := InnerDcefBResourceBundleHandler.GetOnGetDataResource;
 end;
 
+function TDcefBApp.GetOnGetDataResourceForScale: TOnGetDataResourceForScale;
+begin
+  Result := InnerDcefBResourceBundleHandler.GetOnGetDataResourceForScale;
+end;
+
 function TDcefBApp.GetOnGetLocalizedString: TOnGetLocalizedString;
 begin
   Result := InnerDcefBResourceBundleHandler.GetOnGetLocalizedString;
@@ -584,13 +603,13 @@ end;
 
 function TDcefBApp.Init: Boolean;
 begin
-  Result := CefLoadLib(FCefCache, FCefUserAgent, FCefProductVersion, FCefLocale,
+  Result := CefLoadLib(FCefCache, FCefUserDataPath, FCefUserAgent, FCefProductVersion, FCefLocale,
     FCefLogFile, FCefBrowserSubprocessPath, FCefLogSeverity,
     FCefJavaScriptFlags, FCefResourcesDirPath, FCefLocalesDirPath,
     FCefSingleProcess, FCefNoSandbox, FCefCommandLineArgsDisabled,
     FCefPackLoadingDisabled, FCefRemoteDebuggingPort,
     FCefUncaughtExceptionStackSize, FCefContextSafetyImplementation,
-    FCefPersistSessionCookies, FCefIgnoreCertificateErrors, FCefBackgroundColor,
+    FCefPersistSessionCookies, FCefIgnoreCertificateErrors, FCefBackgroundColor, FCefAcceptLanguageList,
     FCefWindowsSandboxInfo, FCefWindowlessRenderingEnabled);
 end;
 
@@ -631,6 +650,11 @@ procedure TDcefBApp.CefDoMessageLoopWork;
 begin
   if FLibHandle > 0 then
     cef_do_message_loop_work;
+end;
+
+procedure TDcefBApp.CefEnableHighDpiSupport;
+begin
+  cef_enable_highdpi_support();
 end;
 
 procedure TDcefBApp.CefRunMessageLoop;
@@ -774,44 +798,12 @@ begin
   cef_refresh_web_plugins();
 end;
 
-procedure TDcefBApp.CefAddWebPluginPath(const path: ustring);
-var
-  p: TCefString;
-begin
-  p := TCef3Helper.CefString(path);
-  cef_add_web_plugin_path(@p);
-end;
-
-procedure TDcefBApp.CefAddWebPluginDirectory(const dir: ustring);
-var
-  d: TCefString;
-begin
-  d := TCef3Helper.CefString(dir);
-  cef_add_web_plugin_directory(@d);
-end;
-
-procedure TDcefBApp.CefRemoveWebPluginPath(const path: ustring);
-var
-  p: TCefString;
-begin
-  p := TCef3Helper.CefString(path);
-  cef_remove_web_plugin_path(@p);
-end;
-
 procedure TDcefBApp.CefUnregisterInternalWebPlugin(const path: ustring);
 var
   p: TCefString;
 begin
   p := TCef3Helper.CefString(path);
   cef_unregister_internal_web_plugin(@p);
-end;
-
-procedure TDcefBApp.CefForceWebPluginShutdown(const path: ustring);
-var
-  p: TCefString;
-begin
-  p := TCef3Helper.CefString(path);
-  cef_force_web_plugin_shutdown(@p);
 end;
 
 procedure TDcefBApp.CefRegisterWebPluginCrash(const path: ustring);
@@ -838,15 +830,23 @@ begin
     (callback));
 end;
 
-function TDcefBApp.CefLoadLib(const Cache, UserAgent, ProductVersion, locale,
-  LogFile, BrowserSubprocessPath: ustring; LogSeverity: TCefLogSeverity;
-  JavaScriptFlags, ResourcesDirPath, LocalesDirPath: ustring;
-  SingleProcess, NoSandbox, CommandLineArgsDisabled, PackLoadingDisabled
-  : Boolean; RemoteDebuggingPort, UncaughtExceptionStackSize,
-  ContextSafetyImplementation: Integer;
-  persistSessionCookies, IgnoreCertificateErrors: Boolean;
-  BackgroundColor: TCefColor; WindowsSandboxInfo: Pointer;
-  WindowlessRenderingEnabled: Boolean): Boolean;
+function TDcefBApp.CefLoadLib(const Cache: ustring = '';
+      const UserDataPath: ustring = '';
+      const UserAgent: ustring = ''; const ProductVersion: ustring = '';
+      const locale: ustring = ''; const LogFile: ustring = '';
+      const BrowserSubprocessPath: ustring = '';
+      LogSeverity: TCefLogSeverity = LOGSEVERITY_DISABLE;
+      JavaScriptFlags: ustring = ''; ResourcesDirPath: ustring = '';
+      LocalesDirPath: ustring = ''; SingleProcess: Boolean = False;
+      NoSandbox: Boolean = False; CommandLineArgsDisabled: Boolean = False;
+      PackLoadingDisabled: Boolean = False; RemoteDebuggingPort: Integer = 0;
+      UncaughtExceptionStackSize: Integer = 0;
+      ContextSafetyImplementation: Integer = 0;
+      persistSessionCookies: Boolean = False;
+      IgnoreCertificateErrors: Boolean = False; BackgroundColor: TCefColor = 0;
+      const AcceptLanguageList: ustring = '';
+      WindowsSandboxInfo: Pointer = nil;
+      WindowlessRenderingEnabled: Boolean = False): Boolean;
 var
   settings: TCefSettings;
   errcode: Integer;
@@ -971,6 +971,7 @@ begin
     cef_quit_message_loop := GetProcAddress(FLibHandle,
       'cef_quit_message_loop');
     cef_set_osmodal_loop := GetProcAddress(FLibHandle, 'cef_set_osmodal_loop');
+    cef_enable_highdpi_support := GetProcAddress(FLibHandle, 'cef_enable_highdpi_support');
     cef_register_extension := GetProcAddress(FLibHandle,
       'cef_register_extension');
     cef_register_scheme_handler_factory := GetProcAddress(FLibHandle,
@@ -989,9 +990,19 @@ begin
       'cef_post_delayed_task');
     cef_parse_url := GetProcAddress(FLibHandle, 'cef_parse_url');
     cef_create_url := GetProcAddress(FLibHandle, 'cef_create_url');
+    cef_format_url_for_security_display := GetProcAddress(FLibHandle, 'cef_format_url_for_security_display');
     cef_get_mime_type := GetProcAddress(FLibHandle, 'cef_get_mime_type');
     cef_get_extensions_for_mime_type := GetProcAddress(FLibHandle,
       'cef_get_extensions_for_mime_type');
+    cef_base64encode := GetProcAddress(FLibHandle, 'cef_base64encode');
+    cef_base64decode := GetProcAddress(FLibHandle, 'cef_base64decode');
+    cef_uriencode := GetProcAddress(FLibHandle, 'cef_uriencode');
+    cef_uridecode := GetProcAddress(FLibHandle, 'cef_uridecode');
+{$ifdef Win32}
+    cef_parse_json := GetProcAddress(FLibHandle, 'cef_parse_json');
+    cef_parse_jsonand_return_error := GetProcAddress(FLibHandle, 'cef_parse_jsonand_return_error');
+    cef_write_json := GetProcAddress(FLibHandle, 'cef_write_json');
+{$endif}
     cef_browser_host_create_browser := GetProcAddress(FLibHandle,
       'cef_browser_host_create_browser');
     cef_browser_host_create_browser_sync := GetProcAddress(FLibHandle,
@@ -1063,7 +1074,6 @@ begin
       'cef_string_multimap_clear');
     cef_string_multimap_free := GetProcAddress(FLibHandle,
       'cef_string_multimap_free');
-    cef_build_revision := GetProcAddress(FLibHandle, 'cef_build_revision');
 
     cef_cookie_manager_get_global_manager := GetProcAddress(FLibHandle,
       'cef_cookie_manager_get_global_manager');
@@ -1078,6 +1088,8 @@ begin
 
     cef_process_message_create := GetProcAddress(FLibHandle,
       'cef_process_message_create');
+
+    cef_value_create := GetProcAddress(FLibHandle, 'cef_value_create');
 
     cef_binary_value_create := GetProcAddress(FLibHandle,
       'cef_binary_value_create');
@@ -1101,16 +1113,7 @@ begin
       'cef_visit_web_plugin_info');
     cef_refresh_web_plugins := GetProcAddress(FLibHandle,
       'cef_refresh_web_plugins');
-    cef_add_web_plugin_path := GetProcAddress(FLibHandle,
-      'cef_add_web_plugin_path');
-    cef_add_web_plugin_directory := GetProcAddress(FLibHandle,
-      'cef_add_web_plugin_directory');
-    cef_remove_web_plugin_path := GetProcAddress(FLibHandle,
-      'cef_remove_web_plugin_path');
-    cef_unregister_internal_web_plugin := GetProcAddress(FLibHandle,
-      'cef_unregister_internal_web_plugin');
-    cef_force_web_plugin_shutdown := GetProcAddress(FLibHandle,
-      'cef_force_web_plugin_shutdown');
+    cef_unregister_internal_web_plugin := GetProcAddress(FLibHandle, 'cef_unregister_internal_web_plugin');
     cef_register_web_plugin_crash := GetProcAddress(FLibHandle,
       'cef_register_web_plugin_crash');
     cef_is_web_plugin_unstable := GetProcAddress(FLibHandle,
@@ -1132,6 +1135,8 @@ begin
       'cef_request_context_get_global_context');
     cef_request_context_create_context := GetProcAddress(FLibHandle,
       'cef_request_context_create_context');
+
+    cef_create_context_shared := GetProcAddress(FLibHandle, 'cef_create_context_shared');
 
     cef_get_min_log_level := GetProcAddress(FLibHandle,
       'cef_get_min_log_level');
@@ -1165,17 +1170,29 @@ begin
 
     cef_drag_data_create := GetProcAddress(FLibHandle, 'cef_drag_data_create');
 
-    if not(
+    cef_resource_bundle_get_global := GetProcAddress(FLibHandle, 'cef_resource_bundle_get_global');
 
-      Assigned(cef_string_wide_set) and Assigned(cef_string_utf8_set) and
-      Assigned(cef_string_utf16_set) and Assigned(cef_string_wide_clear) and
-      Assigned(cef_string_utf8_clear) and Assigned(cef_string_utf16_clear) and
-      Assigned(cef_string_wide_cmp) and Assigned(cef_string_utf8_cmp) and
-      Assigned(cef_string_utf16_cmp) and Assigned(cef_string_wide_to_utf8) and
-      Assigned(cef_string_utf8_to_wide) and Assigned(cef_string_wide_to_utf16)
-      and Assigned(cef_string_utf16_to_wide) and
-      Assigned(cef_string_utf8_to_utf16) and Assigned(cef_string_utf16_to_utf8)
-      and Assigned(cef_string_ascii_to_wide) and
+    cef_image_create := GetProcAddress(FLibHandle, 'cef_image_create');
+
+    cef_menu_model_create := GetProcAddress(FLibHandle, 'cef_menu_model_create');
+
+if not (
+      Assigned(cef_string_wide_set) and
+      Assigned(cef_string_utf8_set) and
+      Assigned(cef_string_utf16_set) and
+      Assigned(cef_string_wide_clear) and
+      Assigned(cef_string_utf8_clear) and
+      Assigned(cef_string_utf16_clear) and
+      Assigned(cef_string_wide_cmp) and
+      Assigned(cef_string_utf8_cmp) and
+      Assigned(cef_string_utf16_cmp) and
+      Assigned(cef_string_wide_to_utf8) and
+      Assigned(cef_string_utf8_to_wide) and
+      Assigned(cef_string_wide_to_utf16) and
+      Assigned(cef_string_utf16_to_wide) and
+      Assigned(cef_string_utf8_to_utf16) and
+      Assigned(cef_string_utf16_to_utf8) and
+      Assigned(cef_string_ascii_to_wide) and
       Assigned(cef_string_ascii_to_utf16) and
       Assigned(cef_string_userfree_wide_alloc) and
       Assigned(cef_string_userfree_utf8_alloc) and
@@ -1183,29 +1200,56 @@ begin
       Assigned(cef_string_userfree_wide_free) and
       Assigned(cef_string_userfree_utf8_free) and
       Assigned(cef_string_userfree_utf16_free) and
-      Assigned(cef_string_map_alloc) and Assigned(cef_string_map_size) and
-      Assigned(cef_string_map_find) and Assigned(cef_string_map_key) and
-      Assigned(cef_string_map_value) and Assigned(cef_string_map_append) and
-      Assigned(cef_string_map_clear) and Assigned(cef_string_map_free) and
-      Assigned(cef_string_list_alloc) and Assigned(cef_string_list_size) and
-      Assigned(cef_string_list_value) and Assigned(cef_string_list_append) and
-      Assigned(cef_string_list_clear) and Assigned(cef_string_list_free) and
-      Assigned(cef_string_list_copy) and Assigned(cef_initialize) and
-      Assigned(cef_execute_process) and Assigned(cef_shutdown) and
-      Assigned(cef_do_message_loop_work) and Assigned(cef_run_message_loop) and
-      Assigned(cef_quit_message_loop) and Assigned(cef_set_osmodal_loop) and
+      Assigned(cef_string_map_alloc) and
+      Assigned(cef_string_map_size) and
+      Assigned(cef_string_map_find) and
+      Assigned(cef_string_map_key) and
+      Assigned(cef_string_map_value) and
+      Assigned(cef_string_map_append) and
+      Assigned(cef_string_map_clear) and
+      Assigned(cef_string_map_free) and
+      Assigned(cef_string_list_alloc) and
+      Assigned(cef_string_list_size) and
+      Assigned(cef_string_list_value) and
+      Assigned(cef_string_list_append) and
+      Assigned(cef_string_list_clear) and
+      Assigned(cef_string_list_free) and
+      Assigned(cef_string_list_copy) and
+      Assigned(cef_initialize) and
+      Assigned(cef_execute_process) and
+      Assigned(cef_shutdown) and
+      Assigned(cef_do_message_loop_work) and
+      Assigned(cef_run_message_loop) and
+      Assigned(cef_quit_message_loop) and
+      Assigned(cef_set_osmodal_loop) and
+      Assigned(cef_enable_highdpi_support) and
       Assigned(cef_register_extension) and
       Assigned(cef_register_scheme_handler_factory) and
       Assigned(cef_clear_scheme_handler_factories) and
       Assigned(cef_add_cross_origin_whitelist_entry) and
       Assigned(cef_remove_cross_origin_whitelist_entry) and
-      Assigned(cef_clear_cross_origin_whitelist) and Assigned(cef_currently_on)
-      and Assigned(cef_post_task) and Assigned(cef_post_delayed_task) and
-      Assigned(cef_parse_url) and Assigned(cef_create_url) and
-      Assigned(cef_get_mime_type) and Assigned(cef_get_extensions_for_mime_type)
-      and Assigned(cef_browser_host_create_browser) and
+      Assigned(cef_clear_cross_origin_whitelist) and
+      Assigned(cef_currently_on) and
+      Assigned(cef_post_task) and
+      Assigned(cef_post_delayed_task) and
+      Assigned(cef_parse_url) and
+      Assigned(cef_create_url) and
+      Assigned(cef_format_url_for_security_display) and
+      Assigned(cef_get_mime_type) and
+      Assigned(cef_get_extensions_for_mime_type) and
+      Assigned(cef_base64encode) and
+      Assigned(cef_base64decode) and
+      Assigned(cef_uriencode) and
+      Assigned(cef_uridecode) and
+{$ifdef Win32}
+      Assigned(cef_parse_json) and
+      Assigned(cef_parse_jsonand_return_error) and
+      Assigned(cef_write_json) and
+{$endif}
+      Assigned(cef_browser_host_create_browser) and
       Assigned(cef_browser_host_create_browser_sync) and
-      Assigned(cef_request_create) and Assigned(cef_post_data_create) and
+      Assigned(cef_request_create) and
+      Assigned(cef_post_data_create) and
       Assigned(cef_post_data_element_create) and
       Assigned(cef_stream_reader_create_for_file) and
       Assigned(cef_stream_reader_create_for_data) and
@@ -1216,54 +1260,75 @@ begin
       Assigned(cef_v8context_get_entered_context) and
       Assigned(cef_v8context_in_context) and
       Assigned(cef_v8value_create_undefined) and
-      Assigned(cef_v8value_create_null) and Assigned(cef_v8value_create_bool)
-      and Assigned(cef_v8value_create_int) and Assigned(cef_v8value_create_uint)
-      and Assigned(cef_v8value_create_double) and
-      Assigned(cef_v8value_create_date) and Assigned(cef_v8value_create_string)
-      and Assigned(cef_v8value_create_object) and
+      Assigned(cef_v8value_create_null) and
+      Assigned(cef_v8value_create_bool) and
+      Assigned(cef_v8value_create_int) and
+      Assigned(cef_v8value_create_uint) and
+      Assigned(cef_v8value_create_double) and
+      Assigned(cef_v8value_create_date) and
+      Assigned(cef_v8value_create_string) and
+      Assigned(cef_v8value_create_object) and
       Assigned(cef_v8value_create_array) and
       Assigned(cef_v8value_create_function) and
       Assigned(cef_v8stack_trace_get_current) and
-      Assigned(cef_xml_reader_create) and Assigned(cef_zip_reader_create) and
-      Assigned(cef_string_multimap_alloc) and Assigned(cef_string_multimap_size)
-      and Assigned(cef_string_multimap_find_count) and
+      Assigned(cef_xml_reader_create) and
+      Assigned(cef_zip_reader_create) and
+      Assigned(cef_string_multimap_alloc) and
+      Assigned(cef_string_multimap_size) and
+      Assigned(cef_string_multimap_find_count) and
       Assigned(cef_string_multimap_enumerate) and
-      Assigned(cef_string_multimap_key) and Assigned(cef_string_multimap_value)
-      and Assigned(cef_string_multimap_append) and
-      Assigned(cef_string_multimap_clear) and Assigned(cef_string_multimap_free)
-      and Assigned(cef_build_revision) and
+      Assigned(cef_string_multimap_key) and
+      Assigned(cef_string_multimap_value) and
+      Assigned(cef_string_multimap_append) and
+      Assigned(cef_string_multimap_clear) and
+      Assigned(cef_string_multimap_free) and
       Assigned(cef_cookie_manager_get_global_manager) and
       Assigned(cef_cookie_manager_create_manager) and
       Assigned(cef_command_line_create) and
       Assigned(cef_command_line_get_global) and
-      Assigned(cef_process_message_create) and Assigned(cef_binary_value_create)
-      and Assigned(cef_dictionary_value_create) and
-      Assigned(cef_list_value_create) and Assigned(cef_get_path) and
-      Assigned(cef_launch_process) and Assigned(cef_response_create) and
-      Assigned(cef_urlrequest_create) and Assigned(cef_visit_web_plugin_info)
-      and Assigned(cef_refresh_web_plugins) and
-      Assigned(cef_add_web_plugin_path) and
-      Assigned(cef_add_web_plugin_directory) and
-      Assigned(cef_remove_web_plugin_path) and
+      Assigned(cef_process_message_create) and
+      Assigned(cef_value_create) and
+      Assigned(cef_binary_value_create) and
+      Assigned(cef_dictionary_value_create) and
+      Assigned(cef_list_value_create) and
+      Assigned(cef_get_path) and
+      Assigned(cef_launch_process) and
+      Assigned(cef_response_create) and
+      Assigned(cef_urlrequest_create) and
+      Assigned(cef_visit_web_plugin_info) and
+      Assigned(cef_refresh_web_plugins) and
       Assigned(cef_unregister_internal_web_plugin) and
-      Assigned(cef_force_web_plugin_shutdown) and
       Assigned(cef_register_web_plugin_crash) and
-      Assigned(cef_is_web_plugin_unstable) and Assigned(cef_get_geolocation) and
+      Assigned(cef_is_web_plugin_unstable) and
+      Assigned(cef_get_geolocation) and
       Assigned(cef_task_runner_get_for_current_thread) and
-      Assigned(cef_task_runner_get_for_thread) and Assigned(cef_begin_tracing)
-      and Assigned(cef_end_tracing) and Assigned(cef_now_from_system_trace_time)
-      and Assigned(cef_request_context_get_global_context) and
+      Assigned(cef_task_runner_get_for_thread) and
+      Assigned(cef_begin_tracing) and
+      Assigned(cef_end_tracing) and
+      Assigned(cef_now_from_system_trace_time) and
+      Assigned(cef_request_context_get_global_context) and
       Assigned(cef_request_context_create_context) and
-      Assigned(cef_get_min_log_level) and Assigned(cef_get_vlog_level) and
-      Assigned(cef_log) and Assigned(cef_get_current_platform_thread_id) and
+      Assigned(cef_create_context_shared) and
+      Assigned(cef_get_min_log_level) and
+      Assigned(cef_get_vlog_level) and
+      Assigned(cef_log) and
+      Assigned(cef_get_current_platform_thread_id) and
       Assigned(cef_get_current_platform_thread_handle) and
-      Assigned(cef_trace_event_instant) and Assigned(cef_trace_event_begin) and
-      Assigned(cef_trace_event_end) and Assigned(cef_trace_counter) and
-      Assigned(cef_trace_counter_id) and Assigned(cef_trace_event_async_begin)
-      and Assigned(cef_trace_event_async_step_into) and
+      Assigned(cef_trace_event_instant) and
+      Assigned(cef_trace_event_begin) and
+      Assigned(cef_trace_event_end) and
+      Assigned(cef_trace_counter) and
+      Assigned(cef_trace_counter_id) and
+      Assigned(cef_trace_event_async_begin) and
+      Assigned(cef_trace_event_async_step_into) and
       Assigned(cef_trace_event_async_step_past) and
       Assigned(cef_trace_event_async_end) and
-      Assigned(cef_print_settings_create) and Assigned(cef_drag_data_create))
+      Assigned(cef_print_settings_create) and
+      Assigned(cef_drag_data_create) and
+      Assigned(cef_resource_bundle_get_global) and
+      Assigned(cef_image_create) and
+      Assigned(cef_menu_model_create)
+    )
     then
       raise ECefException.create('Invalid CEF Library version');
 
@@ -1278,6 +1343,7 @@ begin
 {$ENDIF}
     settings.windowless_rendering_enabled := ord(WindowlessRenderingEnabled);
     settings.cache_path := TCef3Helper.CefString(Cache);
+    settings.user_data_path := TCef3Helper.CefString(UserDataPath);
     settings.persist_session_cookies := ord(persistSessionCookies);
     settings.browser_subprocess_path :=
       TCef3Helper.CefString(BrowserSubprocessPath);

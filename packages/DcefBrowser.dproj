@@ -129,7 +129,6 @@
         <DCCReference Include="..\Source\DcefB.Cef3.Interfaces.pas"/>
         <DCCReference Include="..\Source\DcefB.Cef3.Types.pas"/>
         <DCCReference Include="..\Source\DcefB.CefBrowserWrapper.pas"/>
-        <DCCReference Include="..\Source\DcefB.CefEvents.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.App.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.BrowserHandler.pas"/>
         <DCCReference Include="..\Source\DcefB.Core.BrowserView.pas"/>
@@ -147,7 +146,6 @@
         <DCCReference Include="..\Source\DcefB.Handler.Dialog.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Display.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Download.pas"/>
-        <DCCReference Include="..\Source\DcefB.Handler.Drag.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Focus.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.Geolocation.pas"/>
         <DCCReference Include="..\Source\DcefB.Handler.JsDialog.pas"/>
@@ -163,6 +161,8 @@
         <DCCReference Include="..\Source\DcefB.res.pas"/>
         <DCCReference Include="..\Source\DcefB.Settings.pas"/>
         <DCCReference Include="..\Source\DcefB.Utils.pas"/>
+        <DCCReference Include="..\Source\DcefB.Handler.Drag.pas"/>
+        <DCCReference Include="..\Source\DcefB.Handler.Find.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

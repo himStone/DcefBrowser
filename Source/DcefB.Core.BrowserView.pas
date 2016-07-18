@@ -57,7 +57,7 @@ type
     procedure OnLoadingStateChange(aBrowser: ICefBrowser; LParam: LParam);
     function OnWindowCheck(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
     function OnCreateWindow(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
-    procedure OnNewBrowser(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnNewBrowser(aBrowser: ICefBrowser);
     procedure OnLoadStart(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnLoadEnd(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnLoadError(aBrowser: ICefBrowser; LParam: LParam);
@@ -90,7 +90,6 @@ type
     procedure OnDialogClosed(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnDoClose(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnBeforeClose(aBrowser: ICefBrowser; LParam: LParam);
-    procedure OnRunModal(aBrowser: ICefBrowser; LParam: LParam);
     function OnDragEnter(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
     procedure OnDevTools(aBrowser: ICefBrowser; LParam: LParam);
     procedure OnRefreshIgnoreCache(aBrowser: ICefBrowser; LParam: LParam);
@@ -368,9 +367,11 @@ begin
   if DcefBApp.IsNeedInitInMainProcess then
     raise exception.Create(EXP_CEFNOTLOADINMAINPRO);
   DcefBApp.Init;
-  aBrowser := DcefBApp.CefBrowserHostCreateSync(@info, FHandler, aUrl,
+  aBrowser := DcefBApp.CefBrowserHostCreateSync(@info, FHandler, '',
     @Settings, nil);
 {$ENDIF}
+  (FHandler as ICefClientHandler).StartTimer();
+  aBrowser.MainFrame.LoadUrl(aUrl);
 end;
 
 destructor TBrowserView.Destroy;
@@ -769,7 +770,7 @@ var
   PArgs: PCancelGeolocationPermissionArgs;
 begin
   PArgs := PCancelGeolocationPermissionArgs(LParam);
-  FEvents.doOnCancelGeolocationPermission(aBrowser, PArgs.requestingUrl^,
+  FEvents.doOnCancelGeolocationPermission(aBrowser,
     PArgs.requestId);
 end;
 
@@ -806,7 +807,7 @@ var
 begin
   PArgs := PBeforePopupArgs(LParam);
   FEvents.doOnBeforePopup(aBrowser, PArgs.frame^, PArgs.targetUrl^,
-    PArgs.targetFrameName^, PArgs.popupFeatures^, PArgs.windowInfo^,
+    PArgs.targetFrameName^, PArgs.targetDisposition^, PArgs.userGesture^, PArgs.popupFeatures^, PArgs.windowInfo^,
     PArgs.client^, PArgs.Settings^, PArgs.noJavascriptAccess^, PArgs.Result^,
     PArgs.CancelDefaultEvent);
 
@@ -865,7 +866,7 @@ var
 begin
   PArgs := PFileDialogArgs(LParam);
   FEvents.doOnFileDialog(aBrowser, TCefFileDialogMode(PArgs.mode^),
-    PArgs.Title^, PArgs.defaultFileName^, TStrings(PArgs.acceptTypes^),
+    PArgs.Title^, PArgs.defaultFilePath^, TStrings(PArgs.acceptFilters^), PArgs.selectedAcceptFilter^,
     PArgs.callback^, PArgs.Result^);
   Result := S_OK;
 end;
@@ -893,7 +894,7 @@ var
   dialogType: TCefJsDialogType;
 begin
   PArgs := PJsdialogArgs(LParam);
-  FEvents.doOnJsdialog(aBrowser, PArgs.originUrl^, PArgs.acceptLang^,
+  FEvents.doOnJsdialog(aBrowser, PArgs.originUrl^,
     PArgs.dialogType^, PArgs.messageText^, PArgs.defaultPromptText^,
     PArgs.callback^, PArgs.suppressMessage^, PArgs.Result^,
     PArgs.CancelDefaultEvent);
@@ -1015,7 +1016,7 @@ begin
   FEvents.doOnLoadStart(aBrowser, ICefFrame(Pointer(LParam)^));
 end;
 
-procedure TBrowserView.OnNewBrowser(aBrowser: ICefBrowser; LParam: LParam);
+procedure TBrowserView.OnNewBrowser(aBrowser: ICefBrowser);
 begin
   ShowBrowser(aBrowser);
   BrowserDicLocker.Enter;
@@ -1078,11 +1079,6 @@ procedure TBrowserView.OnResetDialogState(aBrowser: ICefBrowser;
   LParam: LParam);
 begin
   FEvents.doOnResetDialogState(aBrowser);
-end;
-
-procedure TBrowserView.OnRunModal(aBrowser: ICefBrowser; LParam: LParam);
-begin
-  // Boolean(Pointer(LParam)^) := False;
 end;
 
 procedure TBrowserView.OnSearchText(aBrowser: ICefBrowser; LParam: LParam);
@@ -1282,7 +1278,6 @@ var
 begin
   Result := False;
   HideCurrentBrowserWindow;
-
   if (aBrowser <> nil) and (aBrowser.host.WindowHandle <> INVALID_HANDLE_VALUE)
   then
   begin
@@ -1333,7 +1328,7 @@ procedure TBrowserView.WndProc(var Message: TMessage);
 
 begin
   case Message.Msg of
-    { WM_SETFOCUS:
+     {WM_SETFOCUS:
       begin
       if (FActiveBrowser <> nil) and (FActiveBrowser.host.WindowHandle <> 0)
       then
@@ -1345,14 +1340,16 @@ begin
       if (csDesigning in ComponentState) or (FActiveBrowser = nil) then
         inherited WndProc(Message);
     CM_WANTSPECIALKEY:
-      if not(TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN]) then
+      if not(TWMKey(Message).CharCode in [VK_LEFT .. VK_DOWN, VK_RETURN, VK_ESCAPE]) then
         Message.Result := 1
       else
         inherited WndProc(Message);
     WM_GETDLGCODE:
       Message.Result := DLGC_WANTARROWS or DLGC_WANTCHARS;
     WM_Size:
+    begin
       OnSize(Message.WParam, Message.LParam);
+    end;
     // ---------------- Custom Message
     WM_LoadingStateChange:
       OnLoadingStateChange(GetCefBrowser, Message.LParam);
@@ -1361,7 +1358,9 @@ begin
     WM_CreateWindow:
       Message.Result := OnCreateWindow(GetCefBrowser, Message.LParam);
     WM_NewBrowser:
-      OnNewBrowser(GetCefBrowser, Message.LParam);
+    begin
+      OnNewBrowser(GetCefBrowser);
+    end;
     WM_LoadStart:
       OnLoadStart(GetCefBrowser, Message.LParam);
     WM_LoadEnd:
@@ -1419,8 +1418,6 @@ begin
       OnDoClose(GetCefBrowser, Message.LParam);
     WM_BeforeClose:
       OnBeforeClose(GetCefBrowser, Message.LParam);
-    WM_RunModal:
-      OnRunModal(GetCefBrowser, Message.LParam);
     WM_DragEnter:
       Message.Result := OnDragEnter(GetCefBrowser, Message.LParam);
     WM_DevTools:
