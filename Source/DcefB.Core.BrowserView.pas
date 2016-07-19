@@ -609,24 +609,21 @@ begin
 end;
 
 procedure TBrowserView.OnAddressChange(aBrowser: ICefBrowser; LParam: LParam);
-{ var
-  PArgs: PAddressChangeArgs; }
+var
+  aAddress: string;
 begin
-  // PArgs := PAddressChangeArgs(LParam);
-
+  aAddress := string(Pointer(LParam)^);
   BrowserDicLocker.Enter;
   try
-    FBrowserDic.Items[aBrowser.Identifier].LastAddress :=
-      string(Pointer(LParam)^);
+    FBrowserDic.Items[aBrowser.Identifier].LastAddress := aAddress;
   finally
     BrowserDicLocker.Exit;
   end;
 
   if aBrowser.Identifier = ActiveBrowserId then
-    FLastAddress := string(Pointer(LParam)^);
+    FLastAddress := aAddress;
 
-  FEvents.doOnStateChange(aBrowser, BrowserDataChange_Address,
-    string(Pointer(LParam)^));
+  FEvents.doOnStateChange(aBrowser, BrowserDataChange_Address, aAddress);
 end;
 
 procedure TBrowserView.OnGetAuthCredentials(aBrowser: ICefBrowser;
@@ -1142,18 +1139,21 @@ begin
 end;
 
 procedure TBrowserView.OnTitleChange(aBrowser: ICefBrowser; LParam: LParam);
+var
+  aTitle: string;
 begin
+  aTitle := string(Pointer(LParam)^);
   BrowserDicLocker.Enter;
   try
-    FBrowserDic.Items[aBrowser.Identifier].LastTitle :=
-      string(Pointer(LParam)^);
+    FBrowserDic.Items[aBrowser.Identifier].LastTitle := aTitle;
   finally
     BrowserDicLocker.Exit;
   end;
 
   if aBrowser.Identifier = ActiveBrowserId then
-    FLastTitle := string(Pointer(LParam)^);
-  FEvents.doOnStateChange(aBrowser, BrowserDataChange_Title, FLastTitle);
+    FLastTitle := aTitle;
+
+  FEvents.doOnStateChange(aBrowser, BrowserDataChange_Title, aTitle);
 end;
 
 function TBrowserView.OnTooltip(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
