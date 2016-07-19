@@ -55,6 +55,7 @@ type
 
     procedure OnSize(WParam: WParam; LParam: LParam);
     procedure OnLoadingStateChange(aBrowser: ICefBrowser; LParam: LParam);
+    procedure OnFaviconUrlChange(aBrowser: ICefBrowser; LParam: LParam);
     function OnWindowCheck(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
     function OnCreateWindow(aBrowser: ICefBrowser; LParam: LParam): LRESULT;
     procedure OnNewBrowser(aBrowser: ICefBrowser);
@@ -333,7 +334,7 @@ begin
   FIsActivating := True;
   FLoadingState := 0 or State_IsLoading;
 
-  FBrowserDic := TBrowserWrapperDic.Create;
+  FBrowserDic := TBrowserWrapperDic.Create(FEvents);
   FClosedURL := TStringList.Create;
   FJsExtention := TDcefBJsExtention.Create;
 end;
@@ -856,6 +857,37 @@ begin
   Result := S_OK;
 end;
 
+procedure TBrowserView.OnFaviconUrlChange(aBrowser: ICefBrowser;
+  LParam: LParam);
+var
+  favUrlList: TStrings;
+  index: Integer;
+  favUrl: string;
+  isChange: Boolean;
+begin
+  favUrlList := TStrings(Pointer(LParam)^);
+  for Index := 0 to favUrlList.Count - 1 do
+  begin
+    if favUrlList[Index].LastIndexOf('.ico') > 0 then
+    begin
+      favUrl := favUrlList[Index];
+    end;
+  end;
+
+  favUrl := Trim(favUrl);
+
+  BrowserDicLocker.Enter;
+  try
+    isChange := (favUrl <> '') and (FBrowserDic.Items[aBrowser.Identifier].LastFavUrl <> favUrl);
+    if isChange then
+    begin
+      FBrowserDic.Items[aBrowser.Identifier].LastFavUrl := favUrl;
+    end;
+  finally
+    BrowserDicLocker.Exit;
+  end;
+end;
+
 function TBrowserView.OnFileDialog(aBrowser: ICefBrowser;
   LParam: LParam): LRESULT;
 var
@@ -1353,6 +1385,8 @@ begin
     // ---------------- Custom Message
     WM_LoadingStateChange:
       OnLoadingStateChange(GetCefBrowser, Message.LParam);
+    WM_FaviconUrlChange:
+      OnFaviconUrlChange(GetCefBrowser, Message.LParam);
     WM_WindowCheck:
       Message.Result := OnWindowCheck(GetCefBrowser, Message.LParam);
     WM_CreateWindow:

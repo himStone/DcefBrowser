@@ -26,7 +26,7 @@ interface
 
 uses
   Windows, Classes, Controls, ComCtrls, Forms, ExtCtrls, Dialogs, StrUtils,
-  SysUtils, Messages, Math, Generics.Collections,
+  SysUtils, Messages, Math, Generics.Collections, Vcl.Graphics,
 
   DcefB.Cef3.Types, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
   DcefB.Cef3.Helper, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
@@ -54,7 +54,7 @@ type
     // ---------------
     FOnLoadingStateChange: TOnLoadingStateChange;
     FOnStateChange: TOnStateChange;
-    FOnFavIconUrlChange: TOnFavIconUrlChange;
+    FOnFavIconChange: TOnFavIconChange;
     FOnFullScreenModeChange: TOnFullScreenModeChange;
     FOnAddBrowser: TOnAddBrowser;
     FOnCloseBrowser: TOnCloseBrowser;
@@ -120,7 +120,7 @@ type
       IsLoading, CanGoBack, CanGoForward: Boolean);
     procedure doOnStateChange(const browser: ICefBrowser;
       const Kind: TBrowserDataChangeKind; const Value: string);
-    procedure doOnFaviconUrlChange(const browser: ICefBrowser; iconUrls: TStrings);
+    procedure doOnFaviconChange(const browser: ICefBrowser; const icon: TIcon);
     procedure doOnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean);
     procedure doOnAddBrowser(const browser: ICefBrowser);
     procedure doOnCloseBrowser(const CloseBrowserIdArr: Array of Integer;
@@ -352,7 +352,7 @@ type
       read FOnLoadingStateChange write FOnLoadingStateChange;
     property OnStateChange: TOnStateChange read FOnStateChange
       write FOnStateChange;
-    property OnFavIconUrlChange: TOnFavIconUrlChange read FOnFavIconUrlChange write FOnFavIconUrlChange;
+    property OnFavIconChange: TOnFavIconChange read FOnFavIconChange write FOnFavIconChange;
     property OnFullScreenModeChange: TOnFullScreenModeChange read FOnFullScreenModeChange write FOnFullScreenModeChange;
     property OnAddBrowser: TOnAddBrowser read FOnAddBrowser write FOnAddBrowser;
     property OnCloseBrowser: TOnCloseBrowser read FOnCloseBrowser
@@ -451,7 +451,7 @@ type
     property OnDefaultTabChanging;
     property OnLoadingStateChange;
     property OnStateChange;
-    property OnFavIconUrlChange;
+    property OnFavIconChange;
     property OnFullScreenModeChange;
     property OnAddBrowser;
     property OnCloseBrowser;
@@ -836,11 +836,10 @@ begin
     FOnDraggableRegionsChanged(browser, regionsCount, regions);
 end;
 
-procedure TCustomDcefBrowser.doOnFaviconUrlChange(const browser: ICefBrowser;
-  iconUrls: TStrings);
+procedure TCustomDcefBrowser.doOnFaviconChange(const browser: ICefBrowser; const icon: TIcon);
 begin
-  if Assigned(FOnFaviconUrlChange) then
-    FOnFaviconUrlChange(browser, iconUrls);
+  if Assigned(FOnFaviconChange) then
+    FOnFaviconChange(browser, icon);
 end;
 
 procedure TCustomDcefBrowser.doOnFileDialog(const browser: ICefBrowser;
