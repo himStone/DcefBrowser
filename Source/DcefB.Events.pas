@@ -49,7 +49,7 @@ type
     isLoading, canGoBack, canGoForward: Boolean) of object;
   TOnStateChange = procedure(const browser: ICefBrowser;
     const Kind: TBrowserDataChangeKind; const Value: string) of object;
-  TOnFavIconChange = procedure(const browser: ICefBrowser; const icon: TIcon) of object;
+  TOnFavIconChange = procedure(const browser: ICefBrowser; const favUrl: string; const icon: TIcon) of object;
   TOnFullScreenModeChange = procedure(const browser: ICefBrowser; fullscreen: Boolean) of object;
   TOnAddBrowser = procedure(const browser: ICefBrowser) of object;
   TOnCloseBrowser = procedure(const CloseBrowserIdArr: Array of Integer;
@@ -212,7 +212,7 @@ type
       isLoading, canGoBack, canGoForward: Boolean);
     procedure doOnStateChange(const browser: ICefBrowser;
       const Kind: TBrowserDataChangeKind; const Value: string);
-    procedure doOnFaviconChange(const browser: ICefBrowser; const icon: TIcon);
+    procedure doOnFaviconChange(const browser: ICefBrowser; const favUrl: string; const icon: TIcon);
     procedure doOnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean);
     procedure doOnAddBrowser(const browser: ICefBrowser);
     procedure doOnCloseBrowser(const CloseBrowserIdArr: Array of Integer;

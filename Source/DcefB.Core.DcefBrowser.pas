@@ -120,7 +120,7 @@ type
       IsLoading, CanGoBack, CanGoForward: Boolean);
     procedure doOnStateChange(const browser: ICefBrowser;
       const Kind: TBrowserDataChangeKind; const Value: string);
-    procedure doOnFaviconChange(const browser: ICefBrowser; const icon: TIcon);
+    procedure doOnFaviconChange(const browser: ICefBrowser; const favUrl: string; const icon: TIcon);
     procedure doOnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean);
     procedure doOnAddBrowser(const browser: ICefBrowser);
     procedure doOnCloseBrowser(const CloseBrowserIdArr: Array of Integer;
@@ -836,10 +836,10 @@ begin
     FOnDraggableRegionsChanged(browser, regionsCount, regions);
 end;
 
-procedure TCustomDcefBrowser.doOnFaviconChange(const browser: ICefBrowser; const icon: TIcon);
+procedure TCustomDcefBrowser.doOnFaviconChange(const browser: ICefBrowser; const favUrl: string; const icon: TIcon);
 begin
   if Assigned(FOnFaviconChange) then
-    FOnFaviconChange(browser, icon);
+    FOnFaviconChange(browser, favUrl, icon);
 end;
 
 procedure TCustomDcefBrowser.doOnFileDialog(const browser: ICefBrowser;

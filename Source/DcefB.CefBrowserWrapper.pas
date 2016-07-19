@@ -124,7 +124,7 @@ begin
       aStream.Seek(0, 0);
       FFavicon := TIcon.Create;
       FFavicon.LoadFromStream(aStream);
-      FParent.FEvents.doOnFaviconChange(FBrowser, FFavicon);
+      FParent.FEvents.doOnFaviconChange(FBrowser, aUrl, FFavicon);
     end;
   end;
 end;
