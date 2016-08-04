@@ -26,16 +26,16 @@ unit DcefB.Core.BrowserHandler;
 interface
 
 uses
-  Windows, Classes, SysUtils, Controls, Messages,
+  Windows, Classes, SysUtils, Controls, Messages, ExtCtrls,
 
-  DcefB.CefEvents, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types,
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types,
   DcefB.res, DcefB.Events, DcefB.Utils, DcefB.BaseObject,
   // Handler Unit
   DcefB.Handler.Display, DcefB.Handler.Dialog, DcefB.Handler.Download,
   DcefB.Handler.Focus, DcefB.Handler.Geolocation, DcefB.Handler.JsDialog,
   DcefB.Handler.Keyboard, DcefB.Handler.LifeSpan, DcefB.Handler.Load,
   DcefB.Handler.Menu, DcefB.Handler.Request, DcefB.Handler.Drag,
-  DcefB.Handler.Render, DcefB.Handler.Basic;
+  DcefB.Handler.Render, DcefB.Handler.Find, DcefB.Handler.Basic;
 
 type
   TDcefBHandler = class(TCefClientOwn, ICefClientHandler)
@@ -55,8 +55,10 @@ type
     FRenderHandler: ICefRenderHandler;
     FRequestHandler: ICefRequestHandler;
     FDragHandler: ICefDragHandler;
+    FFindHandler: ICefFindHandler;
     function doOnProcessMessageReceived(const browser: ICefBrowser;
       sourceProcess: TCefProcessId; const message: ICefProcessMessage): Boolean;
+    procedure OnTimer(Sender: TObject);
   protected
     function GetContextMenuHandler: ICefContextMenuHandler; override;
     function GetDialogHandler: ICefDialogHandler; override;
@@ -71,6 +73,7 @@ type
     function GetLoadHandler: ICefLoadHandler; override;
     function GetRequestHandler: ICefRequestHandler; override;
     function GetDragHandler: ICefDragHandler; override;
+    function GetFindHandler: ICefFindHandler; override;
 
     function OnProcessMessageReceived(const browser: ICefBrowser;
       sourceProcess: TCefProcessId; const message: ICefProcessMessage)
@@ -81,6 +84,7 @@ type
     constructor Create(renderer: Boolean; aDcefBrowser: IDcefBrowser);
       reintroduce;
     destructor Destroy; override;
+    procedure StartTimer;
   end;
 
 var
@@ -92,29 +96,10 @@ uses
   DcefB.Core.App;
 
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
-
 var
   CefInstances: Integer = 0;
-  CefTimer: UINT = 0;
-
-var
+  Timer: TTimer;
   looping: Boolean = False;
-
-procedure TimerProc(HWND: HWND; uMsg: UINT; idEvent: Pointer;
-  dwTime: DWORD); stdcall;
-begin
-  if looping then
-    Exit;
-  if CefInstances > 0 then
-  begin
-    looping := True;
-    try
-      DcefBApp.CefDoMessageLoopWork;
-    finally
-      looping := False;
-    end;
-  end;
-end;
 {$ENDIF}
 
 function GetCefParentWindow(aBrowser: ICefBrowser): HWND;
@@ -134,7 +119,20 @@ end;
 constructor TDcefBHandler.Create(renderer: Boolean; aDcefBrowser: IDcefBrowser);
 begin
   inherited Create;
+
+{$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
+  If not assigned(Timer) then
+  begin
+    Timer := TTimer.Create(nil);
+    Timer.Interval := 15;
+    Timer.Enabled := False;
+    Timer.OnTimer := OnTimer;
+  end;
+  InterlockedIncrement(CefInstances);
+{$ENDIF}
+
   FEvents := aDcefBrowser;
+
   FLoadHandler := TDcefBLoadHandler.Create(FEvents);
   FFocusHandler := TDcefBFocusHandler.Create(FEvents);
   FContextMenuHandler := TDcefBContextMenuHandler.Create(FEvents);
@@ -151,25 +149,47 @@ begin
   else
     FRenderHandler := nil;
   FDragHandler := TDcefBDragHandler.Create(FEvents);
-
-{$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
-  if CefInstances = 0 then
-    CefTimer := SetTimer(0, 0, 10, @TimerProc);
-  InterlockedIncrement(CefInstances);
-{$ENDIF}
+  FFindHandler := TDcefBFindHandler.Create(FEvents);
 end;
 
 destructor TDcefBHandler.Destroy;
 begin
-  FEvents := nil;
 {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
   InterlockedDecrement(CefInstances);
-  if CefInstances = 0 then
+  If CefInstances = 0 then
   begin
-    KillTimer(0, CefTimer);
+    Timer.Enabled := False;
+
+    FreeAndNil(Timer);
   end;
 {$ENDIF}
+  FEvents := nil;
   inherited;
+end;
+
+procedure TDcefBHandler.OnTimer(Sender: TObject);
+begin
+  {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
+  If Looping then Exit;
+  If CefInstances > 0 then
+  begin
+    Looping := True;
+    try
+      DcefBApp.CefDoMessageLoopWork;
+    finally
+      Looping := False;
+    end;
+  end;
+  {$ENDIF}
+end;
+
+procedure TDcefBHandler.StartTimer;
+begin
+  {$IFNDEF CEF_MULTI_THREADED_MESSAGE_LOOP}
+  If not Assigned(Timer) then Exit;
+
+  Timer.Enabled := True;
+  {$ENDIF}
 end;
 
 procedure TDcefBHandler.Disconnect;
@@ -200,6 +220,12 @@ begin
     FDragHandler := nil;
   if FRenderHandler <> nil then
     FRenderHandler := nil;
+  if FRequestHandler <> nil then
+    FRequestHandler := nil;
+  if FDragHandler <> nil then
+    FDragHandler := nil;
+  if FFindHandler <> nil then
+    FFindHandler := nil;
 end;
 
 function TDcefBHandler.doOnProcessMessageReceived(const browser: ICefBrowser;
@@ -236,6 +262,11 @@ end;
 function TDcefBHandler.GetRenderHandler: ICefRenderHandler;
 begin
   Result := FRenderHandler;
+end;
+
+function TDcefBHandler.GetFindHandler: ICefFindHandler;
+begin
+  Result := FFindHandler;
 end;
 
 function TDcefBHandler.GetFocusHandler: ICefFocusHandler;

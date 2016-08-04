@@ -87,6 +87,7 @@ type
   // 32-bit ARGB color value, not premultiplied. The color components are always
   // in a known order. Equivalent to the SkColor type.
 
+  PCefColor = ^TCefColor;
   TCefColor = Cardinal;
 
   // CEF string type definitions. Whomever allocates |str| is responsible for
@@ -291,7 +292,8 @@ type
 
     // Set to true (1) to have the browser process message loop run in a separate
     // thread. If false (0) than the CefDoMessageLoopWork() function must be
-    // called from your application message loop.
+    // called from your application message loop. This option is only supported on
+    // Windows.
     multi_threaded_message_loop: Integer;
 
     // Set to true (1) to enable windowless (off-screen) rendering support. Do not
@@ -305,19 +307,39 @@ type
     // CefApp::OnBeforeCommandLineProcessing() method.
     command_line_args_disabled: Integer;
 
-    // The location where cache data will be stored on disk. If empty an in-memory
-    // cache will be used for some features and a temporary disk cache for others.
-    // HTML5 databases such as localStorage will only persist across sessions if a
-    // cache path is specified.
+    // The location where cache data will be stored on disk. If empty then
+    // browsers will be created in "incognito mode" where in-memory caches are
+    // used for storage and no data is persisted to disk. HTML5 databases such as
+    // localStorage will only persist across sessions if a cache path is
+    // specified. Can be overridden for individual CefRequestContext instances via
+    // the CefRequestContextSettings.cache_path value.
     cache_path: TCefString;
+
+    // The location where user data such as spell checking dictionary files will
+    // be stored on disk. If empty then the default platform-specific user data
+    // directory will be used ("~/.cef_user_data" directory on Linux,
+    // "~/Library/Application Support/CEF/User Data" directory on Mac OS X,
+    // "Local Settings\Application Data\CEF\User Data" directory under the user
+    // profile directory on Windows).
+    user_data_path: TCefString;
 
     // To persist session cookies (cookies without an expiry date or validity
     // interval) by default when using the global cookie manager set this value to
-    // true. Session cookies are generally intended to be transient and most Web
-    // browsers do not persist them. A |cache_path| value must also be specified to
-    // enable this feature. Also configurable using the "persist-session-cookies"
-    // command-line switch.
+    // true (1). Session cookies are generally intended to be transient and most
+    // Web browsers do not persist them. A |cache_path| value must also be
+    // specified to enable this feature. Also configurable using the
+    // "persist-session-cookies" command-line switch. Can be overridden for
+    // individual CefRequestContext instances via the
+    // CefRequestContextSettings.persist_session_cookies value.
     persist_session_cookies: Integer;
+
+    // To persist user preferences as a JSON file in the cache path directory set
+    // this value to true (1). A |cache_path| value must also be specified
+    // to enable this feature. Also configurable using the
+    // "persistfv-user-preferences" command-line switch. Can be overridden for
+    // individual CefRequestContext instances via the
+    // CefRequestContextSettings.persist_user_preferences value.
+    persist_user_preferences: Integer;
 
     // Value that will be returned as the User-Agent HTTP header. If empty the
     // default User-Agent string will be used. Also configurable using the
@@ -337,10 +359,12 @@ type
     // command-line switch.
     locale: TCefString;
 
-    // The directory and file name to use for the debug log. If empty, the
-    // default name of "debug.log" will be used and the file will be written
-    // to the application directory. Also configurable using the "log-file"
-    // command-line switch.
+    // The directory and file name to use for the debug log. If empty a default
+    // log file name and location will be used. On Windows and Linux a "debug.log"
+    // file will be written in the main executable directory. On Mac OS X a
+    // "~/Library/Logs/<app name>_debug.log" file will be written where <app name>
+    // is the name of the main app executable. Also configurable using the
+    // "log-file" command-line switch.
     log_file: TCefString;
 
     // The log severity. Only messages of this severity level or higher will be
@@ -381,7 +405,7 @@ type
     remote_debugging_port: Integer;
 
     // The number of stack trace frames to capture for uncaught exceptions.
-    // Specify a positive value to enable the CefV8ContextHandler::
+    // Specify a positive value to enable the CefRenderProcessHandler::
     // OnUncaughtException() callback. Specify 0 (default value) and
     // OnUncaughtException() will not be called. Also configurable using the
     // "uncaught-exception-stack-size" command-line switch.
@@ -413,7 +437,9 @@ type
     // Enabling this setting can lead to potential security vulnerabilities like
     // "man in the middle" attacks. Applications that load content from the
     // internet should not enable this setting. Also configurable using the
-    // "ignore-certificate-errors" command-line switch.
+    // "ignore-certificate-errors" command-line switch. Can be overridden for
+    // individual CefRequestContext instances via the
+    // CefRequestContextSettings.ignore_certificate_errors value.
     ignore_certificate_errors: Integer;
 
     // Opaque background color used for accelerated content. By default the
@@ -421,6 +447,60 @@ type
     // value will be used. The alpha component must greater than 0 to enable use
     // of the background color but will be otherwise ignored.
     background_color: TCefColor;
+
+    // Comma delimited ordered list of language codes without any whitespace that
+    // will be used in the "Accept-Language" HTTP header. May be overridden on a
+    // per-browser basis using the CefBrowserSettings.accept_language_list value.
+    // If both values are empty then "en-US,en" will be used. Can be overridden
+    // for individual CefRequestContext instances via the
+    // CefRequestContextSettings.accept_language_list value.
+    accept_language_list: TCefString;
+  end;
+
+  // Request context initialization settings. Specify NULL or 0 to get the
+  // recommended default values.
+  PCefRequestContextSettings = ^TCefRequestContextSettings;
+  TCefRequestContextSettings = record
+    // Size of this structure.
+    size: NativeUInt;
+
+    // The location where cache data will be stored on disk. If empty then
+    // browsers will be created in "incognito mode" where in-memory caches are
+    // used for storage and no data is persisted to disk. HTML5 databases such as
+    // localStorage will only persist across sessions if a cache path is
+    // specified. To share the global browser cache and related configuration set
+    // this value to match the CefSettings.cache_path value.
+    cache_path: TCefString;
+
+    // To persist session cookies (cookies without an expiry date or validity
+    // interval) by default when using the global cookie manager set this value to
+    // true. Session cookies are generally intended to be transient and most Web
+    // browsers do not persist them. Can be set globally using the
+    // CefSettings.persist_session_cookies value. This value will be ignored if
+    // |cache_path| is empty or if it matches the CefSettings.cache_path value.
+    persist_session_cookies: Integer;
+	
+	// To persist user preferences as a JSON file in the cache path directory set
+    // this value to true (1). Can be set globally using the
+    // CefSettings.persist_user_preferences value. This value will be ignored if
+    // |cache_path| is empty or if it matches the CefSettings.cache_path value.
+    persist_user_preferences: Integer;
+
+    // Set to true (1) to ignore errors related to invalid SSL certificates.
+    // Enabling this setting can lead to potential security vulnerabilities like
+    // "man in the middle" attacks. Applications that load content from the
+    // internet should not enable this setting. Can be set globally using the
+    // CefSettings.ignore_certificate_errors value. This value will be ignored if
+    // |cache_path| matches the CefSettings.cache_path value.
+    ignore_certificate_errors: Integer;
+
+    // Comma delimited ordered list of language codes without any whitespace that
+    // will be used in the "Accept-Language" HTTP header. Can be set globally
+    // using the CefSettings.accept_language_list value or overridden on a per-
+    // browser basis using the CefBrowserSettings.accept_language_list value. If
+    // all values are empty then "en-US,en" will be used. This value will be
+    // ignored if |cache_path| matches the CefSettings.cache_path value.
+    accept_language_list: TCefString;
   end;
 
   // Browser initialization settings. Specify NULL or 0 to get the recommended
@@ -436,7 +516,8 @@ type
     // The maximum rate in frames per second (fps) that CefRenderHandler::OnPaint
     // will be called for a windowless browser. The actual fps may be lower if
     // the browser cannot generate frames at the requested rate. The minimum
-    // value is 1 and the maximum value is 60 (default 30).
+    // value is 1 and the maximum value is 60 (default 30). This value can also be
+    // changed dynamically via CefBrowserHost::SetWindowlessFrameRate.
     windowless_frame_rate: Integer;
 
     // The below values map to WebPreferences settings.
@@ -472,8 +553,9 @@ type
 
     // Controls whether JavaScript can be used to close windows that were not
     // opened via JavaScript. JavaScript can still be used to close windows that
-    // were opened via JavaScript. Also configurable using the
-    // "disable-javascript-close-windows" command-line switch.
+    // were opened via JavaScript or that have no back/forward history. Also
+    // configurable using the "disable-javascript-close-windows" command-line
+    // switch.
     javascript_close_windows: TCefState;
 
     // Controls whether JavaScript can access the clipboard. Also configurable
@@ -489,10 +571,6 @@ type
     // Controls whether the caret position will be drawn. Also configurable using
     // the "enable-caret-browsing" command-line switch.
     caret_browsing: TCefState;
-
-    // Controls whether the Java plugin will be loaded. Also configurable using
-    // the "disable-java" command-line switch.
-    java: TCefState;
 
     // Controls whether any plugins will be loaded. Also configurable using the
     // "disable-plugins" command-line switch.
@@ -555,6 +633,12 @@ type
     // of the specified value will be used. The alpha component must greater than
     // 0 to enable use of the background color but will be otherwise ignored.
     background_color: TCefColor;
+
+    // Comma delimited ordered list of language codes without any whitespace that
+    // will be used in the "Accept-Language" HTTP header. May be set globally
+    // using the CefBrowserSettings.accept_language_list value. If both values are
+    // empty then "en-US,en" will be used.
+    accept_language_list: TCefString;
   end;
 
   // URL component parts.
@@ -592,6 +676,18 @@ type
     // Query string component (i.e., everything following the '?').
     query: TCefString;
   end;
+
+  // Return value types.
+  TCefReturnValue = (
+    // Cancel immediately.
+    RV_CANCEL = 0,
+
+    // Continue immediately.
+    RV_CONTINUE,
+
+    // Continue asynchronously (usually via a callback).
+    RV_CONTINUE_ASYNC
+  );
 
   TUrlParts = record
     spec: ustring;
@@ -679,14 +775,21 @@ type
     PK_FILE_EXE,
     // Path and filename of the module containing the CEF code (usually the libcef
     // module).
-    PK_FILE_MODULE);
+    PK_FILE_MODULE,
+    // "Local Settings\Application Data" directory under the user profile
+    // directory on Windows.
+    PK_LOCAL_APP_DATA,
+    // "Application Data" directory under the user profile directory on Windows
+    // and "~/Library/Application Support" directory on Mac OS X.
+    PK_USER_DATA
+  );
 
   // Storage types.
   TCefStorageType = (ST_LOCALSTORAGE = 0, ST_SESSIONSTORAGE);
 
   // Supported error code values. See net\base\net_error_list.h for complete
   // descriptions of the error codes.
-  TCefErrorcode = Integer;
+  TCefErrorCode = Integer;
 
 const
   ERR_NONE = 0;
@@ -716,6 +819,7 @@ const
   ERR_SSL_VERSION_OR_CIPHER_MISMATCH = -113;
   ERR_SSL_RENEGOTIATION_REQUESTED = -114;
   ERR_CERT_COMMON_NAME_INVALID = -200;
+    ERR_CERT_BEGIN = ERR_CERT_COMMON_NAME_INVALID;
   ERR_CERT_DATE_INVALID = -201;
   ERR_CERT_AUTHORITY_INVALID = -202;
   ERR_CERT_CONTAINS_ERRORS = -203;
@@ -723,7 +827,13 @@ const
   ERR_CERT_UNABLE_TO_CHECK_REVOCATION = -205;
   ERR_CERT_REVOKED = -206;
   ERR_CERT_INVALID = -207;
-  ERR_CERT_END = -208;
+  ERR_CERT_WEAK_SIGNATURE_ALGORITHM = -208;
+  // -209 is available: was ERR_CERT_NOT_IN_DNS.
+  ERR_CERT_NON_UNIQUE_NAME = -210;
+  ERR_CERT_WEAK_KEY = -211;
+  ERR_CERT_NAME_CONSTRAINT_VIOLATION = -212;
+  ERR_CERT_VALIDITY_TOO_LONG = -213;
+  ERR_CERT_END = ERR_CERT_VALIDITY_TOO_LONG;
   ERR_INVALID_URL = -300;
   ERR_DISALLOWED_URL_SCHEME = -301;
   ERR_UNKNOWN_URL_SCHEME = -302;
@@ -738,6 +848,54 @@ const
   ERR_RESPONSE_HEADERS_TOO_BIG = -325;
   ERR_CACHE_MISS = -400;
   ERR_INSECURE_RESPONSE = -501;
+
+  // Supported certificate status code values. See net\cert\cert_status_flags.h
+  // for more information. CERT_STATUS_NONE is new in CEF because we use an
+  // enum while cert_status_flags.h uses a typedef and static const variables.
+type
+  TCefCertStatus = Integer;
+const
+  CERT_STATUS_NONE = 0;
+  CERT_STATUS_COMMON_NAME_INVALID = 1 shl 0;
+  CERT_STATUS_DATE_INVALID = 1 shl 1;
+  CERT_STATUS_AUTHORITY_INVALID = 1 shl 2;
+  // 1 << 3 is reserved for ERR_CERT_CONTAINS_ERRORS (not useful with WinHTTP).
+  CERT_STATUS_NO_REVOCATION_MECHANISM = 1 shl 4;
+  CERT_STATUS_UNABLE_TO_CHECK_REVOCATION = 1 shl 5;
+  CERT_STATUS_REVOKED = 1 shl 6;
+  CERT_STATUS_INVALID = 1 shl 7;
+  CERT_STATUS_WEAK_SIGNATURE_ALGORITHM = 1 shl 8;
+  // 1 << 9 was used for CERT_STATUS_NOT_IN_DNS
+  CERT_STATUS_NON_UNIQUE_NAME = 1 shl 10;
+  CERT_STATUS_WEAK_KEY = 1 shl 11;
+  // 1 << 12 was used for CERT_STATUS_WEAK_DH_KEY
+  CERT_STATUS_PINNED_KEY_MISSING = 1 shl 13;
+  CERT_STATUS_NAME_CONSTRAINT_VIOLATION = 1 shl 14;
+  CERT_STATUS_VALIDITY_TOO_LONG = 1 shl 15;
+
+  // Bits 16 to 31 are for non-error statuses.
+  CERT_STATUS_IS_EV = 1 shl 16;
+  CERT_STATUS_REV_CHECKING_ENABLED = 1 shl 17;
+  // Bit 18 was CERT_STATUS_IS_DNSSEC
+  CERT_STATUS_SHA1_SIGNATURE_PRESENT = 1 shl 19;
+  CERT_STATUS_CT_COMPLIANCE_FAILED = 1 shl 20;
+
+type
+  // The manner in which a link click should be opened.
+
+  TCefWindowOpenDisposition = (
+    WOD_UNKNOWN,
+    WOD_SUPPRESS_OPEN,
+    WOD_CURRENT_TAB,
+    WOD_SINGLETON_TAB,
+    WOD_NEW_FOREGROUND_TAB,
+    WOD_NEW_BACKGROUND_TAB,
+    WOD_NEW_POPUP,
+    WOD_NEW_WINDOW,
+    WOD_SAVE_TO_DISK,
+    WOD_OFF_THE_RECORD,
+    WOD_IGNORE_ACTION
+  );
 
   // "Verb" of a drag-and-drop operation as negotiated between the source and
   // destination. These constants match their equivalents in WebCore's
@@ -823,8 +981,14 @@ type
     RT_PING,
 
     // Main resource of a service worker.
-    RT_SERVICE_WORKER);
+    RT_SERVICE_WORKER,
 
+    // A report of Content Security Policy violations.
+    RT_CSP_REPORT,
+
+    // A resource that a plugin requested.
+    RT_PLUGIN_RESOURCE
+  );
 
   // Transition type for a request. Made up of one source value and 0 or more
   // qualifiers.
@@ -902,24 +1066,24 @@ type
   // Flags used to customize the behavior of CefURLRequest.
   TCefUrlRequestFlag = (
     // Default behavior.
-    // UR_FLAG_NONE                      = 0,
+    //UR_FLAG_NONE                      = 0,
     // If set the cache will be skipped when handling the request.
     UR_FLAG_SKIP_CACHE,
     // If set user name, password, and cookies may be sent with the request, and
     // cookies may be saved from the response.
-    UR_FLAG_ALLOW_CACHED_CREDENTIALS, UR_FLAG_DUMMY_1,
+    UR_FLAG_ALLOW_CACHED_CREDENTIALS,
+    UR_FLAG_DUMMY_1,
     // If set upload progress events will be generated when a request has a body.
     UR_FLAG_REPORT_UPLOAD_PROGRESS,
-    // If set load timing info will be collected for the request.
     UR_FLAG_DUMMY_2,
-    // If set the headers sent and received for the request will be recorded.
-    UR_FLAG_REPORT_RAW_HEADERS,
+    UR_FLAG_DUMMY_3,
     // If set the CefURLRequestClient::OnDownloadData method will not be called.
     UR_FLAG_NO_DOWNLOAD_DATA,
     // If set 5XX redirect errors will be propagated to the observer instead of
     // automatically re-tried. This currently only applies for requests
     // originated in the browser process.
-    UR_FLAG_NO_RETRY_ON_5XX);
+    UR_FLAG_NO_RETRY_ON_5XX
+  );
   TCefUrlRequestFlags = set of TCefUrlRequestFlag;
 
   // Flags that represent CefURLRequest status.
@@ -966,6 +1130,18 @@ type
     of TCefRect;
   PCefRectArray = ^TCefRectArray;
 
+  // Structure representing a draggable region.
+  PCefDraggableRegion = ^TCefDraggableRegion;
+  TCefDraggableRegion = record
+    // Bounds of the region.
+    bounds: TCefRect;
+    // True (1) this this region is draggable and false (0) otherwise.
+    draggable: Integer;
+  end;
+
+  PCefDraggableRegionArray = ^TCefDraggableRegionArray;
+  TCefDraggableRegionArray = array[0..(High(Integer) div SizeOf(TCefDraggableRegion))-1]  of TCefDraggableRegion;
+
   // Existing process IDs.
   TCefProcessId = (
     // Browser process.
@@ -979,7 +1155,6 @@ type
     // The main thread in the browser. This will be the same as the main
     // application thread if CefInitialize() is called with a
     // CefSettings.multi_threaded_message_loop value of false.
-    ///
     TID_UI,
 
     // Used to interact with the database.
@@ -1003,9 +1178,7 @@ type
 
     // RENDER PROCESS THREADS -- Only available in the render process.
 
-    ///
     // The main thread in the renderer. Used for all WebKit and V8 interaction.
-    ///
     TID_RENDERER);
 
   // Supported value types.
@@ -1019,7 +1192,6 @@ type
   // Screen information used when window rendering is disabled. This structure is
   // passed as a parameter to CefRenderHandler::GetScreenInfo and should be filled
   // in by the client.
-  ///
   TCefScreenInfo = record
     // Device scale factor. Specifies the ratio between physical and logical
     // pixels.
@@ -1056,7 +1228,6 @@ type
     //
     // The |rect| and |available_rect| properties are used to determine the
     // available surface for rendering popup views.
-    ///
     available_rect: TCefRect;
   end;
 
@@ -1082,7 +1253,13 @@ type
     MENU_ID_SPELLCHECK_SUGGESTION_3 = 203,
     MENU_ID_SPELLCHECK_SUGGESTION_4 = 204,
     MENU_ID_SPELLCHECK_SUGGESTION_LAST = 204,
-    MENU_ID_NO_SPELLING_SUGGESTIONS = 205, MENU_ID_ADD_TO_DICTIONARY = 206,
+    MENU_ID_NO_SPELLING_SUGGESTIONS = 205,
+    MENU_ID_ADD_TO_DICTIONARY = 206,
+
+    // Custom menu items originating from the renderer process. For example,
+    // plugin placeholder menu items or Flash menu items.
+    MENU_ID_CUSTOM_FIRST        = 220,
+    MENU_ID_CUSTOM_LAST         = 250,
 
     // All user-defined menu IDs should come between MENU_ID_USER_FIRST and
     // MENU_ID_USER_LAST to avoid overlapping the Chromium and CEF ID ranges
@@ -1324,14 +1501,38 @@ type
     // Like Open, but allows picking multiple files to open.
     FILE_DIALOG_OPEN_MULTIPLE,
 
+    // Like Open, but selects a folder to open.
+    FILE_DIALOG_OPEN_FOLDER,
+
     // Allows picking a nonexistent file, and prompts to overwrite if the file
     // already exists.
-    FILE_DIALOG_SAVE);
+    FILE_DIALOG_SAVE
+  );
 
+const
+  // General mask defining the bits used for the type values.
+  FILE_DIALOG_TYPE_MASK = $FF;
+
+  // Qualifiers.
+  // Any of the type values above can be augmented by one or more qualifiers.
+  // These qualifiers further define the dialog behavior.
+
+  // Prompt to overwrite if the user selects an existing file with the Save
+  // dialog.
+  FILE_DIALOG_OVERWRITEPROMPT_FLAG = $01000000;
+
+  // Do not display read-only files.
+  FILE_DIALOG_HIDEREADONLY_FLAG = $02000000;
+
+
+type
   // Geoposition error codes.
-  TCefGeopositionErrorCode = (GEOPOSITON_ERROR_NONE,
-    GEOPOSITON_ERROR_PERMISSION_DENIED, GEOPOSITON_ERROR_POSITION_UNAVAILABLE,
-    GEOPOSITON_ERROR_TIMEOUT);
+  TCefGeopositionErrorCode = (
+    GEOPOSITON_ERROR_NONE,
+    GEOPOSITON_ERROR_PERMISSION_DENIED,
+    GEOPOSITON_ERROR_POSITION_UNAVAILABLE,
+    GEOPOSITON_ERROR_TIMEOUT
+  );
 
   // Structure representing geoposition information. The properties of this
   // structure correspond to those of the JavaScript Position object although
@@ -1391,19 +1592,17 @@ type
   // Print job duplex mode values.
   TCefDuplexMode = (DUPLEX_MODE_UNKNOWN = -1, DUPLEX_MODE_SIMPLEX,
     DUPLEX_MODE_LONG_EDGE, DUPLEX_MODE_SHORT_EDGE);
-
+	
   // Structure representing a print job page range.
   PCefPageRange = ^TCefPageRange;
-
   TCefPageRange = record
-    from: Integer;
+    from:Integer;
     to_: Integer;
   end;
 
-  TCefPageRangeArray = array of TCefPageRange;
+  TCefPageRangeArray = array of TCefPageRange;	
 
   // Cursor type values.
-  ///
   TCefCursorType = (CT_POINTER = 0, CT_CROSS, CT_HAND, CT_IBEAM, CT_WAIT,
     CT_HELP, CT_EASTRESIZE, CT_NORTHRESIZE, CT_NORTHEASTRESIZE,
     CT_NORTHWESTRESIZE, CT_SOUTHRESIZE, CT_SOUTHEASTRESIZE, CT_SOUTHWESTRESIZE,
@@ -1429,12 +1628,224 @@ type
     size: TCefSize;
   end;
 
+  // URI unescape rules passed to CefURIDecode().
+  // todo: set of
+  TCefUriUnescapeRule = (
+    // Don't unescape anything at all.
+    UU_NONE = 0,
+
+    // Don't unescape anything special, but all normal unescaping will happen.
+    // This is a placeholder and can't be combined with other flags (since it's
+    // just the absence of them). All other unescape rules imply "normal" in
+    // addition to their special meaning. Things like escaped letters, digits,
+    // and most symbols will get unescaped with this mode.
+    UU_NORMAL = 1,
+
+    // Convert %20 to spaces. In some places where we're showing URLs, we may
+    // want this. In places where the URL may be copied and pasted out, then
+    // you wouldn't want this since it might not be interpreted in one piece
+    // by other applications.
+    UU_SPACES = 2,
+
+    // Unescapes various characters that will change the meaning of URLs,
+    // including '%', '+', '&', '/', '#'. If we unescaped these characters, the
+    // resulting URL won't be the same as the source one. This flag is used when
+    // generating final output like filenames for URLs where we won't be
+    // interpreting as a URL and want to do as much unescaping as possible.
+    UU_URL_SPECIAL_CHARS = 4,
+
+    // Unescapes control characters such as %01. This INCLUDES NULLs. This is
+    // used for rare cases such as data: URL decoding where the result is binary
+    // data. This flag also unescapes BiDi control characters.
+    //
+    // DO NOT use CONTROL_CHARS if the URL is going to be displayed in the UI
+    // for security reasons.
+    UU_CONTROL_CHARS = 8,
+
+    // URL queries use "+" for space. This flag controls that replacement.
+    UU_REPLACE_PLUS_WITH_SPACE = 16
+  );
+
+type
+  // Options that can be passed to CefParseJSON.
+  // todo: set of
+  TCefJsonParserOptions = (
+    // Parses the input strictly according to RFC 4627. See comments in Chromium's
+    // base/json/json_reader.h file for known limitations/deviations from the RFC.
+    JSON_PARSER_RFC = 0,
+
+    // Allows commas to exist after the last element in structures.
+    JSON_PARSER_ALLOW_TRAILING_COMMAS = 1 shl 0
+  );
+
+  // Error codes that can be returned from CefParseJSONAndReturnError.
+  PCefJsonParserError = ^TCefJsonParserError;
+  TCefJsonParserError = (
+    JSON_NO_ERROR = 0,
+    JSON_INVALID_ESCAPE,
+    JSON_SYNTAX_ERROR,
+    JSON_UNEXPECTED_TOKEN,
+    JSON_TRAILING_COMMA,
+    JSON_TOO_MUCH_NESTING,
+    JSON_UNEXPECTED_DATA_AFTER_ROOT,
+    JSON_UNSUPPORTED_ENCODING,
+    JSON_UNQUOTED_DICTIONARY_KEY,
+    JSON_PARSE_ERROR_COUNT
+  );
+
+  // Options that can be passed to CefWriteJSON.
+  // Default behavior.
+  // JSON_WRITER_DEFAULT = 0;
+  TCefJsonWriterOption = (
+    // This option instructs the writer that if a Binary value is encountered,
+    // the value (and key if within a dictionary) will be omitted from the
+    // output, and success will be returned. Otherwise, if a binary value is
+    // encountered, failure will be returned.
+    JSON_WRITER_OMIT_BINARY_VALUES,
+
+    // This option instructs the writer to write doubles that have no fractional
+    // part as a normal integer (i.e., without using exponential notation
+    // or appending a '.0') as long as the value is within the range of a
+    // 64-bit int.
+    JSON_WRITER_OMIT_DOUBLE_TYPE_PRESERVATION,
+
+    // Return a slightly nicer formatted json string (pads with whitespace to
+    // help with readability).
+    JSON_WRITER_PRETTY_PRINT
+  );
+  TCefJsonWriterOptions = set of TCefJsonWriterOption;
+
+  // Margin type for PDF printing.
+  TCefPdfPrintMarginType = (
+    // Default margins.
+    PDF_PRINT_MARGIN_DEFAULT,
+    // No margins.
+    PDF_PRINT_MARGIN_NONE,
+    // Minimum margins.
+    PDF_PRINT_MARGIN_MINIMUM,
+    // Custom margins using the |margin_*| values from cef_pdf_print_settings_t.
+    PDF_PRINT_MARGIN_CUSTOM
+  );
+
+  // Structure representing PDF print settings.
+  PCefPdfPrintSettings = ^TCefPdfPrintSettings;
+  TCefPdfPrintSettings = record
+    // Page title to display in the header. Only used if |header_footer_enabled|
+    // is set to true (1).
+    header_footer_title: TCefString;
+    // URL to display in the footer. Only used if |header_footer_enabled| is set
+    // to true (1).
+    header_footer_url: TCefString;
+    // Output page size in microns. If either of these values is less than or
+    // equal to zero then the default paper size (A4) will be used.
+    page_width: Integer;
+    page_height: Integer;
+    // Margins in millimeters. Only used if |margin_type| is set to
+    // PDF_PRINT_MARGIN_CUSTOM.
+    margin_top: double;
+    margin_right: double;
+    margin_bottom: double;
+    margin_left: double;
+    // Margin type.
+    margin_type: TCefPdfPrintMarginType;
+    // Set to true (1) to print headers and footers or false (0) to not print
+    // headers and footers.
+    header_footer_enabled: Integer;
+    // Set to true (1) to print the selection only or false (0) to print all.
+    selection_only: Integer;
+    // Set to true (1) for landscape mode or false (0) for portrait mode.
+    landscape: Integer;
+    // Set to true (1) to print background graphics or false (0) to not print
+    // background graphics.
+    backgrounds_enabled: Integer;
+  end;
+
+  // Supported UI scale factors for the platform. SCALE_FACTOR_NONE is used for
+  // density independent resources such as string, html/js files or an image that
+  // can be used for any scale factors (such as wallpapers).
+  TCefScaleFactor = (
+    SCALE_FACTOR_NONE = 0,
+    SCALE_FACTOR_100P,
+    SCALE_FACTOR_125P,
+    SCALE_FACTOR_133P,
+    SCALE_FACTOR_140P,
+    SCALE_FACTOR_150P,
+    SCALE_FACTOR_180P,
+    SCALE_FACTOR_200P,
+    SCALE_FACTOR_250P,
+    SCALE_FACTOR_300P
+  );
+
+  // Plugin policies supported by CefRequestContextHandler::OnBeforePluginLoad.
+  PCefPluginPolicy = ^TCefPluginPolicy;
+  TCefPluginPolicy = (
+    // Allow the content.
+    PLUGIN_POLICY_ALLOW,
+    // Allow important content and block unimportant content based on heuristics.
+    // The user can manually load blocked content.
+    PLUGIN_POLICY_DETECT_IMPORTANT,
+    // Block the content. The user can manually load blocked content.
+    PLUGIN_POLICY_BLOCK,
+    // Disable the content. The user cannot load disabled content.
+    PLUGIN_POLICY_DISABLE
+  );
+
+    // Policy for how the Referrer HTTP header value will be sent during navigation.
+  // If the `--no-referrers` command-line flag is specified then the policy value
+  // will be ignored and the Referrer value will never be sent.
+
+  TCefReferrerPolicy = (
+    // Always send the complete Referrer value.
+    REFERRER_POLICY_ALWAYS,
+
+    // Use the default policy. This is REFERRER_POLICY_ORIGIN_WHEN_CROSS_ORIGIN
+    // when the `--reduced-referrer-granularity` command-line flag is specified
+    // and REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE otherwise.
+    REFERRER_POLICY_DEFAULT,
+
+    // When navigating from HTTPS to HTTP do not send the Referrer value.
+    // Otherwise, send the complete Referrer value.
+    REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE,
+
+    // Never send the Referrer value.
+    REFERRER_POLICY_NEVER,
+
+    // Only send the origin component of the Referrer value.
+    REFERRER_POLICY_ORIGIN,
+
+    // When navigating cross-origin only send the origin component of the Referrer
+    // value. Otherwise, send the complete Referrer value.
+    REFERRER_POLICY_ORIGIN_WHEN_CROSS_ORIGIN
+  );
+
+  // Return values for CefResponseFilter::Filter().
+
+  TCefResponseFilterStatus = (
+    // Some or all of the pre-filter data was read successfully but more data is
+    // needed in order to continue filtering (filtered output is pending).
+    RESPONSE_FILTER_NEED_MORE_DATA,
+
+    // Some or all of the pre-filter data was read successfully and all available
+    // filtered output has been written.
+    RESPONSE_FILTER_DONE,
+
+    // An error occurred during filtering.
+    RESPONSE_FILTER_ERROR
+  );
+
+  // Describes how to interpret the components of a pixel.
+
   TGetDataResource = {$IFDEF DELPHI12_UP}reference to
 {$ENDIF} function(resourceId: Integer; out data: Pointer;
     out dataSize: NativeUInt): Boolean;
 
   TGetLocalizedString = {$IFDEF DELPHI12_UP}reference to
-{$ENDIF} function(messageId: Integer; out stringVal: ustring): Boolean;
+{$ENDIF} function(stringId: Integer; out stringVal: ustring): Boolean;
+
+  TGetDataResourceForScale = {$IFDEF DELPHI12_UP}reference to{$ENDIF}function(
+    resourceId: Integer; scaleFactor: TCefScaleFactor; out data: Pointer;
+    out dataSize: NativeUInt): Boolean;
+
 
 implementation
 

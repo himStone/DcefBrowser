@@ -26,7 +26,7 @@ interface
 
 uses
   Windows, Classes, Controls, ComCtrls, Forms, ExtCtrls, Dialogs, StrUtils,
-  SysUtils, Messages, Math, Generics.Collections,
+  SysUtils, Messages, Math, Generics.Collections, Vcl.Graphics,
 
   DcefB.Cef3.Types, DcefB.Cef3.Interfaces, DcefB.Cef3.Classes,
   DcefB.Cef3.Helper, DcefB.BaseObject, DcefB.Locker, DcefB.Settings,
@@ -54,6 +54,8 @@ type
     // ---------------
     FOnLoadingStateChange: TOnLoadingStateChange;
     FOnStateChange: TOnStateChange;
+    FOnFavIconChange: TOnFavIconChange;
+    FOnFullScreenModeChange: TOnFullScreenModeChange;
     FOnAddBrowser: TOnAddBrowser;
     FOnCloseBrowser: TOnCloseBrowser;
     FOnBeforeCloseBrowser: TOnBeforeCloseBrowser;
@@ -61,11 +63,15 @@ type
     FOnLoadEnd: TOnLoadEnd;
     FOnLoadError: TOnLoadError;
     FOnBeforeBrowse: TOnBeforeBrowse;
+    FOnOpenUrlFromTab: TOnOpenUrlFromTab;
     FOnPreKeyEvent: TOnPreKeyEvent;
     FOnKeyEvent: TOnKeyEvent;
     FOnBeforeResourceLoad: TOnBeforeResourceLoad;
     FOnGetResourceHandler: TOnGetResourceHandler;
     FOnResourceRedirect: TOnResourceRedirect;
+    FOnResourceResponse: TOnResourceResponse;
+    FOnGetResourceResponseFilter: TOnGetResourceResponseFilter;
+    FOnResourceLoadComplete: TOnResourceLoadComplete;
     FOnGotFocus: TOnGotFocus;
     FOnSetFocus: TOnSetFocus;
     FOnTakeFocus: TOnTakeFocus;
@@ -76,7 +82,6 @@ type
     FOnBeforeUnloadDialog: TOnBeforeUnloadDialog;
     FOnDialogClosed: TOnDialogClosed;
     FOnPluginCrashed: TOnPluginCrashed;
-    FOnBeforePluginLoad: TOnBeforePluginLoad;
     FOnBeforeDownload: TOnBeforeDownload;
     FOnDownloadUpdated: TOnDownloadUpdated;
     FOnGetAuthCredentials: TOnGetAuthCredentials;
@@ -89,12 +94,15 @@ type
     FOnCertificateError: TOnCertificateError;
     FOnDragEnter: TOnDragEnter;
     FOnStartDragging: TOnStartDragging;
+    FOnDraggableRegionsChanged: TOnDraggableRegionsChanged;
     FOnUpdateDragCursor: TOnUpdateDragCursor;
+    FOnScrollOffsetChanged: TOnScrollOffsetChanged;
     FOnCursorChange: TOnCursorChange;
     FOnTooltip: TOnTooltip;
     FOnResetDialogState: TOnResetDialogState;
     FOnRenderProcessTerminated: TOnRenderProcessTerminated;
     FOnBeforePopup: TOnBeforePopup;
+    FOnFindResult: TOnFindResult;
 
     // ---------Default Tab control Event
     procedure doOnDefaultTabChanging(Sender: TObject; var Allow: Boolean);
@@ -112,6 +120,8 @@ type
       IsLoading, CanGoBack, CanGoForward: Boolean);
     procedure doOnStateChange(const browser: ICefBrowser;
       const Kind: TBrowserDataChangeKind; const Value: string);
+    procedure doOnFaviconChange(const browser: ICefBrowser; const favUrl: string; const icon: TIcon);
+    procedure doOnFullScreenModeChange(const browser: ICefBrowser; fullscreen: Boolean);
     procedure doOnAddBrowser(const browser: ICefBrowser);
     procedure doOnCloseBrowser(const CloseBrowserIdArr: Array of Integer;
       Const ShowBrowserId: Integer);
@@ -127,6 +137,9 @@ type
     procedure doOnBeforeBrowse(const browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest; isRedirect: Boolean;
       var Cancel: Boolean);
+    procedure doOnOpenUrlFromTab(const browser: ICefBrowser; const frame: ICefFrame;
+      const targetUrl: ustring; targetDisposition: TCefWindowOpenDisposition;
+      userGesture: Boolean; out Cancel: Boolean);
 
     procedure doOnPreKeyEvent(const browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle;
@@ -135,14 +148,21 @@ type
     procedure doOnKeyEvent(const browser: ICefBrowser;
       const event: PCefKeyEvent; osEvent: TCefEventHandle; var Cancel: Boolean);
 
-    procedure doOnBeforeResourceLoad(const browser: ICefBrowser;
-      const frame: ICefFrame; const request: ICefRequest;
-      var CancelLoad: Boolean);
+    procedure doOnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const callback: ICefRequestCallback; out Result: TCefReturnValue);
     procedure doOnGetResourceHandler(const browser: ICefBrowser;
       const frame: ICefFrame; const request: ICefRequest;
       var ResourceHandler: ICefResourceHandler);
     procedure doOnResourceRedirect(const browser: ICefBrowser;
-      const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring);
+      const frame: ICefFrame; const request: ICefRequest; var newUrl: ustring);
+    procedure doOnResourceResponse(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse; out Cancel: Boolean);
+    procedure doOnGetResourceResponseFilter(const browser: ICefBrowser;
+      const frame: ICefFrame; const request: ICefRequest; const response: ICefResponse;
+      out Result: ICefResponseFilter);
+    procedure doOnResourceLoadComplete(const browser: ICefBrowser;
+      const frame: ICefFrame; const request: ICefRequest; const response: ICefResponse;
+      status: TCefUrlRequestStatus; receivedContentLength: Int64);
 
     procedure doOnGotFocus(const browser: ICefBrowser;
       var CancelDefaultEvent: Boolean);
@@ -161,7 +181,7 @@ type
       const frame: ICefFrame);
 
     procedure doOnJsdialog(const browser: ICefBrowser;
-      const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+      const originUrl: ustring; dialogType: TCefJsDialogType;
       const messageText, defaultPromptText: ustring;
       callback: ICefJsDialogCallback; out suppressMessage: Boolean;
       var Cancel: Boolean; var CancelDefaultEvent: Boolean);
@@ -173,9 +193,6 @@ type
 
     procedure doOnPluginCrashed(const browser: ICefBrowser;
       const pluginPath: ustring);
-    procedure doOnBeforePluginLoad(const browser: ICefBrowser;
-      const URL, policyUrl: ustring; const info: ICefWebPluginInfo;
-      var CancelLoad: Boolean);
 
     procedure doOnBeforeDownload(const browser: ICefBrowser;
       const downloadItem: ICefDownloadItem; const suggestedName: ustring;
@@ -193,22 +210,22 @@ type
     procedure doOnProtocolExecution(browser: ICefBrowser; const URL: ustring;
       var allowOsExecution: Boolean);
     procedure doOnFileDialog(const browser: ICefBrowser;
-      mode: TCefFileDialogMode; const title, defaultFileName: ustring;
-      acceptTypes: TStrings; const callback: ICefFileDialogCallback;
-      var Cancel: Boolean);
+    mode: TCefFileDialogMode; const title, defaultFilePath: ustring;
+    acceptFilters: TStrings; selectedAcceptFilter: Integer;
+    const callback: ICefFileDialogCallback; var Cancel: Boolean);
 
     procedure doOnRequestGeolocationPermission(const browser: ICefBrowser;
       const requestingUrl: ustring; requestId: Integer;
       const callback: ICefGeolocationCallback; var Cancel: Boolean);
     procedure doOnCancelGeolocationPermission(const browser: ICefBrowser;
-      const requestingUrl: ustring; requestId: Integer);
+       requestId: Integer);
 
     procedure doOnQuotaRequest(const browser: ICefBrowser;
       const originUrl: ustring; newSize: Int64;
-      const callback: ICefQuotaCallback; var Cancel: Boolean);
-    procedure doOnCertificateError(certError: TCefErrorCode;
-      const requestUrl: ustring;
-      const callback: ICefAllowCertificateErrorCallback; var Cancel: Boolean);
+      const callback: ICefRequestCallback; var Cancel: Boolean);
+    procedure doOnCertificateError(const browser: ICefBrowser;
+      certError: TCefErrorcode; const requestUrl: ustring; const sslInfo: ICefSslInfo;
+      const callback: ICefRequestCallback; out Cancel: Boolean);
 
     procedure doOnDragEnter(const browser: ICefBrowser;
       const dragData: ICefDragData; mask: TCefDragOperations;
@@ -216,6 +233,8 @@ type
     procedure doOnStartDragging(const browser: ICefBrowser;
       const dragData: ICefDragData; allowedOps: TCefDragOperations;
       x, y: Integer; var Cancel: Boolean);
+    procedure doOnDraggableRegionsChanged(const browser: ICefBrowser;
+      regionsCount: NativeUInt; regions: PCefDraggableRegionArray);
     procedure doOnUpdateDragCursor(const browser: ICefBrowser;
       operation: TCefDragOperation);
     procedure doOnCursorChange(const browser: ICefBrowser;
@@ -228,10 +247,14 @@ type
       status: TCefTerminationStatus);
     procedure doOnBeforePopup(const browser: ICefBrowser;
       const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-      var client: ICefClient; var Settings: TCefBrowserSettings;
+      var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean; var Cancel: Boolean;
       var CancelDefaultEvent: Boolean);
+    procedure doOnScrollOffsetChanged(const browser: ICefBrowser; x, y: Double);
+    procedure doOnFindResult(const browser: ICefBrowser; identifier, count: Integer;
+      const selectionRect: PCefRect; activeMatchOrdinal: Integer; finalUpdate: Boolean);
 
     function GetZoomLevel: string;
     function GetActiveBrowser: ICefBrowser;
@@ -329,6 +352,8 @@ type
       read FOnLoadingStateChange write FOnLoadingStateChange;
     property OnStateChange: TOnStateChange read FOnStateChange
       write FOnStateChange;
+    property OnFavIconChange: TOnFavIconChange read FOnFavIconChange write FOnFavIconChange;
+    property OnFullScreenModeChange: TOnFullScreenModeChange read FOnFullScreenModeChange write FOnFullScreenModeChange;
     property OnAddBrowser: TOnAddBrowser read FOnAddBrowser write FOnAddBrowser;
     property OnCloseBrowser: TOnCloseBrowser read FOnCloseBrowser
       write FOnCloseBrowser;
@@ -339,6 +364,7 @@ type
     property OnLoadError: TOnLoadError read FOnLoadError write FOnLoadError;
     property OnBeforeBrowse: TOnBeforeBrowse read FOnBeforeBrowse
       write FOnBeforeBrowse;
+    property OnOpenUrlFromTab: TOnOpenUrlFromTab read FOnOpenUrlFromTab write FOnOpenUrlFromTab;
     property OnPreKeyEvent: TOnPreKeyEvent read FOnPreKeyEvent
       write FOnPreKeyEvent;
     property OnKeyEvent: TOnKeyEvent read FOnKeyEvent write FOnKeyEvent;
@@ -348,6 +374,9 @@ type
       read FOnGetResourceHandler write FOnGetResourceHandler;
     property OnResourceRedirect: TOnResourceRedirect read FOnResourceRedirect
       write FOnResourceRedirect;
+    property OnResourceResponse: TOnResourceResponse read FOnResourceResponse write FOnResourceResponse;
+    property OnGetResourceResponseFilter: TOnGetResourceResponseFilter read FOnGetResourceResponseFilter write FOnGetResourceResponseFilter;
+    property OnResourceLoadComplete: TOnResourceLoadComplete read FOnResourceLoadComplete write FOnResourceLoadComplete;
     property OnGotFocus: TOnGotFocus read FOnGotFocus write FOnGotFocus;
     property OnSetFocus: TOnSetFocus read FOnSetFocus write FOnSetFocus;
     property OnTakeFocus: TOnTakeFocus read FOnTakeFocus write FOnTakeFocus;
@@ -364,8 +393,6 @@ type
       write FOnDialogClosed;
     property OnPluginCrashed: TOnPluginCrashed read FOnPluginCrashed
       write FOnPluginCrashed;
-    property OnBeforePluginLoad: TOnBeforePluginLoad read FOnBeforePluginLoad
-      write FOnBeforePluginLoad;
     property OnBeforeDownload: TOnBeforeDownload read FOnBeforeDownload
       write FOnBeforeDownload;
     property OnDownloadUpdated: TOnDownloadUpdated read FOnDownloadUpdated
@@ -389,8 +416,10 @@ type
     property OnDragEnter: TOnDragEnter read FOnDragEnter write FOnDragEnter;
     property OnStartDragging: TOnStartDragging read FOnStartDragging
       write FOnStartDragging;
+    property OnDraggableRegionsChanged: TOnDraggableRegionsChanged read FOnDraggableRegionsChanged write FOnDraggableRegionsChanged;
     property OnUpdateDragCursor: TOnUpdateDragCursor read FOnUpdateDragCursor
       write FOnUpdateDragCursor;
+    property OnScrollOffsetChanged: TOnScrollOffsetChanged read FOnScrollOffsetChanged write FOnScrollOffsetChanged;
     property OnCursorChange: TOnCursorChange read FOnCursorChange
       write FOnCursorChange;
     property OnTooltip: TOnTooltip read FOnTooltip write FOnTooltip;
@@ -400,6 +429,7 @@ type
       read FOnRenderProcessTerminated write FOnRenderProcessTerminated;
     property OnBeforePopup: TOnBeforePopup read FOnBeforePopup
       write FOnBeforePopup;
+    property OnFindResult: TOnFindResult read FOnFindResult write FOnFindResult;
   end;
 
   TDcefBrowser = class(TCustomDcefBrowser)
@@ -421,6 +451,8 @@ type
     property OnDefaultTabChanging;
     property OnLoadingStateChange;
     property OnStateChange;
+    property OnFavIconChange;
+    property OnFullScreenModeChange;
     property OnAddBrowser;
     property OnCloseBrowser;
     property OnBeforeCloseBrowser;
@@ -428,11 +460,13 @@ type
     property OnLoadEnd;
     property OnLoadError;
     property OnBeforeBrowse;
+    property OnOpenUrlFromTab;
     property OnPreKeyEvent;
     property OnKeyEvent;
     property OnBeforeResourceLoad;
     property OnGetResourceHandler;
     property OnResourceRedirect;
+    property OnResourceResponse;
     property OnGotFocus;
     property OnSetFocus;
     property OnTakeFocus;
@@ -443,7 +477,6 @@ type
     property OnBeforeUnloadDialog;
     property OnDialogClosed;
     property OnPluginCrashed;
-    property OnBeforePluginLoad;
     property OnBeforeDownload;
     property OnDownloadUpdated;
     property OnGetAuthCredentials;
@@ -456,12 +489,14 @@ type
     property OnCertificateError;
     property OnDragEnter;
     property OnStartDragging;
+    property OnDraggableRegionsChanged;
     property OnUpdateDragCursor;
     property OnCursorChange;
     property OnTooltip;
     property OnResetDialogState;
     property OnRenderProcessTerminated;
     property OnBeforePopup;
+    property OnFindResult;
   end;
 
 implementation
@@ -793,14 +828,42 @@ begin
     FOnDragEnter(browser, dragData, mask, Cancel);
 end;
 
+procedure TCustomDcefBrowser.doOnDraggableRegionsChanged(
+  const browser: ICefBrowser; regionsCount: NativeUInt;
+  regions: PCefDraggableRegionArray);
+begin
+   if Assigned(FOnDraggableRegionsChanged) then
+    FOnDraggableRegionsChanged(browser, regionsCount, regions);
+end;
+
+procedure TCustomDcefBrowser.doOnFaviconChange(const browser: ICefBrowser; const favUrl: string; const icon: TIcon);
+begin
+  if Assigned(FOnFaviconChange) then
+    FOnFaviconChange(browser, favUrl, icon);
+end;
+
 procedure TCustomDcefBrowser.doOnFileDialog(const browser: ICefBrowser;
-  mode: TCefFileDialogMode; const title, defaultFileName: ustring;
-  acceptTypes: TStrings; const callback: ICefFileDialogCallback;
-  var Cancel: Boolean);
+    mode: TCefFileDialogMode; const title, defaultFilePath: ustring;
+    acceptFilters: TStrings; selectedAcceptFilter: Integer;
+    const callback: ICefFileDialogCallback; var Cancel: Boolean);
 begin
   if Assigned(FOnFileDialog) then
-    FOnFileDialog(browser, mode, title, defaultFileName, acceptTypes,
-      callback, Cancel);
+    FOnFileDialog(browser,  mode, title, defaultFilePath, acceptFilters, selectedAcceptFilter, callback, Cancel);
+end;
+
+procedure TCustomDcefBrowser.doOnFindResult(const browser: ICefBrowser;
+  identifier, count: Integer; const selectionRect: PCefRect;
+  activeMatchOrdinal: Integer; finalUpdate: Boolean);
+begin
+  if Assigned(FOnFindResult) then
+    FOnFindResult(browser, identifier, count, selectionRect, activeMatchOrdinal, finalUpdate);
+end;
+
+procedure TCustomDcefBrowser.doOnFullScreenModeChange(
+  const browser: ICefBrowser; fullscreen: Boolean);
+begin
+    if Assigned(FOnFullScreenModeChange) then
+    FOnFullScreenModeChange(browser, fullscreen);
 end;
 
 procedure TCustomDcefBrowser.doOnAddBrowser(const browser: ICefBrowser);
@@ -845,31 +908,27 @@ begin
       CancelDefaultEvent);
 end;
 
-procedure TCustomDcefBrowser.doOnBeforePluginLoad(const browser: ICefBrowser;
-  const URL, policyUrl: ustring; const info: ICefWebPluginInfo;
-  var CancelLoad: Boolean);
-begin
-  if Assigned(FOnBeforePluginLoad) then
-    FOnBeforePluginLoad(browser, URL, policyUrl, info, CancelLoad);
-end;
-
 procedure TCustomDcefBrowser.doOnBeforePopup(const browser: ICefBrowser;
-  const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
-  var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
-  var client: ICefClient; var Settings: TCefBrowserSettings;
-  var noJavascriptAccess, Cancel, CancelDefaultEvent: Boolean);
+      const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
+      var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+      var client: ICefClient; var settings: TCefBrowserSettings;
+      var noJavascriptAccess: Boolean; var Cancel: Boolean;
+      var CancelDefaultEvent: Boolean);
 begin
   if Assigned(FOnBeforePopup) then
-    FOnBeforePopup(browser, frame, targetUrl, targetFrameName, popupFeatures,
+    FOnBeforePopup(browser, frame, targetUrl, targetFrameName, targetDisposition, userGesture, popupFeatures,
       windowInfo, client, Settings, noJavascriptAccess, Cancel,
       CancelDefaultEvent);
 end;
 
-procedure TCustomDcefBrowser.doOnBeforeResourceLoad(const browser: ICefBrowser;
-  const frame: ICefFrame; const request: ICefRequest; var CancelLoad: Boolean);
+procedure TCustomDcefBrowser.doOnBeforeResourceLoad(const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const callback: ICefRequestCallback; out Result: TCefReturnValue);
 begin
   if Assigned(FOnBeforeResourceLoad) then
-    FOnBeforeResourceLoad(browser, frame, request, CancelLoad);
+    FOnBeforeResourceLoad(browser, frame, request, callback, Result)
+  else
+    Result := RV_CONTINUE;
 end;
 
 procedure TCustomDcefBrowser.doOnBeforeUnloadDialog(const browser: ICefBrowser;
@@ -882,19 +941,19 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnCancelGeolocationPermission
-  (const browser: ICefBrowser; const requestingUrl: ustring;
+  (const browser: ICefBrowser;
   requestId: Integer);
 begin
   if Assigned(FOnCancelGeolocationPermission) then
-    FOnCancelGeolocationPermission(browser, requestingUrl, requestId);
+    FOnCancelGeolocationPermission(browser, requestId);
 end;
 
-procedure TCustomDcefBrowser.doOnCertificateError(certError: TCefErrorCode;
-  const requestUrl: ustring; const callback: ICefAllowCertificateErrorCallback;
-  var Cancel: Boolean);
+procedure TCustomDcefBrowser.doOnCertificateError(const browser: ICefBrowser;
+    certError: TCefErrorcode; const requestUrl: ustring; const sslInfo: ICefSslInfo;
+    const callback: ICefRequestCallback; out Cancel: Boolean);
 begin
   if Assigned(FOnCertificateError) then
-    FOnCertificateError(certError, requestUrl, callback, Cancel);
+    FOnCertificateError(browser, certError, requestUrl, sslInfo, callback, Cancel);
 end;
 
 procedure TCustomDcefBrowser.doOnConsoleMessage(const browser: ICefBrowser;
@@ -964,6 +1023,15 @@ begin
     FOnGetResourceHandler(browser, frame, request, ResourceHandler);
 end;
 
+procedure TCustomDcefBrowser.doOnGetResourceResponseFilter(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse;
+  out Result: ICefResponseFilter);
+begin
+  if Assigned(FOnGetResourceResponseFilter) then
+    FOnGetResourceResponseFilter(browser, frame, request, response, Result);
+end;
+
 procedure TCustomDcefBrowser.doOnGotFocus(const browser: ICefBrowser;
   var CancelDefaultEvent: Boolean);
 begin
@@ -972,13 +1040,13 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnJsdialog(const browser: ICefBrowser;
-  const originUrl, acceptLang: ustring; dialogType: TCefJsDialogType;
+  const originUrl: ustring; dialogType: TCefJsDialogType;
   const messageText, defaultPromptText: ustring; callback: ICefJsDialogCallback;
   out suppressMessage: Boolean; var Cancel: Boolean;
   var CancelDefaultEvent: Boolean);
 begin
   if Assigned(FOnJsdialog) then
-    FOnJsdialog(browser, originUrl, acceptLang, dialogType, messageText,
+    FOnJsdialog(browser, originUrl, dialogType, messageText,
       defaultPromptText, callback, suppressMessage, Cancel, CancelDefaultEvent);
 end;
 
@@ -1012,6 +1080,15 @@ begin
     FOnLoadStart(browser, frame);
 end;
 
+procedure TCustomDcefBrowser.doOnOpenUrlFromTab(const browser: ICefBrowser;
+  const frame: ICefFrame; const targetUrl: ustring;
+  targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
+  out Cancel: Boolean);
+begin
+  if Assigned(FOnOpenUrlFromTab) then
+    FOnOpenUrlFromTab(browser, frame, targetUrl, targetDisposition, userGesture, Cancel);
+end;
+
 procedure TCustomDcefBrowser.doOnPreKeyEvent(const browser: ICefBrowser;
   const event: PCefKeyEvent; osEvent: TCefEventHandle;
   var isKeyboardShortcut: Boolean; var Cancel: Boolean;
@@ -1030,7 +1107,7 @@ begin
 end;
 
 procedure TCustomDcefBrowser.doOnQuotaRequest(const browser: ICefBrowser;
-  const originUrl: ustring; newSize: Int64; const callback: ICefQuotaCallback;
+  const originUrl: ustring; newSize: Int64; const callback: ICefRequestCallback;
   var Cancel: Boolean);
 begin
   if Assigned(FOnQuotaRequest) then
@@ -1059,11 +1136,35 @@ begin
     FOnResetDialogState(browser);
 end;
 
+procedure TCustomDcefBrowser.doOnResourceLoadComplete(
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse;
+  status: TCefUrlRequestStatus; receivedContentLength: Int64);
+begin
+  if Assigned(FOnResourceLoadComplete) then
+    FOnResourceLoadComplete(browser, frame, request, response, status, receivedContentLength);
+end;
+
 procedure TCustomDcefBrowser.doOnResourceRedirect(const browser: ICefBrowser;
-  const frame: ICefFrame; const oldUrl: ustring; var newUrl: ustring);
+      const frame: ICefFrame; const request: ICefRequest; var newUrl: ustring);
 begin
   if Assigned(FOnResourceRedirect) then
-    FOnResourceRedirect(browser, frame, oldUrl, newUrl);
+    FOnResourceRedirect(browser, frame, request, newUrl);
+end;
+
+procedure TCustomDcefBrowser.doOnResourceResponse(const browser: ICefBrowser;
+  const frame: ICefFrame; const request: ICefRequest;
+  const response: ICefResponse; out Cancel: Boolean);
+begin
+  if Assigned(FOnResourceResponse) then
+    FOnResourceResponse(browser, frame, request, response, Cancel);
+end;
+
+procedure TCustomDcefBrowser.doOnScrollOffsetChanged(const browser: ICefBrowser;
+  x, y: Double);
+begin
+   if Assigned(FOnScrollOffsetChanged) then
+    FOnScrollOffsetChanged(browser, x, y);
 end;
 
 procedure TCustomDcefBrowser.doOnSetFocus(const browser: ICefBrowser;
@@ -1204,7 +1305,6 @@ begin
     FChromiumOptions.JavascriptAccessClipboard;
   Settings.javascript_dom_paste := FChromiumOptions.JavascriptDomPaste;
   Settings.caret_browsing := FChromiumOptions.CaretBrowsing;
-  Settings.java := FChromiumOptions.java;
   Settings.plugins := FChromiumOptions.plugins;
   Settings.universal_access_from_file_urls :=
     FChromiumOptions.UniversalAccessFromFileUrls;

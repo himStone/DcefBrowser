@@ -35,14 +35,20 @@ type
   private
     FOnGetLocalizedString: TOnGetLocalizedString;
     FOnGetDataResource: TOnGetDataResource;
+    FOnGetDataResourceForScale: TOnGetDataResourceForScale;
     procedure SetOnGetDataResource(const Value: TOnGetDataResource);
     procedure SetOnGetLocalizedString(const Value: TOnGetLocalizedString);
+    procedure SetOnGetDataResourceForScale(const Value: TOnGetDataResourceForScale);
     function GetOnGetDataResource: TOnGetDataResource;
     function GetOnGetLocalizedString: TOnGetLocalizedString;
+    function GetOnGetDataResourceForScale: TOnGetDataResourceForScale;
   protected
     function GetDataResource(resourceId: Integer; out data: Pointer;
       out dataSize: NativeUInt): Boolean; override;
-    function GetLocalizedString(messageId: Integer; out stringVal: ustring)
+    function GetLocalizedString(stringId: Integer; out stringVal: ustring)
+      : Boolean; override;
+    function GetDataResourceForScale(resourceId: Integer;
+      scaleFactor: TCefScaleFactor; out data: Pointer; dataSize: NativeUInt)
       : Boolean; override;
   end;
 
@@ -58,17 +64,31 @@ begin
     FOnGetDataResource(resourceId, data, dataSize, Result);
 end;
 
-function TDcefBResourceBundleHandler.GetLocalizedString(messageId: Integer;
+function TDcefBResourceBundleHandler.GetDataResourceForScale
+  (resourceId: Integer; scaleFactor: TCefScaleFactor; out data: Pointer;
+  dataSize: NativeUInt): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnGetDataResourceForScale) then
+    FOnGetDataResourceForScale(resourceId, scaleFactor, data, dataSize, Result);
+end;
+
+function TDcefBResourceBundleHandler.GetLocalizedString(stringId: Integer;
   out stringVal: ustring): Boolean;
 begin
   Result := False;
   if Assigned(FOnGetLocalizedString) then
-    FOnGetLocalizedString(messageId, stringVal, Result);
+    FOnGetLocalizedString(stringId, stringVal, Result);
 end;
 
 function TDcefBResourceBundleHandler.GetOnGetDataResource: TOnGetDataResource;
 begin
   Result := FOnGetDataResource;
+end;
+
+function TDcefBResourceBundleHandler.GetOnGetDataResourceForScale: TOnGetDataResourceForScale;
+begin
+  Result := FOnGetDataResourceForScale;
 end;
 
 function TDcefBResourceBundleHandler.GetOnGetLocalizedString
@@ -81,6 +101,12 @@ procedure TDcefBResourceBundleHandler.SetOnGetDataResource
   (const Value: TOnGetDataResource);
 begin
   FOnGetDataResource := Value;
+end;
+
+procedure TDcefBResourceBundleHandler.SetOnGetDataResourceForScale(
+  const Value: TOnGetDataResourceForScale);
+begin
+  FOnGetDataResourceForScale := Value;
 end;
 
 procedure TDcefBResourceBundleHandler.SetOnGetLocalizedString

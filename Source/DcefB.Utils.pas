@@ -27,9 +27,11 @@ interface
 
 uses
   Windows, Classes, Variants, SysUtils, ComObj, SyncObjs,
-  DcefB.Cef3.Interfaces, DcefB.Cef3.Types, DcefB.res;
+  DcefB.Cef3.Interfaces, DcefB.Cef3.Types, DcefB.Cef3.Classes, DcefB.res;
 
 type
+  TFaviconReady = procedure(aUrl: string; aStream: TStream) of object;
+
   TDcefBUtils = record
     class function GetCefParentWindow(aBrowser: ICefBrowser): HWND; static;
     class function SendMsg(aBrowser: ICefBrowser; Msg: UINT; LParam: LParam)
@@ -44,11 +46,28 @@ type
       : TWaitResult; static;
   end;
 
+  TFaviconGetter = class(TCefUrlrequestClientOwn)
+  private
+    fCallback: TFaviconReady;
+    fStream: TMemoryStream;
+    fUrlRequest: ICefUrlRequest;
+  protected
+    procedure OnDownloadData(const request: ICefUrlRequest; data: Pointer;
+      dataLength: NativeUInt); override;
+    procedure OnRequestComplete(const request: ICefUrlRequest); override;
+  public
+    constructor Create(Url: String; Callback: TFaviconReady);
+
+    procedure Cancel;
+  end;
+
 implementation
 
 { TDcefBUtils }
 
 class function TDcefBUtils.GetCefParentWindow(aBrowser: ICefBrowser): HWND;
+var
+  h: HWND;
 begin
   Result := GetParent(aBrowser.host.WindowHandle);
 end;
@@ -250,6 +269,50 @@ begin
   end
   else
     raise Exception.Create(SCantToVariant);
+end;
+
+{ TFaviconGetter }
+
+procedure TFaviconGetter.OnDownloadData(const request: ICefUrlRequest; data: Pointer;
+      dataLength: NativeUInt);
+begin
+  fStream.WriteBuffer(data^, dataLength);
+end;
+
+procedure TFaviconGetter.OnRequestComplete(const request: ICefUrlRequest);
+begin
+  If Assigned(fCallback) then
+  begin
+    If request.GetRequestStatus = UR_SUCCESS then
+    begin
+      fStream.Position := 0;
+      try
+        fCallback(request.GetRequest.Url, fStream);
+      except
+      end;
+    end;
+  end;
+
+  fStream.Free;
+end;
+
+constructor TFaviconGetter.Create(Url: String; Callback: TFaviconReady);
+Var
+  Request: ICefRequest;
+begin
+  inherited Create;
+
+  fCallback := Callback;
+  fStream := TMemoryStream.Create;
+  Request := TCefRequestRef.New;
+  Request.Url := Url;
+  fUrlRequest := TCefUrlRequestRef.New(Request, Self, nil);
+end;
+
+procedure TFaviconGetter.Cancel;
+begin
+  fCallback := nil;
+  fUrlRequest.Cancel;
 end;
 
 end.

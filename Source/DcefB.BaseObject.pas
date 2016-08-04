@@ -71,6 +71,7 @@ type
   PDragEnterArgs = ^TDragEnterArgs;
   PAuthCredentialsArgs = ^TAuthCredentialsArgs;
   PICefClient = ^ICefClient;
+  PCefWindowOpenDisposition = ^TCefWindowOpenDisposition;
 
   TDynStrArr = Array of string;
   TDynIntArr = Array of Integer;
@@ -88,6 +89,8 @@ type
   TBeforePopupArgs = record
     frame: PICefFrame;
     targetUrl, targetFrameName: Pustring;
+    targetDisposition: PCefWindowOpenDisposition;
+    userGesture: PBoolean;
     popupFeatures: PCefPopupFeatures;
     windowInfo: PCefWindowInfo;
     client: PICefClient;
@@ -100,8 +103,9 @@ type
   TFileDialogArgs = record
     mode: ^TCefFileDialogMode;
     title: Pustring;
-    defaultFileName: Pustring;
-    acceptTypes: ^TStrings;
+    defaultFilePath: Pustring;
+    acceptFilters: ^TStrings;
+    selectedAcceptFilter: PInteger;
     callback: PICefFileDialogCallback;
     Result: PBoolean;
   end;
@@ -194,7 +198,6 @@ type
   end;
 
   TCancelGeolocationPermissionArgs = record
-    requestingUrl: Pustring;
     requestId: Integer;
   end;
 

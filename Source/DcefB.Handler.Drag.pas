@@ -38,6 +38,8 @@ type
     function OnDragEnter(const browser: ICefBrowser;
       const dragData: ICefDragData; mask: TCefDragOperations): Boolean;
       override;
+    procedure OnDraggableRegionsChanged(const browser: ICefBrowser;
+      regionsCount: NativeUInt; regions: PCefDraggableRegionArray); override;
   public
     constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
@@ -75,6 +77,14 @@ begin
     Dispose(PArgs); }
   Result := False;
   FEvents.doOnDragEnter(browser, dragData, mask, Result);
+end;
+
+procedure TDcefBDragHandler.OnDraggableRegionsChanged(
+  const browser: ICefBrowser; regionsCount: NativeUInt;
+  regions: PCefDraggableRegionArray);
+begin
+  inherited;
+  FEvents.doOnDraggableRegionsChanged(browser, regionsCount, regions);
 end;
 
 end.

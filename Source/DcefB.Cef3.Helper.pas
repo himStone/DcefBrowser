@@ -66,9 +66,23 @@ type
     class function CefParseUrl(const url: ustring;
       var parts: TUrlParts): Boolean;
     class function CefCreateUrl(var parts: TUrlParts): ustring;
+    class function CefFormatUrlForSecurityDisplay(const originUrl, languages: string): string;
     class function CefGetMimeType(const extension: ustring): ustring;
     class procedure CefGetExtensionsForMimeType(const mimeType: ustring;
       extensions: TStringList);
+
+    function CefBase64Encode(const data: Pointer; dataSize: NativeUInt): ustring;
+    function CefBase64Decode(const data: ustring): ICefBinaryValue;
+    function CefUriEncode(const text: ustring; usePlus: Boolean): ustring;
+    function CefUriDecode(const text: ustring; convertToUtf8: Boolean;
+      unescapeRule: TCefUriUnescapeRule): ustring;
+    function CefParseCssColor(const str: ustring; strict: Boolean; out color: TCefColor): Boolean;
+    {$ifdef Win32}
+    function CefParseJson(const jsonString: ustring; options: TCefJsonParserOptions): ICefValue;
+    function CefParseJsonAndReturnError(const jsonString: ustring; options: TCefJsonParserOptions;
+      out errorCodeOut: TCefJsonParserError; out errorMsgOut: ustring): ICefValue;
+    function CefWriteJson(const node: ICefValue; options: TCefJsonWriterOptions): ustring;
+    {$endif}
 
     class function CefStringClearAndGet(var str: TCefString): ustring;
     class procedure CefStringFree(const str: PCefString);
@@ -88,6 +102,8 @@ type
   end;
 
 implementation
+
+uses DcefB.Cef3.Classes;
 
 {$IFDEF MSWINDOWS}
 function TzSpecificLocalTimeToSystemTime(lpTimeZoneInformation
@@ -226,6 +242,34 @@ begin
     cef_string_from_wide(PWideChar(str), length(str), @Result);
 end;
 
+function TCef3Helper.CefUriDecode(const text: ustring; convertToUtf8: Boolean;
+  unescapeRule: TCefUriUnescapeRule): ustring;
+var
+  s: TCefString;
+begin
+  s := CefString(text);
+  Result := CefStringFreeAndGet(cef_uridecode(@s, Ord(convertToUtf8), unescapeRule));
+end;
+
+function TCef3Helper.CefParseCssColor(const str: ustring; strict: Boolean; out color: TCefColor): Boolean;
+var
+  s: TCefString;
+begin
+  s := CefString(str);
+  Result := cef_parse_csscolor(@s, Ord(strict), @color) <> 0;
+end;
+
+
+function TCef3Helper.CefUriEncode(const text: ustring;
+  usePlus: Boolean): ustring;
+var
+  s: TCefString;
+begin
+  s := CefString(text);
+  Result := CefStringFreeAndGet(cef_uriencode(@s, Ord(usePlus)));
+end;
+
+
 class function TCef3Helper.CefUserFreeString(const str: ustring)
   : PCefStringUserFree;
 begin
@@ -235,6 +279,36 @@ begin
   Move(PCefChar(str)^, Result.str^, Result.length * SizeOf(TCefChar));
   Result.dtor := @_free_string;
 end;
+
+{$ifdef Win32}
+function TCef3Helper.CefParseJson(const jsonString: ustring;
+  options: TCefJsonParserOptions): ICefValue;
+var
+  s: TCefString;
+begin
+  s := CefString(jsonString);
+  Result := TCefValueRef.UnWrap(cef_parse_json(@s, options));
+end;
+
+function TCef3Helper.CefParseJsonAndReturnError(const jsonString: ustring;
+  options: TCefJsonParserOptions; out errorCodeOut: TCefJsonParserError;
+  out errorMsgOut: ustring): ICefValue;
+var
+  s, e: TCefString;
+begin
+  s := CefString(jsonString);
+  FillChar(e, SizeOf(e), 0);
+  Result := TCefValueRef.UnWrap(cef_parse_jsonand_return_error(@s, options,
+    @errorCodeOut, @e));
+  errorMsgOut := CefString(@e);
+end;
+
+function TCef3Helper.CefWriteJson(const node: ICefValue;
+  options: TCefJsonWriterOptions): ustring;
+begin
+  Result := CefStringFreeAndGet(cef_write_json(CefGetData(node), options));
+end;
+{$endif}
 
 class function TCef3Helper.CefParseUrl(const url: ustring;
   var parts: TUrlParts): Boolean;
@@ -351,6 +425,20 @@ begin
   path := CefStringClearAndGet(p);
 end;
 
+function TCef3Helper.CefBase64Decode(const data: ustring): ICefBinaryValue;
+var
+  s: TCefString;
+begin
+  s := CefString(data);
+  Result := TCefBinaryValueRef.UnWrap(cef_base64decode(@s));
+end;
+
+function TCef3Helper.CefBase64Encode(const data: Pointer;
+  dataSize: NativeUInt): ustring;
+begin
+  Result:= CefStringFreeAndGet(cef_base64encode(data, dataSize));
+end;
+
 class function TCef3Helper.CefBeginTracing(const categories: ustring;
   const callback: ICefCompletionCallback): Boolean;
 var
@@ -367,6 +455,16 @@ var
 begin
   s := CefString(tracingFile);
   Result := cef_end_tracing(@s, CefGetData(callback)) <> 0;
+end;
+
+class function TCef3Helper.CefFormatUrlForSecurityDisplay(
+  const originUrl, languages: string): string;
+var
+  o, l: TCefString;
+begin
+  o := CefString(originUrl);
+  l := CefString(languages);
+  Result := CefStringFreeAndGet(cef_format_url_for_security_display(@o, @l));
 end;
 
 class function TCef3Helper.CefNowFromSystemTraceTime: Int64;

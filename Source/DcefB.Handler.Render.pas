@@ -57,7 +57,7 @@ type
       x, y: Integer): Boolean; override;
     procedure OnUpdateDragCursor(const browser: ICefBrowser;
       operation: TCefDragOperation); override;
-    procedure OnScrollOffsetChanged(const browser: ICefBrowser); override;
+    procedure OnScrollOffsetChanged(const browser: ICefBrowser; x, y: Double); override;
   public
     constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
     destructor Destroy; override;
@@ -133,7 +133,7 @@ begin
 
 end;
 
-procedure TDcefBRenderHandler.OnScrollOffsetChanged(const browser: ICefBrowser);
+procedure TDcefBRenderHandler.OnScrollOffsetChanged(const browser: ICefBrowser; x, y: Double);
 begin
   inherited;
 

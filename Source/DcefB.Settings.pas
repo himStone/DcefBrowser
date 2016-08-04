@@ -42,7 +42,6 @@ type
     FJavascriptAccessClipboard: TCefState;
     FJavascriptDomPaste: TCefState;
     FCaretBrowsing: TCefState;
-    FJava: TCefState;
     FPlugins: TCefState;
     FUniversalAccessFromFileUrls: TCefState;
     FFileAccessFromFileUrls: TCefState;
@@ -56,6 +55,7 @@ type
     FApplicationCache: TCefState;
     FWebgl: TCefState;
     FBackgroundColor: TCefColor;
+    FAcceptLanguageList: ustring;
   public
     constructor Create; virtual;
   published
@@ -72,7 +72,6 @@ type
       write FJavascriptDomPaste default STATE_DEFAULT;
     property CaretBrowsing: TCefState read FCaretBrowsing write FCaretBrowsing
       default STATE_DEFAULT;
-    property Java: TCefState read FJava write FJava default STATE_DEFAULT;
     property Plugins: TCefState read FPlugins write FPlugins
       default STATE_DEFAULT;
     property UniversalAccessFromFileUrls: TCefState
@@ -100,6 +99,7 @@ type
     property Webgl: TCefState read FWebgl write FWebgl default STATE_DEFAULT;
     property BackgroundColor: TCefColor read FBackgroundColor
       write FBackgroundColor default 0;
+    property AcceptLanguageList: ustring read FAcceptLanguageList write FAcceptLanguageList;
     property WindowlessFrameRate: Integer read FWindowlessFrameRate
       write FWindowlessFrameRate default 30;
   end;
@@ -187,7 +187,6 @@ begin
   FJavascriptAccessClipboard := STATE_DEFAULT;
   FJavascriptDomPaste := STATE_DEFAULT;
   FCaretBrowsing := STATE_DEFAULT;
-  FJava := STATE_DEFAULT;
   FPlugins := STATE_DEFAULT;
   FUniversalAccessFromFileUrls := STATE_DEFAULT;
   FFileAccessFromFileUrls := STATE_DEFAULT;

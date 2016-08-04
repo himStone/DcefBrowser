@@ -57,6 +57,7 @@ type
   PCefBrowser = ^TCefBrowser;
   PCefRunFileDialogCallback = ^TCefRunFileDialogCallback;
   PCefBrowserHost = ^TCefBrowserHost;
+  PCefPdfPrintCallback = ^TCefPdfPrintCallback;
   PCefTask = ^TCefTask;
   PCefTaskRunner = ^TCefTaskRunner;
   PCefDownloadHandler = ^TCefDownloadHandler;
@@ -85,16 +86,17 @@ type
   PCefCommandLine = ^TCefCommandLine;
   PCefProcessMessage = ^TCefProcessMessage;
   PCefBinaryValue = ^TCefBinaryValue;
+  PPCefBinaryValue = ^PCefBinaryValue;
   PCefDictionaryValue = ^TCefDictionaryValue;
   PCefListValue = ^TCefListValue;
   PCefBrowserProcessHandler = ^TCefBrowserProcessHandler;
   PCefRenderProcessHandler = ^TCefRenderProcessHandler;
   PCefAuthCallback = ^TCefAuthCallback;
-  PCefQuotaCallback = ^TCefQuotaCallback;
-  PCefAllowCertificateErrorCallback = ^TCefAllowCertificateErrorCallback;
+  PCefRequestCallback = ^TCefRequestCallback;
   PCefResourceHandler = ^TCefResourceHandler;
   PCefCallback = ^TCefCallback;
   PCefCompletionCallback = ^TCefCompletionCallback;
+  PCefRunContextMenuCallback = ^TCefRunContextMenuCallback;
   PCefContextMenuHandler = ^TCefContextMenuHandler;
   PCefContextMenuParams = ^TCefContextMenuParams;
   PCefMenuModel = ^TCefMenuModel;
@@ -125,6 +127,14 @@ type
   PCefPrintHandler = ^TCefPrintHandler;
   PCefNavigationEntry = ^TCefNavigationEntry;
   PCefNavigationEntryVisitor = ^TCefNavigationEntryVisitor;
+  PCefFindHandler = ^TCefFindHandler;
+  PCefSetCookieCallback = ^TCefSetCookieCallback;
+  PCefDeleteCookiesCallback = ^TCefDeleteCookiesCallback;
+  PCefValue = ^TCefValue;
+  PCefSslCertPrincipal = ^TCefSslCertPrincipal;
+  PCefSslInfo = ^TCefSslInfo;
+  PCefResourceBundle = ^TCefResourceBundle;
+  PCefResponseFilter = ^TCefResponseFilter;
 
   // Structure defining the reference count implementation functions. All
   // framework structures must include the cef_base_t structure first.
@@ -145,17 +155,138 @@ type
     has_one_ref: function(self: PCefBase): Integer; stdcall;
   end;
 
+  // Structure that wraps other data value types. Complex types (binary,
+  // dictionary and list) will be referenced but not owned by this object. Can be
+  // used on any process and thread.
+  TCefValue = record
+    // Base structure.
+    base: TCefBase;
+
+    // Returns true (1) if the underlying data is valid. This will always be true
+    // (1) for simple types. For complex types (binary, dictionary and list) the
+    // underlying data may become invalid if owned by another object (e.g. list or
+    // dictionary) and that other object is then modified or destroyed. This value
+    // object can be re-used by calling Set*() even if the underlying data is
+    // invalid.
+
+    is_valid: function(self: PCefValue): Integer; stdcall;
+
+    // Returns true (1) if the underlying data is owned by another object.
+    is_owned: function(self: PCefValue): Integer; stdcall;
+
+    // Returns true (1) if the underlying data is read-only. Some APIs may expose
+    // read-only objects.
+    is_read_only: function(self: PCefValue): Integer; stdcall;
+
+    // Returns true (1) if this object and |that| object have the same underlying
+    // data. If true (1) modifications to this object will also affect |that|
+    // object and vice-versa.
+    is_same: function(self, that: PCefValue): Integer; stdcall;
+
+    // Returns true (1) if this object and |that| object have an equivalent
+    // underlying value but are not necessarily the same object.
+    is_equal: function(self, that: PCefValue): Integer; stdcall;
+
+    // Returns a copy of this object. The underlying data will also be copied.
+    copy: function(self: PCefValue): PCefValue; stdcall;
+
+    // Returns the underlying value type.
+    get_type: function(self: PCefValue): TCefValueType; stdcall;
+
+    // Returns the underlying value as type bool.
+    get_bool: function(self: PCefValue): Integer; stdcall;
+
+    // Returns the underlying value as type int.
+    get_int: function(self: PCefValue): Integer; stdcall;
+
+    // Returns the underlying value as type double.
+    get_double: function(self: PCefValue): Double; stdcall;
+
+    // Returns the underlying value as type string.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_string: function(self: PCefValue): PCefStringUserFree; stdcall;
+
+    // Returns the underlying value as type binary. The returned reference may
+    // become invalid if the value is owned by another object or if ownership is
+    // transferred to another object in the future. To maintain a reference to the
+    // value after assigning ownership to a dictionary or list pass this object to
+    // the set_value() function instead of passing the returned reference to
+    // set_binary().
+    get_binary: function(self: PCefValue): PCefBinaryValue; stdcall;
+
+    // Returns the underlying value as type dictionary. The returned reference may
+    // become invalid if the value is owned by another object or if ownership is
+    // transferred to another object in the future. To maintain a reference to the
+    // value after assigning ownership to a dictionary or list pass this object to
+    // the set_value() function instead of passing the returned reference to
+    // set_dictionary().
+    get_dictionary: function(self: PCefValue): PCefDictionaryValue; stdcall;
+
+    // Returns the underlying value as type list. The returned reference may
+    // become invalid if the value is owned by another object or if ownership is
+    // transferred to another object in the future. To maintain a reference to the
+    // value after assigning ownership to a dictionary or list pass this object to
+    // the set_value() function instead of passing the returned reference to
+    // set_list().
+    get_list: function(self: PCefValue): PCefListValue; stdcall;
+
+    // Sets the underlying value as type null. Returns true (1) if the value was
+    // set successfully.
+    set_null: function(self: PCefValue): Integer; stdcall;
+
+    // Sets the underlying value as type bool. Returns true (1) if the value was
+    // set successfully.
+    set_bool: function(self: PCefValue; value: Integer): Integer; stdcall;
+
+    // Sets the underlying value as type int. Returns true (1) if the value was
+    // set successfully.
+    set_int: function(self: PCefValue; value: Integer): Integer; stdcall;
+
+    // Sets the underlying value as type double. Returns true (1) if the value was
+    // set successfully.
+    set_double: function(self: PCefValue; value: Double): Integer; stdcall;
+
+    // Sets the underlying value as type string. Returns true (1) if the value was
+    // set successfully.
+    set_string: function(self: PCefValue; const value: PCefString): Integer; stdcall;
+
+    // Sets the underlying value as type binary. Returns true (1) if the value was
+    // set successfully. This object keeps a reference to |value| and ownership of
+    // the underlying data remains unchanged.
+    set_binary: function(self: PCefValue; value: PCefBinaryValue): Integer; stdcall;
+
+    // Sets the underlying value as type dict. Returns true (1) if the value was
+    // set successfully. This object keeps a reference to |value| and ownership of
+    // the underlying data remains unchanged.
+    set_dictionary: function(self: PCefValue; value: PCefDictionaryValue): Integer; stdcall;
+
+    // Sets the underlying value as type list. Returns true (1) if the value was
+    // set successfully. This object keeps a reference to |value| and ownership of
+    // the underlying data remains unchanged.
+    set_list: function(self: PCefValue; value: PCefListValue): Integer; stdcall;
+  end;
+
   // Structure representing a binary value. Can be used on any process and thread.
   TCefBinaryValue = record
     // Base structure.
     base: TCefBase;
 
-    // Returns true (1) if this object is valid. Do not call any other functions
-    // if this function returns false (0).
+    // Returns true (1) if this object is valid. This object may become invalid if
+    // the underlying data is owned by another object (e.g. list or dictionary)
+    // and that other object is then modified or destroyed. Do not call any other
+    // functions if this function returns false (0).
     is_valid: function(self: PCefBinaryValue): Integer; stdcall;
 
     // Returns true (1) if this object is currently owned by another object.
     is_owned: function(self: PCefBinaryValue): Integer; stdcall;
+
+    // Returns true (1) if this object and |that| object have the same underlying
+    // data.
+    is_same: function(self, that: PCefBinaryValue):Integer; stdcall;
+
+    // Returns true (1) if this object and |that| object have an equivalent
+    // underlying value but are not necessarily the same object.
+    is_equal: function(self, that: PCefBinaryValue): Integer; stdcall;
 
     // Returns a copy of this object. The data in this object will also be copied.
     copy: function(self: PCefBinaryValue): PCefBinaryValue; stdcall;
@@ -175,8 +306,10 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Returns true (1) if this object is valid. Do not call any other functions
-    // if this function returns false (0).
+    // Returns true (1) if this object is valid. This object may become invalid if
+    // the underlying data is owned by another object (e.g. list or dictionary)
+    // and that other object is then modified or destroyed. Do not call any other
+    // functions if this function returns false (0).
     is_valid: function(self: PCefDictionaryValue): Integer; stdcall;
 
     // Returns true (1) if this object is currently owned by another object.
@@ -185,6 +318,15 @@ type
     // Returns true (1) if the values of this object are read-only. Some APIs may
     // expose read-only objects.
     is_read_only: function(self: PCefDictionaryValue): Integer; stdcall;
+
+    // Returns true (1) if this object and |that| object have the same underlying
+    // data. If true (1) modifications to this object will also affect |that|
+    // object and vice-versa.
+    is_same: function(self, that: PCefDictionaryValue): Integer; stdcall;
+
+    // Returns true (1) if this object and |that| object have an equivalent
+    // underlying value but are not necessarily the same object.
+    is_equal: function(self, that: PCefDictionaryValue): Integer; stdcall;
 
     // Returns a writable copy of this object. If |exclude_NULL_children| is true
     // (1) any NULL dictionaries or lists will be excluded from the copy.
@@ -214,6 +356,13 @@ type
     get_type: function(self: PCefDictionaryValue; const key: PCefString)
       : TCefValueType; stdcall;
 
+    // Returns the value at the specified key. For simple types the returned value
+    // will copy existing data and modifications to the value will not modify this
+    // object. For complex types (binary, dictionary and list) the returned value
+    // will reference existing data and modifications to the value will modify
+    // this object.
+    get_value: function(self: PCefDictionaryValue; const key: PCefString): PCefValue; stdcall;
+
     // Returns the value at the specified key as type bool.
     get_bool: function(self: PCefDictionaryValue; const key: PCefString)
       : Integer; stdcall;
@@ -231,22 +380,31 @@ type
     get_string: function(self: PCefDictionaryValue; const key: PCefString)
       : PCefStringUserFree; stdcall;
 
-    // Returns the value at the specified key as type binary.
-    get_binary: function(self: PCefDictionaryValue; const key: PCefString)
-      : PCefBinaryValue; stdcall;
+    // Returns the value at the specified key as type binary. The returned value
+    // will reference existing data.
+    get_binary: function(self: PCefDictionaryValue; const key: PCefString): PCefBinaryValue; stdcall;
 
-    // Returns the value at the specified key as type dictionary.
-    get_dictionary: function(self: PCefDictionaryValue; const key: PCefString)
-      : PCefDictionaryValue; stdcall;
+    // Returns the value at the specified key as type dictionary. The returned
+    // value will reference existing data and modifications to the value will
+    // modify this object.
+    get_dictionary: function(self: PCefDictionaryValue; const key: PCefString): PCefDictionaryValue; stdcall;
 
-    // Returns the value at the specified key as type list.
-    get_list: function(self: PCefDictionaryValue; const key: PCefString)
-      : PCefListValue; stdcall;
+    // Returns the value at the specified key as type list. The returned value
+    // will reference existing data and modifications to the value will modify
+    // this object.
+    get_list: function(self: PCefDictionaryValue; const key: PCefString): PCefListValue; stdcall;
+
+    // Sets the value at the specified key. Returns true (1) if the value was set
+    // successfully. If |value| represents simple data then the underlying data
+    // will be copied and modifications to |value| will not modify this object. If
+    // |value| represents complex data (binary, dictionary or list) then the
+    // underlying data will be referenced and modifications to |value| will modify
+    // this object.
+    set_value: function(self: PCefDictionaryValue; const key: PCefString; value: PCefValue): Integer; stdcall;
 
     // Sets the value at the specified key as type null. Returns true (1) if the
     // value was set successfully.
-    set_null: function(self: PCefDictionaryValue; const key: PCefString)
-      : Integer; stdcall;
+    set_null: function(self: PCefDictionaryValue; const key: PCefString): Integer; stdcall;
 
     // Sets the value at the specified key as type bool. Returns true (1) if the
     // value was set successfully.
@@ -277,8 +435,7 @@ type
       value: PCefBinaryValue): Integer; stdcall;
 
     // Sets the value at the specified key as type dict. Returns true (1) if the
-    // value was set successfully. After calling this function the |value| object
-    // will no longer be valid. If |value| is currently owned by another object
+    // value was set successfully. If |value| is currently owned by another object
     // then the value will be copied and the |value| reference will not change.
     // Otherwise, ownership will be transferred to this object and the |value|
     // reference will be invalidated.
@@ -286,8 +443,7 @@ type
       value: PCefDictionaryValue): Integer; stdcall;
 
     // Sets the value at the specified key as type list. Returns true (1) if the
-    // value was set successfully. After calling this function the |value| object
-    // will no longer be valid. If |value| is currently owned by another object
+    // value was set successfully. If |value| is currently owned by another object
     // then the value will be copied and the |value| reference will not change.
     // Otherwise, ownership will be transferred to this object and the |value|
     // reference will be invalidated.
@@ -300,8 +456,10 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Returns true (1) if this object is valid. Do not call any other functions
-    // if this function returns false (0).
+    // Returns true (1) if this object is valid. This object may become invalid if
+    // the underlying data is owned by another object (e.g. list or dictionary)
+    // and that other object is then modified or destroyed. Do not call any other
+    // functions if this function returns false (0).
     is_valid: function(self: PCefListValue): Integer; stdcall;
 
     // Returns true (1) if this object is currently owned by another object.
@@ -310,6 +468,15 @@ type
     // Returns true (1) if the values of this object are read-only. Some APIs may
     // expose read-only objects.
     is_read_only: function(self: PCefListValue): Integer; stdcall;
+
+    // Returns true (1) if this object and |that| object have the same underlying
+    // data. If true (1) modifications to this object will also affect |that|
+    // object and vice-versa.
+    is_same: function(self, that: PCefListValue): Integer; stdcall;
+
+    // Returns true (1) if this object and |that| object have an equivalent
+    // underlying value but are not necessarily the same object.
+    is_equal: function(self, that: PCefListValue): Integer; stdcall;
 
     // Returns a writable copy of this object.
     copy: function(self: PCefListValue): PCefListValue; stdcall;
@@ -331,6 +498,13 @@ type
     get_type: function(self: PCefListValue; index: Integer)
       : TCefValueType; stdcall;
 
+    // Returns the value at the specified index. For simple types the returned
+    // value will copy existing data and modifications to the value will not
+    // modify this object. For complex types (binary, dictionary and list) the
+    // returned value will reference existing data and modifications to the value
+    // will modify this object.
+    get_value: function(self: PCefListValue; index: Integer): PCefValue; stdcall;
+
     // Returns the value at the specified index as type bool.
     get_bool: function(self: PCefListValue; index: Integer): Integer; stdcall;
 
@@ -345,17 +519,27 @@ type
     get_string: function(self: PCefListValue; index: Integer)
       : PCefStringUserFree; stdcall;
 
-    // Returns the value at the specified index as type binary.
-    get_binary: function(self: PCefListValue; index: Integer)
-      : PCefBinaryValue; stdcall;
+    // Returns the value at the specified index as type binary. The returned value
+    // will reference existing data.
+    get_binary: function(self: PCefListValue; index: Integer): PCefBinaryValue; stdcall;
 
-    // Returns the value at the specified index as type dictionary.
-    get_dictionary: function(self: PCefListValue; index: Integer)
-      : PCefDictionaryValue; stdcall;
+    // Returns the value at the specified index as type dictionary. The returned
+    // value will reference existing data and modifications to the value will
+    // modify this object.
+    get_dictionary: function(self: PCefListValue; index: Integer): PCefDictionaryValue; stdcall;
 
-    // Returns the value at the specified index as type list.
-    get_list: function(self: PCefListValue; index: Integer)
-      : PCefListValue; stdcall;
+    // Returns the value at the specified index as type list. The returned value
+    // will reference existing data and modifications to the value will modify
+    // this object.
+    get_list: function(self: PCefListValue; index: Integer): PCefListValue; stdcall;
+
+    // Sets the value at the specified index. Returns true (1) if the value was
+    // set successfully. If |value| represents simple data then the underlying
+    // data will be copied and modifications to |value| will not modify this
+    // object. If |value| represents complex data (binary, dictionary or list)
+    // then the underlying data will be referenced and modifications to |value|
+    // will modify this object.
+    set_value: function(self: PCefListValue; index: Integer; value: PCefValue): Integer; stdcall;
 
     // Sets the value at the specified index as type null. Returns true (1) if the
     // value was set successfully.
@@ -382,8 +566,7 @@ type
       : Integer; stdcall;
 
     // Sets the value at the specified index as type binary. Returns true (1) if
-    // the value was set successfully. After calling this function the |value|
-    // object will no longer be valid. If |value| is currently owned by another
+    // the value was set successfully. If |value| is currently owned by another
     // object then the value will be copied and the |value| reference will not
     // change. Otherwise, ownership will be transferred to this object and the
     // |value| reference will be invalidated.
@@ -391,8 +574,7 @@ type
       value: PCefBinaryValue): Integer; stdcall;
 
     // Sets the value at the specified index as type dict. Returns true (1) if the
-    // value was set successfully. After calling this function the |value| object
-    // will no longer be valid. If |value| is currently owned by another object
+    // value was set successfully. If |value| is currently owned by another object
     // then the value will be copied and the |value| reference will not change.
     // Otherwise, ownership will be transferred to this object and the |value|
     // reference will be invalidated.
@@ -400,8 +582,7 @@ type
       value: PCefDictionaryValue): Integer; stdcall;
 
     // Sets the value at the specified index as type list. Returns true (1) if the
-    // value was set successfully. After calling this function the |value| object
-    // will no longer be valid. If |value| is currently owned by another object
+    // value was set successfully. If |value| is currently owned by another object
     // then the value will be copied and the |value| reference will not change.
     // Otherwise, ownership will be transferred to this object and the |value|
     // reference will be invalidated.
@@ -519,7 +700,8 @@ type
     // Stop loading the page.
     stop_load: procedure(self: PCefBrowser); stdcall;
 
-    // Returns the globally unique identifier for this browser.
+    // Returns the globally unique identifier for this frame or < 0 if the
+    // underlying frame does not yet exist.
     get_identifier: function(self: PCefBrowser): Integer; stdcall;
 
     // Returns true (1) if this object is pointing to the same handle as |that|
@@ -570,12 +752,13 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Called asynchronously after the file dialog is dismissed. If the selection
-    // was successful |file_paths| will be a single value or a list of values
-    // depending on the dialog mode. If the selection was cancelled |file_paths|
-    // will be NULL.
-    cont: procedure(self: PCefRunFileDialogCallback;
-      browser_host: PCefBrowserHost; file_paths: TCefStringList); stdcall;
+    // Called asynchronously after the file dialog is dismissed.
+    // |selected_accept_filter| is the 0-based index of the value selected from
+    // the accept filters array passed to cef_browser_host_t::RunFileDialog.
+    // |file_paths| will be a single value or a list of values depending on the
+    // dialog mode. If the selection was cancelled |file_paths| will be NULL.
+    on_file_dialog_dismissed: procedure(self: PCefRunFileDialogCallback;
+      selected_accept_filter: Integer; file_paths: TCefStringList); stdcall;
   end;
 
   // Callback structure for cef_browser_host_t::GetNavigationEntries. The
@@ -592,6 +775,19 @@ type
     visit: function(self: PCefNavigationEntryVisitor;
       entry: PCefNavigationEntry; current, index, total: Integer)
       : Integer; stdcall;
+  end;
+
+  // Callback structure for cef_browser_host_t::PrintToPDF. The functions of this
+  // structure will be called on the browser process UI thread.
+  TCefPdfPrintCallback = record
+    // Base structure.
+    base: TCefBase;
+
+    // Method that will be executed when the PDF printing has completed. |path| is
+    // the output path. |ok| will be true (1) if the printing completed
+    // successfully or false (0) otherwise.
+    on_pdf_print_finished: procedure(self: PCefPdfPrintCallback;
+      const path: PCefString; ok: Integer); stdcall;
   end;
 
   // Structure used to represent the browser process aspects of a browser window.
@@ -616,23 +812,20 @@ type
     close_browser: procedure(self: PCefBrowserHost;
       force_close: Integer); stdcall;
 
-    // Set whether the browser is focused.
+     // Set whether the browser is focused.
     set_focus: procedure(self: PCefBrowserHost; focus: Integer); stdcall;
 
     // Set whether the window containing the browser is visible
     // (minimized/unminimized, app hidden/unhidden, etc). Only used on Mac OS X.
-    set_window_visibility: procedure(self: PCefBrowserHost;
-      visible: Integer); stdcall;
+    set_window_visibility: procedure(self: PCefBrowserHost; visible: Integer); stdcall;
 
     // Retrieve the window handle for this browser.
-    get_window_handle: function(self: PCefBrowserHost)
-      : TCefWindowHandle; stdcall;
+    get_window_handle: function(self: PCefBrowserHost): TCefWindowHandle; stdcall;
 
     // Retrieve the window handle of the browser that opened this browser. Will
     // return NULL for non-popup windows. This function can be used in combination
     // with custom handling of modal windows.
-    get_opener_window_handle: function(self: PCefBrowserHost)
-      : TCefWindowHandle; stdcall;
+    get_opener_window_handle: function(self: PCefBrowserHost): TCefWindowHandle; stdcall;
 
     // Returns the client for this browser.
     get_client: function(self: PCefBrowserHost): PCefClient; stdcall;
@@ -654,16 +847,20 @@ type
     // Call to run a file chooser dialog. Only a single file chooser dialog may be
     // pending at any given time. |mode| represents the type of dialog to display.
     // |title| to the title to be used for the dialog and may be NULL to show the
-    // default title ("Open" or "Save" depending on the mode). |default_file_name|
-    // is the default file name to select in the dialog. |accept_types| is a list
-    // of valid lower-cased MIME types or file extensions specified in an input
-    // element and is used to restrict selectable files to such types. |callback|
-    // will be executed after the dialog is dismissed or immediately if another
-    // dialog is already pending. The dialog will be initiated asynchronously on
-    // the UI thread.
+    // default title ("Open" or "Save" depending on the mode). |default_file_path|
+    // is the path with optional directory and/or file name component that will be
+    // initially selected in the dialog. |accept_filters| are used to restrict the
+    // selectable file types and may any combination of (a) valid lower-cased MIME
+    // types (e.g. "text/*" or "image/*"), (b) individual file extensions (e.g.
+    // ".txt" or ".png"), or (c) combined description and file extension delimited
+    // using "|" and ";" (e.g. "Image Types|.png;.gif;.jpg").
+    // |selected_accept_filter| is the 0-based index of the filter that will be
+    // selected by default. |callback| will be executed after the dialog is
+    // dismissed or immediately if another dialog is already pending. The dialog
+    // will be initiated asynchronously on the UI thread.
     run_file_dialog: procedure(self: PCefBrowserHost; mode: TCefFileDialogMode;
-      const title, default_file_name: PCefString; accept_types: TCefStringList;
-      callback: PCefRunFileDialogCallback); stdcall;
+      const title, default_file_path: PCefString; accept_filters: TCefStringList;
+      selected_accept_filter: Integer; callback: PCefRunFileDialogCallback); stdcall;
 
     // Download the file at |url| using cef_download_handler_t.
     start_download: procedure(self: PCefBrowserHost;
@@ -672,11 +869,19 @@ type
     // Print the current browser contents.
     print: procedure(self: PCefBrowserHost); stdcall;
 
+    // Print the current browser contents to the PDF file specified by |path| and
+    // execute |callback| on completion. The caller is responsible for deleting
+    // |path| when done. For PDF printing to work on Linux you must implement the
+    // cef_print_handler_t::GetPdfPaperSize function.
+    print_to_pdf: procedure(self: PCefBrowserHost; const path: PCefString;
+        const settings: PCefPdfPrintSettings; callback: PCefPdfPrintCallback); stdcall;
+
     // Search for |searchText|. |identifier| can be used to have multiple searches
     // running simultaniously. |forward| indicates whether to search forward or
     // backward within the page. |matchCase| indicates whether the search should
     // be case-sensitive. |findNext| indicates whether this is the first request
-    // or a follow-up.
+    // or a follow-up. The cef_find_handler_t instance, if any, returned via
+    // cef_client_t::GetFindHandler will be called to report find results.
     find: procedure(self: PCefBrowserHost; identifier: Integer;
       const searchText: PCefString;
       forward, matchCase, findNext: Integer); stdcall;
@@ -687,10 +892,9 @@ type
 
     // Open developer tools in its own window. If |inspect_element_at| is non-
     // NULL the element at the specified (x,y) location will be inspected.
-    show_dev_tools: procedure(self: PCefBrowserHost;
-      const windowInfo: PCefWindowInfo; client: PCefClient;
-      const settings: PCefBrowserSettings;
-      const inspect_element_at: PCefPoint); stdcall;
+    show_dev_tools: procedure(self: PCefBrowserHost; const windowInfo: PCefWindowInfo;
+        client: PCefClient; const settings: PCefBrowserSettings;
+        const inspect_element_at: PCefPoint); stdcall;
 
     // Explicitly close the developer tools window if one exists for this browser
     // instance.
@@ -782,6 +986,20 @@ type
     // Notify the browser that the window hosting it is about to be moved or
     // resized. This function is only used on Windows and Linux.
     notify_move_or_resize_started: procedure(self: PCefBrowserHost); stdcall;
+
+    // Returns the maximum rate in frames per second (fps) that
+    // cef_render_handler_t:: OnPaint will be called for a windowless browser. The
+    // actual fps may be lower if the browser cannot generate frames at the
+    // requested rate. The minimum value is 1 and the maximum value is 60 (default
+    // 30). This function can only be called on the UI thread.
+    get_windowless_frame_rate: function(self: PCefBrowserHost): Integer; stdcall;
+
+    // Set the maximum rate in frames per second (fps) that cef_render_handler_t::
+    // OnPaint will be called for a windowless browser. The actual fps may be
+    // lower if the browser cannot generate frames at the requested rate. The
+    // minimum value is 1 and the maximum value is 60 (default 30). Can also be
+    // set at browser creation via cef_browser_tSettings.windowless_frame_rate.
+    set_windowless_frame_rate: procedure(self: PCefBrowserHost; frame_rate: Integer); stdcall;
 
     // Get the NSTextInputContext implementation for enabling IME on Mac when
     // window rendering is disabled.
@@ -964,22 +1182,31 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Called to retrieve a localized translation for the string specified by
-    // |message_id|. To provide the translation set |string| to the translation
-    // string and return true (1). To use the default translation return false
-    // (0). Supported message IDs are listed in cef_pack_strings.h.
+    // Called to retrieve a localized translation for the specified |string_id|.
+    // To provide the translation set |string| to the translation string and
+    // return true (1). To use the default translation return false (0). Include
+    // cef_pack_strings.h for a listing of valid string ID values.
     get_localized_string: function(self: PCefResourceBundleHandler;
-      message_id: Integer; string_val: PCefString): Integer; stdcall;
+      string_id: Integer; string_val: PCefString): Integer; stdcall;
 
-    // Called to retrieve data for the resource specified by |resource_id|. To
-    // provide the resource data set |data| and |data_size| to the data pointer
+    // Called to retrieve data for the specified scale independent |resource_id|.
+    // To provide the resource data set |data| and |data_size| to the data pointer
     // and size respectively and return true (1). To use the default resource data
     // return false (0). The resource data will not be copied and must remain
-    // resident in memory. Supported resource IDs are listed in
-    // cef_pack_resources.h.
+    // resident in memory. Include cef_pack_resources.h for a listing of valid
+    // resource ID values.
     get_data_resource: function(self: PCefResourceBundleHandler;
-      resource_id: Integer; var data: Pointer; var data_size: NativeUInt)
-      : Integer; stdcall;
+        resource_id: Integer; var data: Pointer; var data_size: NativeUInt): Integer; stdcall;
+
+    // Called to retrieve data for the specified |resource_id| nearest the scale
+    // factor |scale_factor|. To provide the resource data set |data| and
+    // |data_size| to the data pointer and size respectively and return true (1).
+    // To use the default resource data return false (0). The resource data will
+    // not be copied and must remain resident in memory. Include
+    // cef_pack_resources.h for a listing of valid resource ID values.
+    get_data_resource_for_scale: function(self: PCefResourceBundleHandler;
+      resource_id: Integer; scale_factor: TCefScaleFactor; out data: Pointer;
+      data_size: NativeUInt): Integer; stdcall;
   end;
 
   // Structure used to create and/or parse command line arguments. Arguments with
@@ -1243,33 +1470,37 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Called on the IO thread before a new popup window is created. The |browser|
-    // and |frame| parameters represent the source of the popup request. The
-    // |target_url| and |target_frame_name| values may be NULL if none were
-    // specified with the request. The |popupFeatures| structure contains
-    // information about the requested popup window. To allow creation of the
-    // popup window optionally modify |windowInfo|, |client|, |settings| and
-    // |no_javascript_access| and return false (0). To cancel creation of the
-    // popup window return true (1). The |client| and |settings| values will
-    // default to the source browser's values. The |no_javascript_access| value
-    // indicates whether the new browser window should be scriptable and in the
-    // same process as the source browser.
-
-    on_before_popup: function(self: PCefLifeSpanHandler; browser: PCefBrowser;
-      frame: PCefFrame; const target_url, target_frame_name: PCefString;
-      const popupFeatures: PCefPopupFeatures; windowInfo: PCefWindowInfo;
-      var client: PCefClient; settings: PCefBrowserSettings;
-      no_javascript_access: PInteger): Integer; stdcall;
+	// Called on the IO thread before a new popup browser is created. The
+    // |browser| and |frame| values represent the source of the popup request. The
+    // |target_url| and |target_frame_name| values indicate where the popup
+    // browser should navigate and may be NULL if not specified with the request.
+    // The |target_disposition| value indicates where the user intended to open
+    // the popup (e.g. current tab, new tab, etc). The |user_gesture| value will
+    // be true (1) if the popup was opened via explicit user gesture (e.g.
+    // clicking a link) or false (0) if the popup opened automatically (e.g. via
+    // the DomContentLoaded event). The |popupFeatures| structure contains
+    // additional information about the requested popup window. To allow creation
+    // of the popup browser optionally modify |windowInfo|, |client|, |settings|
+    // and |no_javascript_access| and return false (0). To cancel creation of the
+    // popup browser return true (1). The |client| and |settings| values will
+    // default to the source browser's values. If the |no_javascript_access| value
+    // is set to false (0) the new browser will not be scriptable and may not be
+    // hosted in the same renderer process as the source browser.
+    on_before_popup: function(self: PCefLifeSpanHandler;
+      browser: PCefBrowser; frame: PCefFrame;
+      const target_url, target_frame_name: PCefString;
+      target_disposition: TCefWindowOpenDisposition; user_gesture: Integer;
+      const popupFeatures: PCefPopupFeatures;
+      windowInfo: PCefWindowInfo; var client: PCefClient;
+      settings: PCefBrowserSettings; no_javascript_access: PInteger): Integer; stdcall;
 
     // Called after a new browser is created.
-    on_after_created: procedure(self: PCefLifeSpanHandler;
-      browser: PCefBrowser); stdcall;
+    on_after_created: procedure(self: PCefLifeSpanHandler; browser: PCefBrowser); stdcall;
 
     // Called when a modal window is about to display and the modal loop should
     // begin running. Return false (0) to use the default modal loop
     // implementation or true (1) to use a custom implementation.
-    run_modal: function(self: PCefLifeSpanHandler; browser: PCefBrowser)
-      : Integer; stdcall;
+    run_modal: function(self: PCefLifeSpanHandler; browser: PCefBrowser): Integer; stdcall;
 
     // Called when a browser has recieved a request to close. This may result
     // directly from a call to cef_browser_host_t::close_browser() or indirectly
@@ -1305,29 +1536,28 @@ type
     // By way of example consider what should happen during window close when the
     // browser is parented to an application-provided top-level OS window. 1.
     // User clicks the window close button which sends an OS close
-    // notification (e.g. WM_CLOSE on Windows, performClose: on OS-X and
-    // "delete_event" on Linux).
+    //     notification (e.g. WM_CLOSE on Windows, performClose: on OS-X and
+    //     "delete_event" on Linux).
     // 2.  Application's top-level window receives the close notification and:
-    // A. Calls CefBrowserHost::CloseBrowser(false).
-    // B. Cancels the window close.
+    //     A. Calls CefBrowserHost::CloseBrowser(false).
+    //     B. Cancels the window close.
     // 3.  JavaScript 'onbeforeunload' handler executes and shows the close
-    // confirmation dialog (which can be overridden via
-    // CefJSDialogHandler::OnBeforeUnloadDialog()).
+    //     confirmation dialog (which can be overridden via
+    //     CefJSDialogHandler::OnBeforeUnloadDialog()).
     // 4.  User approves the close. 5.  JavaScript 'onunload' handler executes. 6.
     // Application's do_close() handler is called. Application will:
-    // A. Set a flag to indicate that the next close attempt will be allowed.
-    // B. Return false.
+    //     A. Set a flag to indicate that the next close attempt will be allowed.
+    //     B. Return false.
     // 7.  CEF sends an OS close notification. 8.  Application's top-level window
     // receives the OS close notification and
-    // allows the window to close based on the flag from #6B.
+    //     allows the window to close based on the flag from #6B.
     // 9.  Browser OS window is destroyed. 10. Application's
     // cef_life_span_handler_t::on_before_close() handler is called and
-    // the browser object is destroyed.
+    //     the browser object is destroyed.
     // 11. Application exits by calling cef_quit_message_loop() if no other
     // browsers
-    // exist.
-    do_close: function(self: PCefLifeSpanHandler; browser: PCefBrowser)
-      : Integer; stdcall;
+    //     exist.
+    do_close: function(self: PCefLifeSpanHandler; browser: PCefBrowser): Integer; stdcall;
 
     // Called just before a browser is destroyed. Release all references to the
     // browser object and do not attempt to execute any functions on the browser
@@ -1335,9 +1565,9 @@ type
     // modal loop implementation was provided in run_modal() this callback should
     // be used to exit the custom modal loop. See do_close() documentation for
     // additional usage information.
-    on_before_close: procedure(self: PCefLifeSpanHandler;
-      browser: PCefBrowser); stdcall;
+    on_before_close: procedure(self: PCefLifeSpanHandler; browser: PCefBrowser); stdcall;
   end;
+
 
 
   // Implement this structure to handle events related to browser load status. The
@@ -1350,7 +1580,8 @@ type
     // Called when the loading state has changed. This callback will be executed
     // twice -- once when loading is initiated either programmatically or by user
     // action, and once when loading is terminated due to completion, cancellation
-    // of failure.
+    // of failure. It will be called before any calls to OnLoadStart and after all
+    // calls to OnLoadError and/or OnLoadEnd.
     on_loading_state_change: procedure(self: PCefLoadHandler;
       browser: PCefBrowser; isLoading, canGoBack, canGoForward
       : Integer); stdcall;
@@ -1359,9 +1590,9 @@ type
     // never be NULL -- call the is_main() function to check if this frame is the
     // main frame. Multiple frames may be loading at the same time. Sub-frames may
     // start or continue loading after the main frame load has ended. This
-    // function may not be called for a particular frame if the load request for
-    // that frame fails. For notification of overall browser load status use
-    // OnLoadingStateChange instead.
+    // function will always be called for all frames irrespective of whether the
+    // request completes successfully. For notification of overall browser load
+    // status use OnLoadingStateChange instead.
     on_load_start: procedure(self: PCefLoadHandler; browser: PCefBrowser;
       frame: PCefFrame); stdcall;
 
@@ -1370,7 +1601,8 @@ type
     // main frame. Multiple frames may be loading at the same time. Sub-frames may
     // start or continue loading after the main frame load has ended. This
     // function will always be called for all frames irrespective of whether the
-    // request completes successfully.
+    // request completes successfully. For notification of overall browser load
+    // status use OnLoadingStateChange instead.
     on_load_end: procedure(self: PCefLoadHandler; browser: PCefBrowser;
       frame: PCefFrame; httpStatusCode: Integer); stdcall;
 
@@ -1417,7 +1649,7 @@ type
     process_request: function(self: PCefResourceHandler; request: PCefRequest;
       callback: PCefCallback): Integer; stdcall;
 
-    // Retrieve response header information. If the response length is not known
+	// Retrieve response header information. If the response length is not known
     // set |response_length| to -1 and read_response() will be called until it
     // returns false (0). If the response length is known set |response_length| to
     // a positive value and read_response() will be called until it returns false
@@ -1426,8 +1658,7 @@ type
     // values. To redirect the request to a new URL set |redirectUrl| to the new
     // URL.
     get_response_headers: procedure(self: PCefResourceHandler;
-      response: PCefResponse; response_length: PInt64;
-      redirectUrl: PCefString); stdcall;
+      response: PCefResponse; response_length: PInt64; redirectUrl: PCefString); stdcall;
 
     // Read response data. If data is available immediately copy up to
     // |bytes_to_read| bytes into |data_out|, set |bytes_read| to the number of
@@ -1468,27 +1699,15 @@ type
   end;
 
   // Callback structure used for asynchronous continuation of quota requests.
-  TCefQuotaCallback = record
-    // Base structure.
-    base: TCefBase;
-
-    // Continue the quota request. If |allow| is true (1) the request will be
-    // allowed. Otherwise, the request will be denied.
-    cont: procedure(self: PCefQuotaCallback; allow: Integer); stdcall;
-    // Cancel the quota request.
-    cancel: procedure(self: PCefQuotaCallback); stdcall;
-  end;
-
-  // Callback structure used for asynchronous continuation of url requests when
-  // invalid SSL certificates are encountered.
-  TCefAllowCertificateErrorCallback = record
+  TCefRequestCallback = record
     // Base structure.
     base: TCefBase;
 
     // Continue the url request. If |allow| is true (1) the request will be
     // continued. Otherwise, the request will be canceled.
-    cont: procedure(self: PCefAllowCertificateErrorCallback;
-      allow: Integer); stdcall;
+    cont: procedure(self: PCefRequestCallback; allow: Integer); stdcall;
+    // Cancel the quota request.
+    cancel: procedure(self: PCefRequestCallback); stdcall;
   end;
 
   // Implement this structure to handle events related to browser requests. The
@@ -1506,50 +1725,92 @@ type
     // cef_load_handler_t::OnLoadError will be called with an |errorCode| value of
     // ERR_ABORTED.
     on_before_browse: function(self: PCefRequestHandler; browser: PCefBrowser;
-      frame: PCefFrame; request: PCefRequest; isRedirect: Integer)
-      : Integer; stdcall;
+     frame: PCefFrame; request: PCefRequest; isRedirect: Integer): Integer; stdcall;
+
+    // Called on the UI thread before OnBeforeBrowse in certain limited cases
+    // where navigating a new or different browser might be desirable. This
+    // includes user-initiated navigation that might open in a special way (e.g.
+    // links clicked via middle-click or ctrl + left-click) and certain types of
+    // cross-origin navigation initiated from the renderer process (e.g.
+    // navigating the top-level frame to/from a file URL). The |browser| and
+    // |frame| values represent the source of the navigation. The
+    // |target_disposition| value indicates where the user intended to navigate
+    // the browser based on standard Chromium behaviors (e.g. current tab, new
+    // tab, etc). The |user_gesture| value will be true (1) if the browser
+    // navigated via explicit user gesture (e.g. clicking a link) or false (0) if
+    // it navigated automatically (e.g. via the DomContentLoaded event). Return
+    // true (1) to cancel the navigation or false (0) to allow the navigation to
+    // proceed in the source browser's top-level frame.
+    on_open_urlfrom_tab: function(self: PCefRequestHandler; browser:PCefBrowser;
+      frame: PCefFrame; const target_url: PCefString;
+      target_disposition: TCefWindowOpenDisposition; user_gesture: Integer): Integer; stdcall;
 
     // Called on the IO thread before a resource request is loaded. The |request|
     // object may be modified. To cancel the request return true (1) otherwise
     // return false (0).
     on_before_resource_load: function(self: PCefRequestHandler;
-      browser: PCefBrowser; frame: PCefFrame; request: PCefRequest)
-      : Integer; stdcall;
+      browser: PCefBrowser; frame: PCefFrame; request: PCefRequest;
+      callback: PCefRequestCallback): TCefReturnValue; stdcall;
 
     // Called on the IO thread before a resource is loaded. To allow the resource
     // to load normally return NULL. To specify a handler for the resource return
     // a cef_resource_handler_t object. The |request| object should not be
     // modified in this callback.
     get_resource_handler: function(self: PCefRequestHandler;
-      browser: PCefBrowser; frame: PCefFrame; request: PCefRequest)
-      : PCefResourceHandler; stdcall;
+      browser: PCefBrowser; frame: PCefFrame; request: PCefRequest): PCefResourceHandler; stdcall;
 
-    // Called on the IO thread when a resource load is redirected. The |old_url|
-    // parameter will contain the old URL. The |new_url| parameter will contain
-    // the new URL and can be changed if desired.
+    // Called on the IO thread when a resource load is redirected. The |request|
+    // parameter will contain the old URL and other request-related information.
+    // The |new_url| parameter will contain the new URL and can be changed if
+    // desired. The |request| object cannot be modified in this callback.
     on_resource_redirect: procedure(self: PCefRequestHandler;
-      browser: PCefBrowser; frame: PCefFrame; const old_url: PCefString;
+      browser: PCefBrowser; frame: PCefFrame; const request: PCefRequest;
       new_url: PCefString); stdcall;
+
+    // Called on the IO thread when a resource response is received. To allow the
+    // resource to load normally return false (0). To redirect or retry the
+    // resource modify |request| (url, headers or post body) and return true (1).
+    // The |response| object cannot be modified in this callback.
+    on_resource_response: function(self: PCefRequestHandler;
+        browser: PCefBrowser; frame: PCefFrame; request: PCefRequest;
+        response: PCefResponse): Integer; stdcall;
+
+    // Called on the IO thread to optionally filter resource response content.
+    // |request| and |response| represent the request and response respectively
+    // and cannot be modified in this callback.
+    get_resource_response_filter: function(self: PCefRequestHandler; browser: PCefBrowser;
+      frame: PCefFrame; request: PCefRequest; response: PCefResponse): PCefResponseFilter; stdcall;
+
+    // Called on the IO thread when a resource load has completed. |request| and
+    // |response| represent the request and response respectively and cannot be
+    // modified in this callback. |status| indicates the load completion status.
+    // |received_content_length| is the number of response bytes actually read.
+    on_resource_load_complete: procedure(self: PCefRequestHandler; browser: PCefBrowser;
+      frame: PCefFrame; request: PCefRequest; response: PCefResponse;
+      status: TCefUrlRequestStatus; received_content_length: Int64); stdcall;
 
     // Called on the IO thread when the browser needs credentials from the user.
     // |isProxy| indicates whether the host is a proxy server. |host| contains the
-    // hostname and |port| contains the port number. Return true (1) to continue
-    // the request and call cef_auth_callback_t::cont() when the authentication
-    // information is available. Return false (0) to cancel the request.
+    // hostname and |port| contains the port number. |realm| is the realm of the
+    // challenge and may be NULL. |scheme| is the authentication scheme used, such
+    // as "basic" or "digest", and will be NULL if the source of the request is an
+    // FTP server. Return true (1) to continue the request and call
+    // cef_auth_callback_t::cont() either in this function or at a later time when
+    // the authentication information is available. Return false (0) to cancel the
+    // request immediately.
     get_auth_credentials: function(self: PCefRequestHandler;
-      browser: PCefBrowser; frame: PCefFrame; isProxy: Integer;
-      const host: PCefString; port: Integer; const realm, scheme: PCefString;
-      callback: PCefAuthCallback): Integer; stdcall;
+      browser: PCefBrowser; frame: PCefFrame; isProxy: Integer; const host: PCefString;
+      port: Integer; const realm, scheme: PCefString; callback: PCefAuthCallback): Integer; stdcall;
 
     // Called on the IO thread when JavaScript requests a specific storage quota
     // size via the webkitStorageInfo.requestQuota function. |origin_url| is the
     // origin of the page making the request. |new_size| is the requested quota
-    // size in bytes. Return true (1) and call cef_quota_callback_t::cont() either
-    // in this function or at a later time to grant or deny the request. Return
-    // false (0) to cancel the request.
+    // size in bytes. Return true (1) to continue the request and call
+    // cef_request_tCallback::cont() either in this function or at a later time to
+    // grant or deny the request. Return false (0) to cancel the request
+    // immediately.
     on_quota_request: function(self: PCefRequestHandler; browser: PCefBrowser;
-      const origin_url: PCefString; new_size: Int64;
-      callback: PCefQuotaCallback): Integer; stdcall;
+      const origin_url: PCefString; new_size: Int64; callback: PCefRequestCallback): Integer; stdcall;
 
     // Called on the UI thread to handle requests for URLs with an unknown
     // protocol component. Set |allow_os_execution| to true (1) to attempt
@@ -1557,36 +1818,33 @@ type
     // YOU SHOULD USE THIS METHOD TO ENFORCE RESTRICTIONS BASED ON SCHEME, HOST OR
     // OTHER URL ANALYSIS BEFORE ALLOWING OS EXECUTION.
     on_protocol_execution: procedure(self: PCefRequestHandler;
-      browser: PCefBrowser; const url: PCefString;
-      allow_os_execution: PInteger); stdcall;
+      browser: PCefBrowser; const url: PCefString; allow_os_execution: PInteger); stdcall;
 
     // Called on the UI thread to handle requests for URLs with an invalid SSL
-    // certificate. Return true (1) and call
-    // cef_allow_certificate_error_callback_t:: cont() either in this function or
-    // at a later time to continue or cancel the request. Return false (0) to
-    // cancel the request immediately. If |callback| is NULL the error cannot be
-    // recovered from and the request will be canceled automatically. If
+    // certificate. Return true (1) and call cef_request_tCallback::cont() either
+    // in this function or at a later time to continue or cancel the request.
+    // Return false (0) to cancel the request immediately. If
     // CefSettings.ignore_certificate_errors is set all invalid certificates will
     // be accepted without calling this function.
     on_certificate_error: function(self: PCefRequestHandler;
-      cert_error: TCefErrorcode; const request_url: PCefString;
-      callback: PCefAllowCertificateErrorCallback): Integer; stdcall;
-
-    // Called on the browser process IO thread before a plugin is loaded. Return
-    // true (1) to block loading of the plugin.
-    on_before_plugin_load: function(self: PCefRequestHandler;
-      browser: PCefBrowser; const url, policy_url: PCefString;
-      info: PCefWebPluginInfo): Integer; stdcall;
+      browser: PCefBrowser; cert_error: TCefErrorcode;
+      const request_url: PCefString; ssl_info: PCefSslInfo;
+      callback: PCefRequestCallback): Integer; stdcall;
 
     // Called on the browser process UI thread when a plugin has crashed.
     // |plugin_path| is the path of the plugin that crashed.
     on_plugin_crashed: procedure(self: PCefRequestHandler; browser: PCefBrowser;
       const plugin_path: PCefString); stdcall;
 
+    // Called on the browser process UI thread when the render view associated
+    // with |browser| is ready to receive/handle IPC messages in the render
+    // process.
+    on_render_view_ready: procedure(self: PCefRequestHandler; browser: PCefBrowser); stdcall;
+
     // Called on the browser process UI thread when the render process terminates
     // unexpectedly. |status| indicates how the process terminated.
-    on_render_process_terminated: procedure(self: PCefRequestHandler;
-      browser: PCefBrowser; status: TCefTerminationStatus); stdcall;
+    on_render_process_terminated: procedure(self: PCefRequestHandler; browser: PCefBrowser;
+      status: TCefTerminationStatus); stdcall;
   end;
 
   // Implement this structure to handle events related to browser display state.
@@ -1603,6 +1861,18 @@ type
     // Called when the page title changes.
     on_title_change: procedure(self: PCefDisplayHandler; browser: PCefBrowser;
       const title: PCefString); stdcall;
+
+    // Called when the page icon changes.
+    on_favicon_urlchange: procedure(self: PCefDisplayHandler;
+        browser: PCefBrowser; icon_urls: TCefStringList); stdcall;
+
+    // Called when web content in the page has toggled fullscreen mode. If
+    // |fullscreen| is true (1) the content will automatically be sized to fill
+    // the browser content area. If |fullscreen| is false (0) the content will
+    // automatically return to its original size and position. The client is
+    // responsible for resizing the browser if desired.
+    on_fullscreen_mode_change: procedure(self: PCefDisplayHandler;
+        browser: PCefBrowser; fullscreen: Integer); stdcall;
 
     // Called when the browser is about to display a tooltip. |text| contains the
     // text that will be displayed in the tooltip. To handle the display of the
@@ -1690,24 +1960,25 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Called to run a JavaScript dialog. The |default_prompt_text| value will be
-    // specified for prompt dialogs only. Set |suppress_message| to true (1) and
-    // return false (0) to suppress the message (suppressing messages is
-    // preferable to immediately executing the callback as this is used to detect
-    // presumably malicious behavior like spamming alert messages in
-    // onbeforeunload). Set |suppress_message| to false (0) and return false (0)
-    // to use the default implementation (the default implementation will show one
-    // modal dialog at a time and suppress any additional dialog requests until
-    // the displayed dialog is dismissed). Return true (1) if the application will
-    // use a custom dialog or if the callback has been executed immediately.
-    // Custom dialogs may be either modal or modeless. If a custom dialog is used
-    // the application must execute |callback| once the custom dialog is
-    // dismissed.
-    on_jsdialog: function(self: PCefJsDialogHandler; browser: PCefBrowser;
-      const origin_url, accept_lang: PCefString; dialog_type: TCefJsDialogType;
-      const message_text, default_prompt_text: PCefString;
-      callback: PCefJsDialogCallback; suppress_message: PInteger)
-      : Integer; stdcall;
+	// Called to run a JavaScript dialog. If |origin_url| and |accept_lang| are
+    // non-NULL they can be passed to the CefFormatUrlForSecurityDisplay function
+    // to retrieve a secure and user-friendly display string. The
+    // |default_prompt_text| value will be specified for prompt dialogs only. Set
+    // |suppress_message| to true (1) and return false (0) to suppress the message
+    // (suppressing messages is preferable to immediately executing the callback
+    // as this is used to detect presumably malicious behavior like spamming alert
+    // messages in onbeforeunload). Set |suppress_message| to false (0) and return
+    // false (0) to use the default implementation (the default implementation
+    // will show one modal dialog at a time and suppress any additional dialog
+    // requests until the displayed dialog is dismissed). Return true (1) if the
+    // application will use a custom dialog or if the callback has been executed
+    // immediately. Custom dialogs may be either modal or modeless. If a custom
+    // dialog is used the application must execute |callback| once the custom
+    // dialog is dismissed.
+    on_jsdialog: function(self: PCefJsDialogHandler;
+      browser: PCefBrowser; const origin_url, accept_lang: PCefString;
+      dialog_type: TCefJsDialogType; const message_text, default_prompt_text: PCefString;
+      callback: PCefJsDialogCallback; suppress_message: PInteger): Integer; stdcall;
 
     // Called to run a dialog asking the user if they want to leave a page. Return
     // false (0) to use the default dialog implementation. Return true (1) if the
@@ -1967,6 +2238,18 @@ type
       : Integer; stdcall;
   end;
 
+  // Callback structure used for continuation of custom context menu display.
+  TCefRunContextMenuCallback = record
+    // Base structure.
+    base: TCefBase;
+    // Complete context menu display by selecting the specified |command_id| and
+    // |event_flags|.
+    cont: procedure(self: PCefRunContextMenuCallback; command_id: Integer;
+      event_flags: TCefEventFlags); stdcall;
+    // Cancel context menu display.
+    cancel: procedure(self: PCefRunContextMenuCallback); stdcall;
+  end;
+
   // Implement this structure to handle context menu events. The functions of this
   // structure will be called on the UI thread.
   TCefContextMenuHandler = record
@@ -1981,6 +2264,16 @@ type
     on_before_context_menu: procedure(self: PCefContextMenuHandler;
       browser: PCefBrowser; frame: PCefFrame; params: PCefContextMenuParams;
       model: PCefMenuModel); stdcall;
+
+    // Called to allow custom display of the context menu. |params| provides
+    // information about the context menu state. |model| contains the context menu
+    // model resulting from OnBeforeContextMenu. For custom display return true
+    // (1) and execute |callback| either synchronously or asynchronously with the
+    // selected command ID. For default display return false (0). Do not keep
+    // references to |params| or |model| outside of this callback.
+    run_context_menu: function(self: PCefContextMenuHandler;
+      browser: PCefBrowser; frame: PCefFrame; params: PCefContextMenuParams;
+      model: PCefMenuModel; callback: PCefRunContextMenuCallback): Integer; stdcall;
 
     // Called to execute a command selected from the context menu. Return true (1)
     // if the command was handled or false (0) for the default implementation. See
@@ -2076,11 +2369,6 @@ type
     get_misspelled_word: function(self: PCefContextMenuParams)
       : PCefStringUserFree; stdcall;
 
-    // Returns the hash of the misspelled word, if any, that the context menu was
-    // invoked on.
-    get_misspelling_hash: function(self: PCefContextMenuParams)
-      : Integer; stdcall;
-
     // Returns true (1) if suggestions exist, false (0) otherwise. Fills in
     // |suggestions| from the spell check service for the misspelled word if there
     // is one.
@@ -2099,6 +2387,14 @@ type
     // any, that the context menu was invoked on.
     get_edit_state_flags: function(self: PCefContextMenuParams)
       : Integer; stdcall;
+
+    // Returns true (1) if the context menu contains items specified by the
+    // renderer process (for example, plugin placeholder or pepper plugin menu
+    // items).
+    is_custom_menu: function(self: PCefContextMenuParams): Integer; stdcall;
+
+    // Returns true (1) if the context menu was invoked from a pepper plugin.
+    is_pepper_menu: function(self: PCefContextMenuParams): Integer; stdcall;
   end;
 
   // Callback structure used for asynchronous continuation of geolocation
@@ -2128,12 +2424,27 @@ type
       browser: PCefBrowser; const requesting_url: PCefString;
       request_id: Integer; callback: PCefGeolocationCallback): Integer; stdcall;
 
-    // Called when a geolocation access request is canceled. |requesting_url| is
-    // the URL that originally requested permission and |request_id| is the unique
-    // ID for the permission request.
+    // Called when a geolocation access request is canceled. |request_id| is the
+    // unique ID for the permission request.
     on_cancel_geolocation_permission: procedure(self: PCefGeolocationHandler;
-      browser: PCefBrowser; const requesting_url: PCefString;
-      request_id: Integer); stdcall;
+      browser: PCefBrowser; request_id: Integer); stdcall;
+  end;
+
+  // Implement this structure to handle events related to find results. The
+  // functions of this structure will be called on the UI thread.
+  TCefFindHandler = record
+    // Base structure.
+    base: TCefBase;
+
+    // Called to report find results returned by cef_browser_host_t::find().
+    // |identifer| is the identifier passed to find(), |count| is the number of
+    // matches currently identified, |selectionRect| is the location of where the
+    // match was found (in window coordinates), |activeMatchOrdinal| is the
+    // current position in the search results, and |finalUpdate| is true (1) if
+    // this is the last find notification.
+    on_find_result: procedure(self: PCefFindHandler; browser: PCefBrowser;
+      identifier, count: Integer; const selection_rect: PCefRect;
+      active_match_ordinal, final_update: Integer); stdcall;
   end;
 
   // Implement this structure to provide handler implementations.
@@ -2161,6 +2472,9 @@ type
 
     // Return the handler for drag events.
     get_drag_handler: function(self: PCefClient): PCefDragHandler; stdcall;
+
+    // Return the handler for find result events.
+    get_find_handler: function(self: PCefClient): PCefFindHandler; stdcall;
 
     // Return the handler for focus events.
     get_focus_handler: function(self: PCefClient): PCefFocusHandler; stdcall;
@@ -2222,16 +2536,27 @@ type
     // Set the request function type.
     set_method: procedure(self: PCefRequest; const method: PCefString); stdcall;
 
+    // Set the referrer URL and policy. If non-NULL the referrer URL must be fully
+    // qualified with an HTTP or HTTPS scheme component. Any username, password or
+    // ref component will be removed.
+    set_referrer: procedure(self: PCefRequest; const referrer_url: PCefString;
+      policy: TCefReferrerPolicy); stdcall;
+    // Get the referrer URL.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_referrer_url: function(self: PCefRequest): PCefStringUserFree; stdcall;
+    // Get the referrer policy.
+    get_referrer_policy: function(self: PCefRequest): TCefReferrerPolicy; stdcall;
+
     // Get the post data.
     get_post_data: function(self: PCefRequest): PCefPostData; stdcall;
     // Set the post data.
     set_post_data: procedure(self: PCefRequest;
       postData: PCefPostData); stdcall;
 
-    // Get the header values.
-    get_header_map: procedure(self: PCefRequest;
-      headerMap: TCefStringMultimap); stdcall;
-    // Set the header values.
+    // Get the header values. Will not include the Referer value if any.
+    get_header_map: procedure(self: PCefRequest; headerMap: TCefStringMultimap); stdcall;
+    // Set the header values. If a Referer value exists in the header map it will
+    // be removed and ignored.
     set_header_map: procedure(self: PCefRequest;
       headerMap: TCefStringMultimap); stdcall;
 
@@ -2265,6 +2590,11 @@ type
     // frame navigation.
     get_transition_type: function(self: PCefRequest)
       : TCefTransitionType; stdcall;
+
+    // Returns the globally unique identifier for this request or 0 if not
+    // specified. Can be used by cef_request_tHandler implementations in the
+    // browser process to track a single request across multiple callbacks.
+    get_identifier: function(self: PCefRequest): UInt64; stdcall;
   end;
 
   TCefPostDataElementArray = array
@@ -2280,6 +2610,12 @@ type
 
     // Returns true (1) if this object is read-only.
     is_read_only: function(self: PCefPostData): Integer; stdcall;
+
+    // Returns true (1) if the underlying POST data includes elements that are not
+    // represented by this cef_post_data_t object (for example, multi-part file
+    // upload data). Modifying cef_post_data_t objects with excluded elements may
+    // result in the request failing.
+    has_excluded_elements: function(self: PCefPostData): Integer; stdcall;
 
     // Returns the number of existing post data elements.
     get_element_count: function(self: PCefPostData): NativeUInt; stdcall;
@@ -2565,9 +2901,9 @@ type
   end;
 
   // Structure that should be implemented to handle V8 accessor calls. Accessor
-  // identifiers are registered by calling cef_v8value_t::set_value_byaccessor().
-  // The functions of this structure will be called on the thread associated with
-  // the V8 accessor.
+  // identifiers are registered by calling cef_v8value_t::set_value(). The
+  // functions of this structure will be called on the thread associated with the
+  // V8 accessor.
   TCefV8Accessor = record
     // Base structure.
     base: TCefBase;
@@ -3034,6 +3370,10 @@ type
     // The resulting string must be freed by calling cef_string_userfree_free().
     get_url: function(self: PCefDownloadItem): PCefStringUserFree; stdcall;
 
+    // Returns the original URL before any redirections.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_original_url: function(self: PCefDownloadItem): PCefStringUserFree; stdcall;
+
     // Returns the suggested file name.
     // The resulting string must be freed by calling cef_string_userfree_free().
     get_suggested_file_name: function(self: PCefDownloadItem)
@@ -3070,6 +3410,10 @@ type
 
     // Call to cancel the download.
     cancel: procedure(self: PCefDownloadItemCallback); stdcall;
+    // Call to pause the download.
+    pause: procedure(self: PCefDownloadItemCallback); stdcall;
+    // Call to resume the download.
+    resume: procedure(self: PCefDownloadItemCallback); stdcall;
   end;
 
   // Structure used to handle file downloads. The functions of this structure will
@@ -3278,7 +3622,7 @@ type
     get_file_size: function(self: PCefZipReader): Int64; stdcall;
 
     // Returns the last modified timestamp for the file.
-    get_file_last_modified: function(self: PCefZipReader): LongInt; stdcall;
+    get_file_last_modified: function(self: PCefZipReader): TCefTime; stdcall;
 
     // Opens the file for reading of uncompressed data. A read password may
     // optionally be specified.
@@ -3346,17 +3690,9 @@ type
     // Returns true (1) if a portion of the document is selected.
     has_selection: function(self: PCefDomDocument): Integer; stdcall;
 
-    // Returns the selection start node.
-    get_selection_start_node: function(self: PCefDomDocument)
-      : PCefDomNode; stdcall;
-
     // Returns the selection offset within the start node.
     get_selection_start_offset: function(self: PCefDomDocument)
       : Integer; stdcall;
-
-    // Returns the selection end node.
-    get_selection_end_node: function(self: PCefDomDocument)
-      : PCefDomNode; stdcall;
 
     // Returns the selection offset within the end node.
     get_selection_end_offset: function(self: PCefDomDocument): Integer; stdcall;
@@ -3499,65 +3835,93 @@ type
       count, total: Integer; deleteCookie: PInteger): Integer; stdcall;
   end;
 
+  // Structure to implement to be notified of asynchronous completion via
+  // cef_cookie_manager_t::set_cookie().
+  TCefSetCookieCallback = record
+    // Base structure.
+    base: TCefBase;
+
+    // Method that will be called upon completion. |success| will be true (1) if
+    // the cookie was set successfully.
+    on_complete: procedure(self: PCefSetCookieCallback; success: Integer); stdcall;
+  end;
+
+  // Structure to implement to be notified of asynchronous completion via
+  // cef_cookie_manager_t::delete_cookies().
+  TCefDeleteCookiesCallback = record
+    // Base structure.
+    base: TCefBase;
+
+    // Method that will be called upon completion. |num_deleted| will be the
+    // number of cookies that were deleted or -1 if unknown.
+
+    on_complete: procedure(self: PCefDeleteCookiesCallback; num_deleted: Integer); stdcall;
+  end;
+
   // Structure used for managing cookies. The functions of this structure may be
   // called on any thread unless otherwise indicated.
   TCefCookieManager = record
     // Base structure.
     base: TCefBase;
 
-    // Set the schemes supported by this manager. By default only "http" and
-    // "https" schemes are supported. Must be called before any cookies are
-    // accessed.
+    // Set the schemes supported by this manager. The default schemes ("http",
+    // "https", "ws" and "wss") will always be supported. If |callback| is non-
+    // NULL it will be executed asnychronously on the IO thread after the change
+    // has been applied. Must be called before any cookies are accessed.
     set_supported_schemes: procedure(self: PCefCookieManager;
-      schemes: TCefStringList); stdcall;
+      schemes: TCefStringList; callback: PCefCompletionCallback); stdcall;
 
-    // Visit all cookies. The returned cookies are ordered by longest path, then
-    // by earliest creation date. Returns false (0) if cookies cannot be accessed.
-    visit_all_cookies: function(self: PCefCookieManager;
-      visitor: PCefCookieVisitor): Integer; stdcall;
+    // Visit all cookies on the IO thread. The returned cookies are ordered by
+    // longest path, then by earliest creation date. Returns false (0) if cookies
+    // cannot be accessed.
+    visit_all_cookies: function(self: PCefCookieManager; visitor: PCefCookieVisitor): Integer; stdcall;
 
-    // Visit a subset of cookies. The results are filtered by the given url
-    // scheme, host, domain and path. If |includeHttpOnly| is true (1) HTTP-only
-    // cookies will also be included in the results. The returned cookies are
-    // ordered by longest path, then by earliest creation date. Returns false (0)
-    // if cookies cannot be accessed.
+    // Visit a subset of cookies on the IO thread. The results are filtered by the
+    // given url scheme, host, domain and path. If |includeHttpOnly| is true (1)
+    // HTTP-only cookies will also be included in the results. The returned
+    // cookies are ordered by longest path, then by earliest creation date.
+    // Returns false (0) if cookies cannot be accessed.
     visit_url_cookies: function(self: PCefCookieManager; const url: PCefString;
       includeHttpOnly: Integer; visitor: PCefCookieVisitor): Integer; stdcall;
 
     // Sets a cookie given a valid URL and explicit user-provided cookie
     // attributes. This function expects each attribute to be well-formed. It will
     // check for disallowed characters (e.g. the ';' character is disallowed
-    // within the cookie value attribute) and will return false (0) without
-    // setting the cookie if such characters are found. This function must be
-    // called on the IO thread.
+    // within the cookie value attribute) and fail without setting the cookie if
+    // such characters are found. If |callback| is non-NULL it will be executed
+    // asnychronously on the IO thread after the cookie has been set. Returns
+    // false (0) if an invalid URL is specified or if cookies cannot be accessed.
     set_cookie: function(self: PCefCookieManager; const url: PCefString;
-      const cookie: PCefCookie): Integer; stdcall;
+      const cookie: PCefCookie; callback: PCefSetCookieCallback): Integer; stdcall;
 
     // Delete all cookies that match the specified parameters. If both |url| and
-    // values |cookie_name| are specified all host and domain cookies matching
+    // |cookie_name| values are specified all host and domain cookies matching
     // both will be deleted. If only |url| is specified all host cookies (but not
     // domain cookies) irrespective of path will be deleted. If |url| is NULL all
-    // cookies for all hosts and domains will be deleted. Returns false (0) if a
-    // non- NULL invalid URL is specified or if cookies cannot be accessed. This
-    // function must be called on the IO thread.
-    delete_cookies: function(self: PCefCookieManager;
-      const url, cookie_name: PCefString): Integer; stdcall;
+    // cookies for all hosts and domains will be deleted. If |callback| is non-
+    // NULL it will be executed asnychronously on the IO thread after the cookies
+    // have been deleted. Returns false (0) if a non-NULL invalid URL is specified
+    // or if cookies cannot be accessed. Cookies can alternately be deleted using
+    // the Visit*Cookies() functions.
+    delete_cookies: function(self: PCefCookieManager; const url, cookie_name: PCefString;
+      callback: PCefDeleteCookiesCallback): Integer; stdcall;
 
     // Sets the directory path that will be used for storing cookie data. If
     // |path| is NULL data will be stored in memory only. Otherwise, data will be
     // stored at the specified |path|. To persist session cookies (cookies without
     // an expiry date or validity interval) set |persist_session_cookies| to true
     // (1). Session cookies are generally intended to be transient and most Web
-    // browsers do not persist them. Returns false (0) if cookies cannot be
-    // accessed.
-    set_storage_path: function(self: PCefCookieManager; const path: PCefString;
-      persist_session_cookies: Integer): Integer; stdcall;
+    // browsers do not persist them. If |callback| is non-NULL it will be executed
+    // asnychronously on the IO thread after the manager's storage has been
+    // initialized. Returns false (0) if cookies cannot be accessed.
+    set_storage_path: function(self: PCefCookieManager;
+      const path: PCefString; persist_session_cookies: Integer;
+      callback: PCefCompletionCallback): Integer; stdcall;
 
     // Flush the backing store (if any) to disk and execute the specified
     // |callback| on the IO thread when done. Returns false (0) if cookies cannot
     // be accessed.
-    flush_store: function(self: PCefCookieManager;
-      handler: PCefCompletionCallback): Integer; stdcall;
+    flush_store: function(self: PCefCookieManager; handler: PCefCompletionCallback): Integer; stdcall;
   end;
 
 
@@ -3691,11 +4055,12 @@ type
     // Base structure.
     base: TCefBase;
 
-    // Continue the file selection with the specified |file_paths|. This may be a
-    // single value or a list of values depending on the dialog mode. An NULL
-    // value is treated the same as calling cancel().
-    cont: procedure(self: PCefFileDialogCallback;
-      file_paths: TCefStringList); stdcall;
+    // Continue the file selection. |selected_accept_filter| should be the 0-based
+    // index of the value selected from the accept filters array passed to
+    // cef_dialog_handler_t::OnFileDialog. |file_paths| should be a single value
+    // or a list of values depending on the dialog mode. An NULL |file_paths|
+    cont: procedure(self: PCefFileDialogCallback; selected_accept_filter: Integer;
+     file_paths: TCefStringList); stdcall;
 
     // Cancel the file selection.
     cancel: procedure(self: PCefFileDialogCallback); stdcall;
@@ -3710,16 +4075,20 @@ type
     // Called to run a file chooser dialog. |mode| represents the type of dialog
     // to display. |title| to the title to be used for the dialog and may be NULL
     // to show the default title ("Open" or "Save" depending on the mode).
-    // |default_file_name| is the default file name to select in the dialog.
-    // |accept_types| is a list of valid lower-cased MIME types or file extensions
-    // specified in an input element and is used to restrict selectable files to
-    // such types. To display a custom dialog return true (1) and execute
-    // |callback| either inline or at a later time. To display the default dialog
-    // return false (0).
+    // |default_file_path| is the path with optional directory and/or file name
+    // component that should be initially selected in the dialog. |accept_filters|
+    // are used to restrict the selectable file types and may any combination of
+    // (a) valid lower-cased MIME types (e.g. "text/*" or "image/*"), (b)
+    // individual file extensions (e.g. ".txt" or ".png"), or (c) combined
+    // description and file extension delimited using "|" and ";" (e.g. "Image
+    // Types|.png;.gif;.jpg"). |selected_accept_filter| is the 0-based index of
+    // the filter that should be selected by default. To display a custom dialog
+    // return true (1) and execute |callback| either inline or at a later time. To
+    // display the default dialog return false (0).
     on_file_dialog: function(self: PCefDialogHandler; browser: PCefBrowser;
-      mode: TCefFileDialogMode; const title, default_file_name: PCefString;
-      accept_types: TCefStringList; callback: PCefFileDialogCallback)
-      : Integer; stdcall;
+      mode: TCefFileDialogMode; const title, default_file_path: PCefString;
+      accept_filters: TCefStringList; selected_accept_filter: Integer;
+      callback: PCefFileDialogCallback): Integer; stdcall;
   end;
 
   // Implement this structure to handle events when window rendering is disabled.
@@ -3759,15 +4128,18 @@ type
       browser: PCefBrowser; show: Integer); stdcall;
 
     // Called when the browser wants to move or resize the popup widget. |rect|
-    // contains the new location and size.
+    // contains the new location and size in view coordinates.
     on_popup_size: procedure(self: PCefRenderProcessHandler;
       browser: PCefBrowser; const rect: PCefRect); stdcall;
 
-    // Called when an element should be painted. |type| indicates whether the
-    // element is the view or the popup widget. |buffer| contains the pixel data
-    // for the whole image. |dirtyRects| contains the set of rectangles that need
-    // to be repainted. |buffer| will be |width|*|height|*4 bytes in size and
-    // represents a BGRA image with an upper-left origin.
+    // Called when an element should be painted. Pixel values passed to this
+    // function are scaled relative to view coordinates based on the value of
+    // CefScreenInfo.device_scale_factor returned from GetScreenInfo. |type|
+    // indicates whether the element is the view or the popup widget. |buffer|
+    // contains the pixel data for the whole image. |dirtyRects| contains the set
+    // of rectangles in pixel coordinates that need to be repainted. |buffer| will
+    // be |width|*|height|*4 bytes in size and represents a BGRA image with an
+    // upper-left origin.
     on_paint: procedure(self: PCefRenderProcessHandler; browser: PCefBrowser;
       kind: TCefPaintElementType; dirtyRectsCount: NativeUInt;
       const dirtyRects: PCefRectArray; const buffer: Pointer;
@@ -3780,8 +4152,9 @@ type
       const custom_cursor_info: PCefCursorInfo); stdcall;
 
     // Called when the user starts dragging content in the web view. Contextual
-    // information about the dragged content is supplied by |drag_data|. OS APIs
-    // that run a system message loop may be used within the StartDragging call.
+    // information about the dragged content is supplied by |drag_data|. (|x|,
+    // |y|) is the drag start location in screen coordinates. OS APIs that run a
+    // system message loop may be used within the StartDragging call.
     //
     // Return false (0) to abort the drag operation. Don't call any of
     // cef_browser_host_t::DragSource*Ended* functions after returning false (0).
@@ -3800,9 +4173,8 @@ type
     update_drag_cursor: procedure(self: PCefRenderProcessHandler;
       browser: PCefBrowser; operation: TCefDragOperation); stdcall;
 
-    // Called when the scroll offset has changed.
     on_scroll_offset_changed: procedure(self: PCefRenderProcessHandler;
-      browser: PCefBrowser); stdcall;
+      browser: PCefBrowser; x, y: Double); stdcall;
   end;
 
   // Implement this structure to receive geolocation updates. The functions of
@@ -3939,37 +4311,77 @@ type
     // operation. Return false (0) for default drag handling behavior or true (1)
     // to cancel the drag event.
     on_drag_enter: function(self: PCefDragHandler; browser: PCefBrowser;
-      dragData: PCefDragData; mask: TCefDragOperations): Integer;
-    stdcall
+      dragData: PCefDragData; mask: TCefDragOperations): Integer; stdcall;
+{$ifdef Win32}
+    // Called whenever draggable regions for the browser window change. These can
+    // be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
+    // draggable regions are never defined in a document this function will also
+    // never be called. If the last draggable region is removed from a document
+    // this function will be called with an NULL vector.
+    on_draggable_regions_changed: procedure(self: PCefDragHandler; browser: PCefBrowser;
+      regionsCount: NativeUInt; regions: PCefDraggableRegionArray); stdcall;
+{$endif}
   end;
 
-  // Implement this structure to provide handler implementations.
-
+  // Implement this structure to provide handler implementations. The handler
+  // instance will not be released until all objects related to the context have
+  // been destroyed.
   TCefRequestContextHandler = record
     // Base structure.
     base: TCefBase;
 
-    // Called on the IO thread to retrieve the cookie manager. The global cookie
-    // manager will be used if this function returns NULL.
-    get_cookie_manager: function(self: PCefRequestContextHandler)
-      : PCefCookieManager;
-    stdcall
+    // Called on the browser process IO thread to retrieve the cookie manager. If
+    // this function returns NULL the default cookie manager retrievable via
+    // cef_request_tContext::get_default_cookie_manager() will be used.
+    get_cookie_manager: function(self: PCefRequestContextHandler): PCefCookieManager; stdcall;
+
+    // Called on multiple browser process threads before a plugin instance is
+    // loaded. |mime_type| is the mime type of the plugin that will be loaded.
+    // |plugin_url| is the content URL that the plugin will load and may be NULL.
+    // |top_origin_url| is the URL for the top-level frame that contains the
+    // plugin when loading a specific plugin instance or NULL when building the
+    // initial list of enabled plugins for 'navigator.plugins' JavaScript state.
+    // |plugin_info| includes additional information about the plugin that will be
+    // loaded. |plugin_policy| is the recommended policy. Modify |plugin_policy|
+    // and return true (1) to change the policy. Return false (0) to use the
+    // recommended policy. The default plugin policy can be set at runtime using
+    // the `--plugin-policy=[allow|detect|block]` command-line flag. Decisions to
+    // mark a plugin as disabled by setting |plugin_policy| to
+    // PLUGIN_POLICY_DISABLED may be cached when |top_origin_url| is NULL. To
+    // purge the plugin list cache and potentially trigger new calls to this
+    // function call cef_request_tContext::PurgePluginListCache.
+    on_before_plugin_load: function(self: PCefRequestContextHandler;
+        const mime_type, plugin_url, top_origin_url: PCefString;
+        plugin_info: PCefWebPluginInfo; plugin_policy: PCefPluginPolicy): Integer; stdcall;
   end;
 
-  // A request context provides request handling for a set of related browser
-  // objects. A request context is specified when creating a new browser object
-  // via the cef_browser_host_t static factory functions. Browser objects with
-  // different request contexts will never be hosted in the same render process.
-  // Browser objects with the same request context may or may not be hosted in the
-  // same render process depending on the process model. Browser objects created
-  // indirectly via the JavaScript window.open function or targeted links will
-  // share the same render process and the same request context as the source
-  // browser. When running in single-process mode there is only a single render
-  // process (the main process) and so all browsers created in single-process mode
-  // will share the same request context. This will be the first request context
-  // passed into a cef_browser_host_t static factory function and all other
-  // request context objects will be ignored.
+  // Callback structure for cef_request_tContext::ResolveHost.
+  PCefResolveCallback = ^TCefResolveCallback;
+  TCefResolveCallback = record
+    // Base structure.
+    base: TCefBase;
 
+    // Called after the ResolveHost request has completed. |result| will be the
+    // result code. |resolved_ips| will be the list of resolved IP addresses or
+    // NULL if the resolution failed.
+    on_resolve_completed: procedure(self: PCefResolveCallback;
+      result: TCefErrorCode; resolved_ips: TCefStringList); stdcall;
+  end;
+
+  // A request context provides request handling for a set of related browser or
+  // URL request objects. A request context can be specified when creating a new
+  // browser via the cef_browser_host_t static factory functions or when creating
+  // a new URL request via the cef_urlrequest_t static factory functions. Browser
+  // objects with different request contexts will never be hosted in the same
+  // render process. Browser objects with the same request context may or may not
+  // be hosted in the same render process depending on the process model. Browser
+  // objects created indirectly via the JavaScript window.open function or
+  // targeted links will share the same render process and the same request
+  // context as the source browser. When running in single-process mode there is
+  // only a single render process (the main process) and so all browsers created
+  // in single-process mode will share the same request context. This will be the
+  // first request context passed into a cef_browser_host_t static factory
+  // function and all other request context objects will be ignored.
   TCefRequestContext = record
     // Base structure.
     base: TCefBase;
@@ -3978,12 +4390,118 @@ type
     // object.
     is_same: function(self, other: PCefRequestContext): Integer; stdcall;
 
-    // Returns true (1) if this object is the global context.
+    // Returns true (1) if this object is sharing the same storage as |that|
+    // object.
+    is_sharing_with: function(self, other: PCefRequestContext): Integer; stdcall;
+
+    // Returns true (1) if this object is the global context. The global context
+    // is used by default when creating a browser or URL request with a NULL
+    // context argument.
     is_global: function(self: PCefRequestContext): Integer; stdcall;
 
     // Returns the handler for this context if any.
-    get_handler: function(self: PCefRequestContext)
-      : PCefRequestContextHandler; stdcall;
+    get_handler: function(self: PCefRequestContext): PCefRequestContextHandler; stdcall;
+
+    // Returns the cache path for this object. If NULL an "incognito mode" in-
+    // memory cache is being used.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_cache_path: function(self: PCefRequestContext): PCefStringUserFree; stdcall;
+
+    // Returns the default cookie manager for this object. This will be the global
+    // cookie manager if this object is the global request context. Otherwise,
+    // this will be the default cookie manager used when this request context does
+    // not receive a value via cef_request_tContextHandler::get_cookie_manager().
+    // If |callback| is non-NULL it will be executed asnychronously on the IO
+    // thread after the manager's storage has been initialized.
+    get_default_cookie_manager: function(self: PCefRequestContext;
+      callback: PCefCompletionCallback): PCefCookieManager; stdcall;
+
+    // Register a scheme handler factory for the specified |scheme_name| and
+    // optional |domain_name|. An NULL |domain_name| value for a standard scheme
+    // will cause the factory to match all domain names. The |domain_name| value
+    // will be ignored for non-standard schemes. If |scheme_name| is a built-in
+    // scheme and no handler is returned by |factory| then the built-in scheme
+    // handler factory will be called. If |scheme_name| is a custom scheme then
+    // you must also implement the cef_app_t::on_register_custom_schemes()
+    // function in all processes. This function may be called multiple times to
+    // change or remove the factory that matches the specified |scheme_name| and
+    // optional |domain_name|. Returns false (0) if an error occurs. This function
+    // may be called on any thread in the browser process.
+    register_scheme_handler_factory: function(self: PCefRequestContext;
+        const scheme_name, domain_name: PCefString;
+        factory: PCefSchemeHandlerFactory): Integer; stdcall;
+
+    // Clear all registered scheme handler factories. Returns false (0) on error.
+    // This function may be called on any thread in the browser process.
+    clear_scheme_handler_factories: function(self: PCefRequestContext): Integer; stdcall;
+
+    // Tells all renderer processes associated with this context to throw away
+    // their plugin list cache. If |reload_pages| is true (1) they will also
+    // reload all pages with plugins.
+    // cef_request_tContextHandler::OnBeforePluginLoad may be called to rebuild
+    // the plugin list cache.
+    purge_plugin_list_cache: procedure(self: PCefRequestContext; reload_pages: Integer); stdcall;
+
+    // Returns true (1) if a preference with the specified |name| exists. This
+    // function must be called on the browser process UI thread.
+    has_preference: function(self: PCefRequestContext; const name: PCefString): Integer; stdcall;
+
+    // Returns the value for the preference with the specified |name|. Returns
+    // NULL if the preference does not exist. The returned object contains a copy
+    // of the underlying preference value and modifications to the returned object
+    // will not modify the underlying preference value. This function must be
+    // called on the browser process UI thread.
+    get_preference: function(self: PCefRequestContext; const name: PCefString): PCefValue; stdcall;
+
+    // Returns all preferences as a dictionary. If |include_defaults| is true (1)
+    // then preferences currently at their default value will be included. The
+    // returned object contains a copy of the underlying preference values and
+    // modifications to the returned object will not modify the underlying
+    // preference values. This function must be called on the browser process UI
+    // thread.
+    get_all_preferences: function(self: PCefRequestContext; include_defaults: Integer): PCefDictionaryValue; stdcall;
+
+    // Returns true (1) if the preference with the specified |name| can be
+    // modified using SetPreference. As one example preferences set via the
+    // command-line usually cannot be modified. This function must be called on
+    // the browser process UI thread.
+    can_set_preference: function(self: PCefRequestContext; const name: PCefString): Integer; stdcall;
+
+    // Set the |value| associated with preference |name|. Returns true (1) if the
+    // value is set successfully and false (0) otherwise. If |value| is NULL the
+    // preference will be restored to its default value. If setting the preference
+    // fails then |error| will be populated with a detailed description of the
+    // problem. This function must be called on the browser process UI thread.
+    set_preference: function(self: PCefRequestContext; const name: PCefString;
+      value: PCefValue; error: PCefString): Integer; stdcall;
+
+    // Clears all certificate exceptions that were added as part of handling
+    // cef_request_tHandler::on_certificate_error(). If you call this it is
+    // recommended that you also call close_all_connections() or you risk not
+    // being prompted again for server certificates if you reconnect quickly. If
+    // |callback| is non-NULL it will be executed on the UI thread after
+    // completion.
+    clear_certificate_exceptions: procedure(self: PCefRequestContext;
+      callback: PCefCompletionCallback); stdcall;
+
+    // Clears all active and idle connections that Chromium currently has. This is
+    // only recommended if you have released all other CEF objects but don't yet
+    // want to call cef_shutdown(). If |callback| is non-NULL it will be executed
+    // on the UI thread after completion.
+    close_all_connections: procedure(self: PCefRequestContext;
+      callback: PCefCompletionCallback); stdcall;
+
+    // Attempts to resolve |origin| to a list of associated IP addresses.
+    // |callback| will be executed on the UI thread after completion.
+    resolve_host: procedure(self: PCefRequestContext; const origin: PCefString;
+      callback: PCefResolveCallback); stdcall;
+
+    // Attempts to resolve |origin| to a list of associated IP addresses using
+    // cached data. |resolved_ips| will be populated with the list of resolved IP
+    // addresses or NULL if no cached data is available. Returns ERR_NONE on
+    // success. This function must be called on the browser process IO thread.
+    resolve_host_cached: function(self: PCefRequestContext; const origin: PCefString;
+      resolved_ips: TCefStringList): TCefErrorCode; stdcall;
   end;
 
   // Structure representing print settings.
@@ -4106,7 +4624,12 @@ type
     // Base structure.
     base: TCefBase;
 
-    ///
+    // Called when printing has started for the specified |browser|. This function
+    // will be called before the other OnPrint*() functions and irrespective of
+    // how printing was initiated (e.g. cef_browser_host_t::print(), JavaScript
+    // window.print() or PDF extension print button).
+    on_print_start: procedure(self: PCefPrintHandler; browser: PCefBrowser); stdcall;
+
     // Synchronize |settings| with client state. If |get_defaults| is true (1)
     // then populate |settings| with the default print settings. Do not keep a
     // reference to |settings| outside of this callback.
@@ -4131,6 +4654,11 @@ type
 
     // Reset client state related to printing.
     on_print_reset: procedure(self: PCefPrintHandler); stdcall;
+
+    // Return the PDF paper size in device units. Used in combination with
+    // cef_browser_host_t::print_to_pdf().
+    get_pdf_paper_size: function(self: PCefPrintHandler;
+      device_units_per_inch: Integer): TCefSize; stdcall;
   end;
 
   // Structure used to represent an entry in navigation history.
@@ -4169,12 +4697,6 @@ type
     // Returns true (1) if this navigation includes post data.
     has_post_data: function(self: PCefNavigationEntry): Integer; stdcall;
 
-    // Returns the name of the sub-frame that navigated or an NULL value if the
-    // main frame navigated.
-    // The resulting string must be freed by calling cef_string_userfree_free().
-    get_frame_name: function(self: PCefNavigationEntry)
-      : PCefStringUserFree; stdcall;
-
     // Returns the time for the last known successful navigation completion. A
     // navigation may be completed more than once if the page is reloaded. May be
     // 0 if the navigation has not yet completed.
@@ -4184,6 +4706,170 @@ type
     // response. May be 0 if the response has not yet been received or if the
     // navigation has not yet completed.
     get_http_status_code: function(self: PCefNavigationEntry): Integer; stdcall;
+  end;
+
+  // Structure representing the issuer or subject field of an X.509 certificate.
+  TCefSslCertPrincipal = record
+    // Base structure.
+    base: TCefBase;
+
+    // Returns a name that can be used to represent the issuer.  It tries in this
+    // order: CN, O and OU and returns the first non-NULL one found.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_display_name: function(self: PCefSslCertPrincipal): PCefStringUserfree; stdcall;
+
+    // Returns the common name.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_common_name: function(self: PCefSslCertPrincipal): PCefStringUserfree; stdcall;
+
+    // Returns the locality name.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_locality_name: function(self: PCefSslCertPrincipal): PCefStringUserfree; stdcall;
+
+    // Returns the state or province name.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_state_or_province_name: function(self: PCefSslCertPrincipal): PCefStringUserfree; stdcall;
+
+    // Returns the country name.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_country_name: function(self: PCefSslCertPrincipal): PCefStringUserfree; stdcall;
+
+    // Retrieve the list of street addresses.
+    get_street_addresses: procedure(self: PCefSslCertPrincipal; addresses: TCefStringList); stdcall;
+
+    // Retrieve the list of organization names.
+    get_organization_names: procedure(self: PCefSslCertPrincipal; names: TCefStringList); stdcall;
+
+    // Retrieve the list of organization unit names.
+    get_organization_unit_names: procedure(self: PCefSslCertPrincipal; names: TCefStringList); stdcall;
+
+    // Retrieve the list of domain components.
+    get_domain_components: procedure(self: PCefSslCertPrincipal; components: TCefStringList); stdcall;
+  end;
+
+  // Structure representing SSL information.
+  TCefSslInfo = record
+    // Base structure.
+    base: TCefBase;
+
+    // Returns a bitmask containing any and all problems verifying the server
+    // certificate.
+    get_cert_status: function(self: PCefSslInfo): TCefCertStatus; stdcall;
+
+    // Returns true (1) if the certificate status has any error, major or minor.
+    is_cert_status_error: function(self: PCefSslInfo): Integer; stdcall;
+
+    // Returns true (1) if the certificate status represents only minor errors
+    // (e.g. failure to verify certificate revocation).
+    is_cert_status_minor_error: function(self: PCefSslInfo): Integer; stdcall;
+
+    // Returns the subject of the X.509 certificate. For HTTPS server certificates
+    // this represents the web server.  The common name of the subject should
+    // match the host name of the web server.
+    get_subject: function(self: PCefSslInfo): PCefSslCertPrincipal; stdcall;
+
+    // Returns the issuer of the X.509 certificate.
+    get_issuer: function(self: PCefSslInfo): PCefSslCertPrincipal; stdcall;
+
+    // Returns the DER encoded serial number for the X.509 certificate. The value
+    // possibly includes a leading 00 byte.
+    get_serial_number: function(self: PCefSslInfo): PCefBinaryValue; stdcall;
+
+    // Returns the date before which the X.509 certificate is invalid.
+    // CefTime.GetTimeT() will return 0 if no date was specified.
+    get_valid_start: function(self: PCefSslInfo): TCefTime; stdcall;
+
+    // Returns the date after which the X.509 certificate is invalid.
+    // CefTime.GetTimeT() will return 0 if no date was specified.
+    get_valid_expiry: function(self: PCefSslInfo): TCefTime; stdcall;
+
+    // Returns the DER encoded data for the X.509 certificate.
+    get_derencoded: function(self: PCefSslInfo): PCefBinaryValue; stdcall;
+
+    // Returns the PEM encoded data for the X.509 certificate.
+    get_pemencoded: function(self: PCefSslInfo): PCefBinaryValue; stdcall;
+
+    // Returns the number of certificates in the issuer chain. If 0, the
+    // certificate is self-signed.
+    get_issuer_chain_size: function(self: PCefSslInfo): NativeUInt; stdcall;
+
+    // Returns the DER encoded data for the certificate issuer chain. If we failed
+    // to encode a certificate in the chain it is still present in the array but
+    // is an NULL string.
+    get_derencoded_issuer_chain: procedure(self: PCefSslInfo;
+        chainCount: NativeUInt; chain: PPCefBinaryValue); stdcall;
+
+    // Returns the PEM encoded data for the certificate issuer chain. If we failed
+    // to encode a certificate in the chain it is still present in the array but
+    // is an NULL string.
+    get_pemencoded_issuer_chain: procedure(self: PCefSslInfo;
+      out chainCount: NativeUInt; chain: PPCefBinaryValue); stdcall;
+  end;
+
+  // Structure used for retrieving resources from the resource bundle (*.pak)
+  // files loaded by CEF during startup or via the cef_resource_bundle_tHandler
+  // returned from cef_app_t::GetResourceBundleHandler. See CefSettings for
+  // additional options related to resource bundle loading. The functions of this
+  // structure may be called on any thread unless otherwise indicated.
+  TCefResourceBundle = record
+    // Base structure.
+    base: TCefBase;
+
+    // Returns the localized string for the specified |string_id| or an NULL
+    // string if the value is not found. Include cef_pack_strings.h for a listing
+    // of valid string ID values.
+    // The resulting string must be freed by calling cef_string_userfree_free().
+    get_localized_string: function(self: PCefResourceBundle; string_id: Integer): PCefStringUserFree; stdcall;
+
+    // Retrieves the contents of the specified scale independent |resource_id|. If
+    // the value is found then |data| and |data_size| will be populated and this
+    // function will return true (1). If the value is not found then this function
+    // will return false (0). The returned |data| pointer will remain resident in
+    // memory and should not be freed. Include cef_pack_resources.h for a listing
+    // of valid resource ID values.
+    get_data_resource: function(self: PCefResourceBundle; resource_id: Integer;
+      out data: Pointer; out data_size: NativeUInt): Integer; stdcall;
+
+    // Retrieves the contents of the specified |resource_id| nearest the scale
+    // factor |scale_factor|. Use a |scale_factor| value of SCALE_FACTOR_NONE for
+    // scale independent resources or call GetDataResource instead. If the value
+    // is found then |data| and |data_size| will be populated and this function
+    // will return true (1). If the value is not found then this function will
+    // return false (0). The returned |data| pointer will remain resident in
+    // memory and should not be freed. Include cef_pack_resources.h for a listing
+    // of valid resource ID values.
+     get_data_resource_for_scale: function(self: PCefResourceBundle; resource_id: Integer;
+       scale_factor: TCefScaleFactor; out data: Pointer; out data_size: NativeUInt): Integer; stdcall;
+  end;
+
+  // Implement this structure to filter resource response content. The functions
+  // of this structure will be called on the browser process IO thread.
+  TCefResponseFilter = record
+    // Base structure.
+    base: TCefBase;
+
+    // Initialize the response filter. Will only be called a single time. The
+    // filter will not be installed if this function returns false (0).
+    init_filter: function(self: PCefResponseFilter): Integer; stdcall;
+
+    // Called to filter a chunk of data. |data_in| is the input buffer containing
+    // |data_in_size| bytes of pre-filter data (|data_in| will be NULL if
+    // |data_in_size| is zero). |data_out| is the output buffer that can accept up
+    // to |data_out_size| bytes of filtered output data. Set |data_in_read| to the
+    // number of bytes that were read from |data_in|. Set |data_out_written| to
+    // the number of bytes that were written into |data_out|. If some or all of
+    // the pre-filter data was read successfully but more data is needed in order
+    // to continue filtering (filtered output is pending) return
+    // RESPONSE_FILTER_NEED_MORE_DATA. If some or all of the pre-filter data was
+    // read successfully and all available filtered output has been written return
+    // RESPONSE_FILTER_DONE. If an error occurs during filtering return
+    // RESPONSE_FILTER_ERROR. This function will be called repeatedly until there
+    // is no more data to filter (resource response is complete), |data_in_read|
+    // matches |data_in_size| (all available pre-filter bytes have been read), and
+    // the function returns RESPONSE_FILTER_DONE or RESPONSE_FILTER_ERROR. Do not
+    // keep a reference to the buffers passed to this function.
+    filter: function(self: PCefResponseFilter; data_in: Pointer; data_in_size, data_in_read: NativeUInt;
+        data_out: Pointer; data_out_size, data_out_written: NativeUInt): TCefResponseFilterStatus; stdcall;
   end;
 
   // Return the alpha byte from a cef_color_t value.
@@ -4369,6 +5055,11 @@ var
   // modal message loop. Set to false (0) after exiting the modal message loop.
   cef_set_osmodal_loop: procedure(osModalLoop: Integer); {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
+  // Call during process startup to enable High-DPI support on Windows 7 or newer.
+  // Older versions of Windows should be left DPI-unaware because they do not
+  // support DirectWrite and GDI fonts are kerned very badly.
+  cef_enable_highdpi_support: procedure; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
   // This function should be called from the application entry point function to
   // execute a secondary process. It can be used to run secondary processes from
   // the browser client executable (default behavior) or from a separate
@@ -4493,23 +5184,28 @@ var
   cef_register_extension: function(const extension_name, javascript_code
     : PCefString; handler: PCefv8Handler): Integer; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
-  // Register a scheme handler factory for the specified |scheme_name| and
-  // optional |domain_name|. An NULL |domain_name| value for a standard scheme
-  // will cause the factory to match all domain names. The |domain_name| value
-  // will be ignored for non-standard schemes. If |scheme_name| is a built-in
-  // scheme and no handler is returned by |factory| then the built-in scheme
-  // handler factory will be called. If |scheme_name| is a custom scheme then also
-  // implement the cef_app_t::on_register_custom_schemes() function in all
-  // processes. This function may be called multiple times to change or remove the
-  // factory that matches the specified |scheme_name| and optional |domain_name|.
-  // Returns false (0) if an error occurs. This function may be called on any
-  // thread in the browser process.
-  cef_register_scheme_handler_factory: function(const scheme_name,
-    domain_name: PCefString; factory: PCefSchemeHandlerFactory): Integer;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  // Register a scheme handler factory with the global request context. An NULL
+  // |domain_name| value for a standard scheme will cause the factory to match all
+  // domain names. The |domain_name| value will be ignored for non-standard
+  // schemes. If |scheme_name| is a built-in scheme and no handler is returned by
+  // |factory| then the built-in scheme handler factory will be called. If
+  // |scheme_name| is a custom scheme then you must also implement the
+  // cef_app_t::on_register_custom_schemes() function in all processes. This
+  // function may be called multiple times to change or remove the factory that
+  // matches the specified |scheme_name| and optional |domain_name|. Returns false
+  // (0) if an error occurs. This function may be called on any thread in the
+  // browser process. Using this function is equivalent to calling cef_request_tCo
+  // ntext::cef_request_context_get_global_context()->register_scheme_handler_fact
+  // ory().
+  cef_register_scheme_handler_factory: function(
+      const scheme_name, domain_name: PCefString;
+      factory: PCefSchemeHandlerFactory): Integer; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
-  // Clear all registered scheme handler factories. Returns false (0) on error.
-  // This function may be called on any thread in the browser process.
+  // Clear all scheme handler factories registered with the global request
+  // context. Returns false (0) on error. This function may be called on any
+  // thread in the browser process. Using this function is equivalent to calling c
+  // ef_request_tContext::cef_request_context_get_global_context()->clear_scheme_h
+  // andler_factories().
   cef_clear_scheme_handler_factories: function: Integer; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Add an entry to the cross-origin access whitelist.
@@ -4587,9 +5283,20 @@ var
   cef_create_url: function(parts: PCefUrlParts; url: PCefString): Integer;
 {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
+  // This is a convenience function for formatting a URL in a concise and human-
+  // friendly way to help users make security-related decisions (or in other
+  // circumstances when people need to distinguish sites, origins, or otherwise-
+  // simplified URLs from each other). Internationalized domain names (IDN) may be
+  // presented in Unicode if |languages| accepts the Unicode representation. The
+  // returned value will (a) omit the path for standard schemes, excepting file
+  // and filesystem, and (b) omit the port if it is the default for the scheme. Do
+  // not use this for URLs which will be parsed or sent to other applications.
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  cef_format_url_for_security_display: function(const origin_url, languages: PCefString): PCefStringUserFree;
+    {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
   // Returns the mime type for the specified file extension or an NULL string if
   // unknown.
-  ///
   // The resulting string must be freed by calling cef_string_userfree_free().
   cef_get_mime_type: function(const extension: PCefString): PCefStringUserFree;
 {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
@@ -4600,6 +5307,71 @@ var
   // elements in the provided vector will not be erased.
   cef_get_extensions_for_mime_type: procedure(const mime_type: PCefString;
     extensions: TCefStringList); {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  //******************************************************************************
+
+  // Encodes |data| as a base64 string.
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  cef_base64encode: function(const data: Pointer; data_size: NativeUInt): PCefStringUserFree;
+    {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Decodes the base64 encoded string |data|. The returned value will be NULL if
+  // the decoding fails.
+  cef_base64decode: function(const data: PCefString): PCefBinaryValue;
+    {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Escapes characters in |text| which are unsuitable for use as a query
+  // parameter value. Everything except alphanumerics and -_.!~*'() will be
+  // converted to "%XX". If |use_plus| is true (1) spaces will change to "+". The
+  // result is basically the same as encodeURIComponent in Javacript.
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  cef_uriencode: function(const text: PCefString; use_plus: Integer): PCefStringUserFree;
+    {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Unescapes |text| and returns the result. Unescaping consists of looking for
+  // the exact pattern "%XX" where each X is a hex digit and converting to the
+  // character with the numerical value of those digits (e.g. "i%20=%203%3b"
+  // unescapes to "i = 3;"). If |convert_to_utf8| is true (1) this function will
+  // attempt to interpret the initial decoded result as UTF-8. If the result is
+  // convertable into UTF-8 it will be returned as converted. Otherwise the
+  // initial decoded result will be returned.  The |unescape_rule| parameter
+  // supports further customization the decoding process.
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  cef_uridecode: function(const text: PCefString; convert_to_utf8: Integer;
+    unescape_rule: TCefUriUnescapeRule): PCefStringUserFree;
+    {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+	
+  // Parses |string| which represents a CSS color value. If |strict| is true (1)
+  // strict parsing rules will be applied. Returns true (1) on success or false
+  // (0) on error. If parsing succeeds |color| will be set to the color value
+  // otherwise |color| will remain unchanged.
+  cef_parse_csscolor: function(const str: PCefString; strict: Integer;
+    color: PCefColor): Integer; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+{$ifdef Win32}
+  // Parses the specified |json_string| and returns a dictionary or list
+  // representation. If JSON parsing fails this function returns NULL.
+  cef_parse_json: function(const json_string: PCefString; options: TCefJsonParserOptions): PCefValue;
+    {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Parses the specified |json_string| and returns a dictionary or list
+  // representation. If JSON parsing fails this function returns NULL and
+  // populates |error_code_out| and |error_msg_out| with an error code and a
+  // formatted error message respectively.
+  cef_parse_jsonand_return_error: function(
+      const json_string: PCefString; options: TCefJsonParserOptions;
+      error_code_out: PCefJsonParserError; error_msg_out: PCefString): PCefValue;
+    {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Generates a JSON string from the specified root |node| which should be a
+  // dictionary or list value. Returns an NULL string on failure. This function
+  // requires exclusive access to |node| including any underlying data.
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  cef_write_json: function(node: PCefValue; options: TCefJsonWriterOptions): PCefStringUserFree;
+    {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+{$endif}
+
+//******************************************************************************
 
   // Create a new TCefRequest object.
   cef_request_create: function(): PCefRequest; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
@@ -4649,33 +5421,33 @@ var
   cef_v8value_create_uint: function(value: Cardinal): PCefv8Value;
 {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
   // Create a new cef_v8value_t object of type double.
-  cef_v8value_create_double: function(value: Double): PCefv8Value;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  cef_v8value_create_double: function(value: Double): PCefv8Value; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
   // Create a new cef_v8value_t object of type Date. This function should only be
-  // called from within the scope of a cef_v8context_tHandler, cef_v8handler_t or
-  // cef_v8accessor_t callback, or in combination with calling enter() and exit()
-  // on a stored cef_v8context_t reference.
-  cef_v8value_create_date: function(const value: PCefTime): PCefv8Value;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  // called from within the scope of a cef_render_process_handler_t,
+  // cef_v8handler_t or cef_v8accessor_t callback, or in combination with calling
+  // enter() and exit() on a stored cef_v8context_t reference.
+  cef_v8value_create_date: function(const value: PCefTime): PCefv8Value; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
   // Create a new cef_v8value_t object of type string.
-  cef_v8value_create_string: function(const value: PCefString): PCefv8Value;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  cef_v8value_create_string: function(const value: PCefString): PCefv8Value; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Create a new cef_v8value_t object of type object with optional accessor. This
   // function should only be called from within the scope of a
-  // cef_v8context_tHandler, cef_v8handler_t or cef_v8accessor_t callback, or in
-  // combination with calling enter() and exit() on a stored cef_v8context_t
+  // cef_render_process_handler_t, cef_v8handler_t or cef_v8accessor_t callback,
+  // or in combination with calling enter() and exit() on a stored cef_v8context_t
   // reference.
-  cef_v8value_create_object: function(Accessor: PCefV8Accessor): PCefv8Value;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  cef_v8value_create_object: function(accessor: PCefV8Accessor): PCefv8Value; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
   // Create a new cef_v8value_t object of type array with the specified |length|.
   // If |length| is negative the returned array will have length 0. This function
-  // should only be called from within the scope of a cef_v8context_tHandler,
+  // should only be called from within the scope of a
+  // cef_render_process_handler_t, cef_v8handler_t or cef_v8accessor_t callback,
+  // or in combination with calling enter() and exit() on a stored cef_v8context_t
+  // reference.
+  cef_v8value_create_array: function(length: Integer): PCefv8Value; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Create a new cef_v8value_t object of type function. This function should only
+  // be called from within the scope of a cef_render_process_handler_t,
   // cef_v8handler_t or cef_v8accessor_t callback, or in combination with calling
   // enter() and exit() on a stored cef_v8context_t reference.
-  cef_v8value_create_array: function(length: Integer): PCefv8Value;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
-  // Create a new cef_v8value_t object of type function.
   cef_v8value_create_function: function(const name: PCefString;
     handler: PCefv8Handler): PCefv8Value; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
@@ -4732,18 +5504,23 @@ var
   cef_build_revision: function: Integer; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Returns the global cookie manager. By default data will be stored at
-  // CefSettings.cache_path if specified or in memory otherwise.
-  cef_cookie_manager_get_global_manager: function(): PCefCookieManager;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  // CefSettings.cache_path if specified or in memory otherwise. If |callback| is
+  // non-NULL it will be executed asnychronously on the IO thread after the
+  // manager's storage has been initialized. Using this function is equivalent to
+  // calling cef_request_tContext::cef_request_context_get_global_context()->get_d
+  // efault_cookie_manager().
+  cef_cookie_manager_get_global_manager: function(
+    callback: PCefCompletionCallback): PCefCookieManager; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Creates a new cookie manager. If |path| is NULL data will be stored in memory
   // only. Otherwise, data will be stored at the specified |path|. To persist
   // session cookies (cookies without an expiry date or validity interval) set
   // |persist_session_cookies| to true (1). Session cookies are generally intended
-  // to be transient and most Web browsers do not persist them. Returns NULL if
-  // creation fails.
-  cef_cookie_manager_create_manager: function(const path: PCefString;
-    persist_session_cookies: Integer): PCefCookieManager; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  // to be transient and most Web browsers do not persist them. If |callback| is
+  // non-NULL it will be executed asnychronously on the IO thread after the
+  // manager's storage has been initialized.
+  cef_cookie_manager_create_manager: function(const path: PCefString; persist_session_cookies: Integer;
+    callback: PCefCompletionCallback): PCefCookieManager; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
 
   // Create a new cef_command_line_t instance.
@@ -4757,6 +5534,9 @@ var
   // Create a new cef_process_message_t object with the specified name.
   cef_process_message_create: function(const name: PCefString)
     : PCefProcessMessage; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Creates a new object.
+  cef_value_create: function(): PCefValue; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Creates a new object that is not owned by any other object. The specified
   // |data| will be copied.
@@ -4797,9 +5577,12 @@ var
   // not normally be rendered then the response may receive special handling
   // inside the browser (for example, via the file download code path instead of
   // the URL request code path). The |request| object will be marked as read-only
-  // after calling this function.
-  cef_urlrequest_create: function(request: PCefRequest;
-    client: PCefUrlRequestClient): PCefUrlRequest; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  // after calling this function. In the browser process if |request_context| is
+  // NULL the global request context will be used. In the render process
+  // |request_context| must be NULL and the context associated with the current
+  // renderer process' browser will be used.
+  cef_urlrequest_create: function(request: PCefRequest; client: PCefUrlRequestClient;
+    request_context: PCefRequestContext): PCefUrlRequest; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Visit web plugin information.
   cef_visit_web_plugin_info: procedure(visitor: PCefWebPluginInfoVisitor);
@@ -4809,7 +5592,7 @@ var
   // whether it has already been loaded. Can be called on any thread in the
   // browser process.
   cef_refresh_web_plugins: procedure; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
-
+  
   // Add a plugin path (directory + file). This change may not take affect until
   // after cef_refresh_web_plugins() is called. Can be called on any thread in the
   // browser process.
@@ -4818,8 +5601,7 @@ var
   // Add a plugin directory. This change may not take affect until after
   // cef_refresh_web_plugins() is called. Can be called on any thread in the
   // browser process.
-  cef_add_web_plugin_directory: procedure(const dir: PCefString);
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  cef_add_web_plugin_directory: procedure(const dir: PCefString); {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Remove a plugin path (directory + file). This change may not take affect
   // until after cef_refresh_web_plugins() is called. Can be called on any thread
@@ -4834,8 +5616,7 @@ var
 
   // Force a plugin to shutdown. Can be called on any thread in the browser
   // process but will be executed on the IO thread.
-  cef_force_web_plugin_shutdown: procedure(const path: PCefString);
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  cef_force_web_plugin_shutdown: procedure(const path: PCefString); {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Register a plugin crash. Can be called on any thread in the browser process
   // but will be executed on the IO thread.
@@ -4907,15 +5688,19 @@ var
   cef_now_from_system_trace_time: function: Int64; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // Returns the global context object.
-  cef_request_context_get_global_context: function: PCefRequestContext;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  cef_request_context_get_global_context: function: PCefRequestContext; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
-  // Creates a new context object with the specified handler.
-  cef_request_context_create_context
-    : function(handler: PCefRequestContextHandler): PCefRequestContext;
-{$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+  // Creates a new context object with the specified |settings| and optional
+  // |handler|.
+  cef_request_context_create_context: function(const settings: PCefRequestContextSettings;
+    handler: PCefRequestContextHandler): PCefRequestContext; {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
 
+  // Creates a new context object that shares storage with |other| and uses an
+  // optional |handler|.
+  create_context_shared: function(other: PCefRequestContext;
+    handler: PCefRequestContextHandler): PCefRequestContext;
+      {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
   // See include/base/cef_logging.h for macros and intended usage.
 
@@ -5011,6 +5796,12 @@ var
   cef_drag_data_create: function(): PCefDragData;
 
 {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
+
+  // Returns the global resource bundle instance.
+
+  cef_resource_bundle_get_global: function(): PCefResourceBundle;
+
+  {$IFDEF CPUX64}stdcall{$ELSE}cdecl{$ENDIF};
 
 implementation
 

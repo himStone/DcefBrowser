@@ -28,7 +28,7 @@ interface
 uses
   Windows, Classes,
   DcefB.Cef3.Interfaces, DcefB.Cef3.Classes, DcefB.Cef3.Types, DcefB.Events,
-  DcefB.res, DcefB.Utils, DcefB.BaseObject;
+  DcefB.res, DcefB.Utils, DcefB.BaseObject, DcefB.Cef3.Helper;
 
 type
   TDcefBLifeSpanHandler = class(TCefLifeSpanHandlerOwn)
@@ -37,12 +37,12 @@ type
   protected
     function OnBeforePopup(const browser: ICefBrowser; const frame: ICefFrame;
       const targetUrl, targetFrameName: ustring;
+      targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
       var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
       var client: ICefClient; var settings: TCefBrowserSettings;
       var noJavascriptAccess: Boolean): Boolean; override;
     procedure OnAfterCreated(const browser: ICefBrowser); override;
     procedure OnBeforeClose(const browser: ICefBrowser); override;
-    function RunModal(const browser: ICefBrowser): Boolean; override;
     function DoClose(const browser: ICefBrowser): Boolean; override;
   public
     constructor Create(aDcefBrowser: IDcefBrowser); reintroduce;
@@ -85,6 +85,7 @@ end;
 
 function TDcefBLifeSpanHandler.OnBeforePopup(const browser: ICefBrowser;
   const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+  targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
   var popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
   var client: ICefClient; var settings: TCefBrowserSettings;
   var noJavascriptAccess: Boolean): Boolean;
@@ -95,6 +96,8 @@ begin
   PArgs.frame := @frame;
   PArgs.targetUrl := @targetUrl;
   PArgs.targetFrameName := @targetFrameName;
+  PArgs.targetDisposition := @targetDisposition;
+  PArgs.userGesture := @userGesture;
   PArgs.popupFeatures := @popupFeatures;
   PArgs.windowInfo := @windowInfo;
   PArgs.client := @client;
@@ -117,12 +120,6 @@ begin
   end;
   Dispose(PArgs);
   Result := False;
-end;
-
-function TDcefBLifeSpanHandler.RunModal(const browser: ICefBrowser): Boolean;
-begin
-  Result := False;
-  TDcefBUtils.SendMsg(browser, WM_RunModal, LParam(@Result));
 end;
 
 end.
