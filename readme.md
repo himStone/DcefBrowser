@@ -4,6 +4,10 @@ Delphi Multi-tab Chromium Browser Frame
   
 This project is based on Dcef3
 
+```css
+Warning: this branch does not support Windows XP(2623 is the last branch to support XP)
+```
+
 # FAQ:
 
 ### What is DcefBrowser?
