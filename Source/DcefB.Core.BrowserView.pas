@@ -46,6 +46,7 @@ type
     FDcefBOptions: TDcefBOptions;
 
     FActiveBrowser: ICefBrowser;
+    FActiveBrowserWinHandle: HWND;
     FActiveBrowserId: Integer;
 
     FLoadingState: Integer;
@@ -377,12 +378,12 @@ end;
 
 destructor TBrowserView.Destroy;
 begin
+  ClearInterface;
+  FBrowserDic.Free;
+  FJsExtention.Free;
+  FClosedURL.Free;
   FEvents := nil;
   FActiveBrowser := nil;
-  ClearInterface;
-  FJsExtention.Free;
-  FBrowserDic.Free;
-  FClosedURL.Free;
   inherited;
 end;
 
@@ -554,8 +555,8 @@ end;
 procedure TBrowserView.HideCurrentBrowserWindow;
 begin
   if (FActiveBrowser <> nil) and
-    (FActiveBrowser.host.WindowHandle <> INVALID_HANDLE_VALUE) then
-    ShowWindow(FActiveBrowser.host.WindowHandle, SW_HIDE);
+    (FActiveBrowserWinHandle <> INVALID_HANDLE_VALUE) then
+    ShowWindow(FActiveBrowserWinHandle, SW_HIDE);
 end;
 
 function TBrowserView.InnerCloseBrowser(const aCloseBrowserId,
@@ -585,8 +586,10 @@ begin
       ClosePageArr[0] := aCloseBrowserId;
       FEvents.doOnBeforeCloseBrowser(ClosePageArr, aCloseBrowserType,
         NeedShowBrowserId);
+
       Result := DestroyWindow(aCloseBrowserWrapper.Browser.host.WindowHandle);
       FEvents.doOnCloseBrowser(ClosePageArr, NeedShowBrowserId);
+
       SetLength(ClosePageArr, 0);
 
       FBrowserDic.Remove(aCloseBrowserId);
@@ -740,10 +743,16 @@ begin
     PArgs.suggestedName^, PArgs.callback^, PArgs.CancelDefaultEvent);
   if Not PArgs.CancelDefaultEvent then
   begin
-    if Not DirectoryExists(FDcefBOptions.DownLoadPath) then
-      CreateDir(FDcefBOptions.DownLoadPath);
-    PArgs.callback^.Cont(DealExistsFile(FDcefBOptions.DownLoadPath +
-      PArgs.suggestedName^), Not FDcefBOptions.AutoDown);
+    if FDcefBOptions.AutoDown then
+    begin
+      if Not DirectoryExists(FDcefBOptions.DownLoadPath) then
+        CreateDir(FDcefBOptions.DownLoadPath);
+        PArgs.callback^.Cont(DealExistsFile(FDcefBOptions.DownLoadPath +
+          PArgs.suggestedName^), false);
+    end else
+    begin
+       PArgs.callback^.Cont('', Not FDcefBOptions.AutoDown);
+    end;
   end;
 end;
 
@@ -1296,6 +1305,7 @@ procedure TBrowserView.SetActiveBrowserAndID(const aBrowser: ICefBrowser);
 begin
   FActiveBrowser := aBrowser;
   FActiveBrowserId := aBrowser.Identifier;
+  FActiveBrowserWinHandle := aBrowser.host.WindowHandle;
   aBrowser.host.SetFocus(True);
 end;
 
