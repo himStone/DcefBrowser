@@ -146,18 +146,23 @@ procedure TBrowserWrapperDic.Add(aBrowser: ICefBrowser);
 var
   aCefBrowserWrapper: TCefBrowserWrapper;
 begin
-  aCefBrowserWrapper := TCefBrowserWrapper.Create(aBrowser, Self);
-  inherited Add(aBrowser.Identifier, aCefBrowserWrapper);
+  if (aBrowser <> nil) and (aBrowser.Identifier <> -1) then
+  begin
+    aCefBrowserWrapper := TCefBrowserWrapper.Create(aBrowser, Self);
+    inherited Add(aBrowser.Identifier, aCefBrowserWrapper);
+  end;
 end;
 
 procedure TBrowserWrapperDic.Clear;
 var
   Item: TCefBrowserWrapper;
+  //handle: HWND;
 begin
   for Item in inherited Values do
   begin
+    //handle := Item.Browser.host.WindowHandle;
     Item.Browser.StopLoad;
-    DestroyWindow(Item.Browser.host.WindowHandle);
+    //DestroyWindow(Item.Browser.host.WindowHandle);
   end;
   inherited;
 end;

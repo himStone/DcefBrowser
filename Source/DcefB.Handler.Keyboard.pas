@@ -117,7 +117,6 @@ begin
       (EVENTFLAG_ALT_DOWN in event.modifiers) then
       Result := True;
   end;
-
 end;
 
 end.
