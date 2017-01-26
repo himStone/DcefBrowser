@@ -1321,6 +1321,7 @@ begin
   Settings.application_cache := FChromiumOptions.ApplicationCache;
   Settings.webgl := FChromiumOptions.webgl;
   Settings.background_color := FChromiumOptions.BackgroundColor;
+  Settings.accept_language_list := TCef3Helper.CefString(FChromiumOptions.AcceptLanguageList);
 end;
 
 function TCustomDcefBrowser.GetSource(var SourceText: string;

@@ -253,6 +253,7 @@ type
       write FCefWindowsSandboxInfo;
     property CefWindowlessRenderingEnabled: Boolean
       read FCefWindowlessRenderingEnabled write FCefWindowlessRenderingEnabled;
+    property CefAcceptLanguageList: ustring read FCefAcceptLanguageList write FCefAcceptLanguageList;
 
     property OnBeforeCommandLineProcessing: TOnBeforeCommandLineProcessing
       read GetOnBeforeCommandLineProcessing
@@ -1403,6 +1404,7 @@ if not (
     settings.context_safety_implementation := ContextSafetyImplementation;
     settings.ignore_certificate_errors := ord(IgnoreCertificateErrors);
     settings.background_color := BackgroundColor;
+    settings.accept_language_list := TCef3Helper.CefString(AcceptLanguageList);
     App := TInternalApp.create;
     errcode := cef_execute_process(@HInstance, TCef3Helper.CefGetData(App),
       WindowsSandboxInfo);
