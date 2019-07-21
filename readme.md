@@ -1,3 +1,9 @@
+# Project Deprecated
+
+This project is no longer maintained.
+
+---
+
 # DcefBrowser
 
 Delphi Multi-tab Chromium Browser Frame
